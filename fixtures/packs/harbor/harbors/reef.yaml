@@ -1,0 +1,14 @@
+format: harbor-plan/1
+harbor: reef
+summary: An invented reef anchorage whose mooring names a berth the plan does not have; its tool refuses it.
+
+parts:
+  outer_quay: { block: quay }
+  ketch:      { block: vessel, draught: 2m }
+  pilot:      { block: tug, within: outer_quay }
+
+links:
+  - { from: ketch, to: berth_x, carries: moors_at }
+  - { from: pilot, to: ketch,   carries: guides }
+
+border: [ketch, sandbar]

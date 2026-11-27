@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- Wave 2, "Graph".
+- The reader of `parts-links/1` documents (`specapp-core::graph`): a document to
+  `specapp-graph/1` (`schema/specapp-graph-1.schema.json`) with parts, links (id
+  `<from>-><to>:<carries>`), groups from containment, the border and marked places.
+- `crates/specapp-layout`: a graph and a view to `specapp-scene/1`
+  (`schema/specapp-scene-1.schema.json`), the same bytes for the same input. Layouts `rows`
+  (a row per layer or per family; barycentre sweeps and isotonic regression, lifted from
+  agenticspec's renderer and made generic) and `nested` (a part inside its container). A
+  scene as SVG, the palette's values per theme with a contrast test, 17 icons.
+- The manifest's view takes `rows: layer | family`.
+- `specapp trust <dir> [--manifest <file>]`: records the digest of the manifest's `tool`
+  section in `$XDG_STATE_HOME/specapp/trust.json` (`schema/specapp-trust-1.schema.json`).
+- The tool runner (`specapp-core::tool`): runs a verb of a trusted pack's tool in the pack
+  directory, kills it with what it started at the deadline, validates `specapp-findings/1`.
+- `specapp render --pack <dir> [--manifest <file>] --out <dir> [--deadline <s>]`: one
+  self-contained HTML page per `parts-links/1` document (each view of its class drawn, the
+  findings as numbered marks and as a list, the parts, links and marked places as tables,
+  both themes) and an index page. The page's data is `specapp-document/1`
+  (`schema/specapp-document-1.schema.json`).
+- Fixtures: `harbor/harbors/reef.yaml` (a link to a name no part has, a link finding, a
+  finding about the document); a link finding in `orchard`; golden scenes and pages under
+  `fixtures/expected/<pack>/` (`SPECAPP_BLESS=1` rewrites them).
+- `scripts/acceptance.sh` draws every document of all four packs and compares the rules of
+  every orgspec broken design and example with `orgspec check --json`.
+
 - Wave 1, "Contract".
 - The manifest format `specapp-pack/1` and its JSON Schema (`schema/specapp-pack-1.schema.json`).
   A manifest is validated against the schema when it is read; a path that leaves the pack is

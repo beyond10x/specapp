@@ -1,0 +1,181 @@
+{
+  "format": "specapp-scene/1",
+  "document": "harbors/cove.yaml",
+  "view": {
+    "id": "guidance",
+    "title": "Who guides whom",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 438.0,
+  "height": 260.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 38.0,
+      "h": 92.0
+    },
+    {
+      "title": "1 shore",
+      "y": 148.0,
+      "h": 92.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "tug_one",
+      "block": "tug",
+      "label": "tug_one",
+      "lines": [
+        "tug"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 16.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "tug_one (block tug), craft"
+    },
+    {
+      "id": "skiff",
+      "block": "vessel",
+      "label": "skiff",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 160.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "skiff (block vessel), craft\ndraught: 1m"
+    },
+    {
+      "id": "north_quay",
+      "block": "quay",
+      "label": "north_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 172.0,
+      "w": 118.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "north_quay (block quay), shore"
+    },
+    {
+      "id": "berth_a",
+      "block": "berth",
+      "label": "berth_a",
+      "lines": [
+        "berth",
+        "in north_quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 166.0,
+      "y": 172.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "berth_a (block berth), shore\nwithin: north_quay"
+    },
+    {
+      "id": "berth_b",
+      "block": "berth",
+      "label": "berth_b",
+      "lines": [
+        "berth",
+        "in north_quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 310.0,
+      "y": 172.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "berth_b (block berth), shore\nwithin: north_quay"
+    }
+  ],
+  "edges": [
+    {
+      "id": "tug_one->skiff:guides",
+      "from": "tug_one",
+      "to": "skiff",
+      "carries": "guides",
+      "label": "guides",
+      "points": [
+        [
+          72.0,
+          62.0
+        ],
+        [
+          144.0,
+          25.0
+        ],
+        [
+          216.0,
+          62.0
+        ]
+      ],
+      "label_at": {
+        "x": 119.4,
+        "y": 16.0,
+        "w": 49.2,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "tug_one->skiff:guides"
+    }
+  ],
+  "marks": [],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "tug",
+        "vessel"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay",
+        "berth"
+      ]
+    }
+  ]
+}

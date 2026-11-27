@@ -1,0 +1,148 @@
+{
+  "format": "specapp-scene/1",
+  "document": "harbors/reef.yaml",
+  "view": {
+    "id": "layout",
+    "title": "Layout",
+    "layout": "nested",
+    "implicit": false
+  },
+  "width": 494.0,
+  "height": 117.0,
+  "rows": [],
+  "boxes": [
+    {
+      "id": "outer_quay",
+      "block": "quay",
+      "label": "outer_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 16.0,
+      "w": 118.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "outer_quay (block quay), shore"
+    },
+    {
+      "id": "ketch",
+      "block": "vessel",
+      "label": "ketch",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 182.0,
+      "y": 16.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [
+        2
+      ],
+      "title": "ketch (block vessel), craft\ndraught: 2m"
+    },
+    {
+      "id": "berth_x",
+      "label": "berth_x",
+      "lines": [
+        "no part has this name"
+      ],
+      "colour": "slate",
+      "group": "a name no part has",
+      "x": 342.0,
+      "y": 16.0,
+      "w": 136.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": true,
+      "findings": [],
+      "title": "berth_x: a link names it, and no part of the document has this name"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ketch->berth_x:moors_at",
+      "from": "ketch",
+      "to": "berth_x",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          294.0,
+          45.6
+        ],
+        [
+          342.0,
+          43.5
+        ]
+      ],
+      "label_at": {
+        "x": 276.0,
+        "y": 83.0,
+        "w": 83.9,
+        "h": 18.0
+      },
+      "findings": [
+        1
+      ],
+      "title": "ketch->berth_x:moors_at"
+    }
+  ],
+  "marks": [
+    {
+      "finding": 1,
+      "rule": "mooring_without_berth",
+      "gate": true,
+      "subject": "link:ketch->berth_x:moors_at",
+      "x": 288.8,
+      "y": 92.0,
+      "w": 19.6
+    },
+    {
+      "finding": 2,
+      "rule": "vessel_without_berth",
+      "gate": true,
+      "subject": "part:ketch",
+      "x": 278.2,
+      "y": 16.0,
+      "w": 19.6
+    }
+  ],
+  "legend": [
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay"
+      ]
+    },
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel"
+      ]
+    },
+    {
+      "label": "a name no part has",
+      "colour": "slate",
+      "blocks": []
+    }
+  ]
+}

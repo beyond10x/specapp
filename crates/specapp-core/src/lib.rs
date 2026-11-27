@@ -4,10 +4,12 @@
 //! This crate knows no pack. What a pack calls its things comes from its manifest and its
 //! files at run time.
 
+pub mod graph;
 pub mod manifest;
 pub mod pack;
 pub mod paths;
 pub mod report;
+pub mod tool;
 pub mod words;
 
 pub use manifest::Manifest;

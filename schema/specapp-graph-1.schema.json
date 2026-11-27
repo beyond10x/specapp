@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/specapp/schema/specapp-graph-1.schema.json",
+  "title": "specapp-graph/1",
+  "description": "One composed document as parts, links and groups. Produced by specapp's reader of parts-links/1 documents, or by the pack's tool (`graph <document>`).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "document", "class", "name", "parts", "links", "groups", "border", "markers"],
+  "properties": {
+    "format": { "const": "specapp-graph/1" },
+    "document": { "description": "The path of the document relative to the pack.", "type": "string", "minLength": 1 },
+    "class": { "type": "string", "minLength": 1 },
+    "name": { "description": "The value of the key the class names, else the file's stem.", "type": "string" },
+    "parts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "fields", "on_border", "markers"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "block": { "type": "string" },
+          "kind": { "description": "The part's field `kind`, when it is one text.", "type": "string" },
+          "fields": { "description": "Every field but `block`, a marked place read as its value.", "type": "object" },
+          "inside": { "description": "The part it sits in (contain: in).", "type": "string" },
+          "per": { "description": "The part it exists once per instance of (contain: per).", "type": "string" },
+          "on_border": { "type": "boolean" },
+          "markers": { "type": "array", "items": { "$ref": "#/$defs/marker" } }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "fields", "markers"],
+        "properties": {
+          "id": { "description": "`<from>-><to>:<carries>`, `?` for a missing end or name; the n-th repeat of the same text has `#<n>` appended.", "type": "string", "minLength": 1 },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "carries": { "type": "string" },
+          "fields": { "description": "Every key but from, to and carries, a marked place read as its value.", "type": "object" },
+          "added_by": { "description": "The default of the pack that added the link.", "type": "string" },
+          "markers": { "type": "array", "items": { "$ref": "#/$defs/marker" } }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "contain", "members"],
+        "properties": {
+          "id": { "description": "The containing part.", "type": "string" },
+          "contain": { "enum": ["in", "per"] },
+          "members": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "border": { "description": "The names the document's border lists, as written.", "type": "array", "items": { "type": "string" } },
+    "markers": { "description": "Marked places outside the parts and links.", "type": "array", "items": { "$ref": "#/$defs/marker" } }
+  },
+  "$defs": {
+    "marker": {
+      "description": "A place a search may change, written {value, vary} in the document. The path is relative to its part or link, or to the document for a marker of the graph: keys joined with `.`, list positions as numbers.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "value", "vary"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "value": {},
+        "vary": {}
+      }
+    }
+  }
+}

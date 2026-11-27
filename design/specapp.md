@@ -1,8 +1,10 @@
 # specapp: one docs site and one studio for every specification pack (draft 1, 2026-11-27)
 
-Status: wave 1 ("Contract") is built: the manifest, the schemas, two fixture packs and
-`specapp pack check`. The build order is at the end; "Decided in wave 1" lists what the build
-decided that this design had left open.
+Status: waves 1 ("Contract") and 2 ("Graph") are built: the manifest, the schemas, two fixture
+packs, `specapp pack check`, the `parts-links/1` reader, the layout, `specapp trust` and
+`specapp render` (a static page per document with the findings of the pack's tool). The build
+order is at the end; "Decided in wave 1" and "Decided in wave 2" list what the builds decided
+that this design had left open.
 
 ## What it is
 
@@ -220,6 +222,9 @@ specapp's own formats. A pack's formats stay the pack's.
   it; the tool translates.
 - `specapp-patch/1`: an ordered list of edits. See "Operations".
 - `specapp-page/1`: one generated page: front matter, Markdown, and the data of its components.
+- `specapp-document/1`: the data of one page `specapp render` writes (wave 2): the graph, the
+  check, the findings with the views they are drawn in, the scenes. One producer: specapp.
+- `specapp-trust/1`: the trust file in the user's state directory. One producer: specapp.
 
 Every format has a JSON Schema in `schema/` and a version in its name. A pack's tool that
 answers in a version specapp does not know is refused with both versions named.
@@ -499,6 +504,75 @@ Q8 below kept their defaults.
   from `--graph`), `check-kpis.sh` (KPIs), `orgspec check --json` and
   `orgspec type check --json` (orgspec's documents), and agenticspec's generated pages
   (`docs/architectures/`, `website/src/generated/blocks.json`) for its architectures and layers.
+
+## Decided in wave 2
+
+What the build of wave 2 decided where this design was open or wrong. Q1 to Q8 kept their
+defaults.
+
+- The reader (`specapp-core::graph`, `schema/specapp-graph-1.schema.json`): a part's `fields`
+  are every field but `block`, a marked place read as its value; `kind` is the part's field
+  `kind` when it is one text; `inside` or `per` is the field `contain` names. A link's id is
+  `<from>-><to>:<carries>`, `?` for a missing end or name, `#<n>` appended to the n-th repeat:
+  the same text orgspec's checker names a link with, so a finding's subject needs no table.
+  `border` keeps the names as written, and `markers` of the graph holds the marked places
+  outside parts and links (agenticspec's `policies`).
+- A view without `blocks` shows every part, without `carries` every link. A link is shown when
+  both its ends are shown or are no part at all; a name no part has is drawn as a dashed ghost
+  box, so a finding on such a link is drawn too.
+- Nothing of a document is hidden: when the views of a class leave a part or a link out, or the
+  class declares none, specapp adds the view "All parts and links" (`rows`, `implicit: true`).
+- `rows` puts the highest layer on top. A view may say `rows: family` (new optional manifest
+  field, default `layer`): a block in a family takes the family's row, ranked by the lowest
+  layer of its blocks. A part that exists once per instance of another part (`per`) is drawn
+  inside that part's box; a part that sits `in` another keeps its own row and says "in X".
+  Names no part has get the bottom row, parts of a block the pack does not have the row above.
+- `nested` draws both `in` and `per` inside the container. Parts flow left to right and wrap;
+  an edge is a straight segment between box borders, and its label takes the first place along
+  or beside it that covers no box text. Labels can still cross a line in a dense design; `rows`
+  is the layout that guarantees no overlap.
+- Lifted from agenticspec's renderer and made generic: rows with label rows between them,
+  barycentre sweeps keeping the order with the fewest crossings, placement by isotonic
+  regression, text widths by character class. Not lifted: the table of block names, channel
+  cards, chips of a run.
+- The palette's values: per colour a fill and a stroke per theme; text on a fill at least 4.5:1,
+  a stroke on the page and on its fill at least 3:1, in both themes (`palette.rs`, held by a
+  test). A block in no family takes the colour of its layer's position, in palette order.
+  specapp draws 17 icon names (`icons.rs`); any other icon name is drawn as its first letter.
+- A finding's number is its position in the tool's answer. It is a mark `!<n>` at the top right
+  of its part's box or at the left of its link's label (filled: gated; outlined: not gated), the
+  marked link is dashed, and the row `<n>` of the findings list names the views it is drawn in.
+  A finding about the document, or about a part or link the graph does not have, is a row only.
+- Trust: `trust.json` in `$XDG_STATE_HOME/specapp` (default `~/.local/state/specapp`) maps the
+  resolved pack directory to `sha256:` of the JSON of the manifest's `tool` section. Trust
+  belongs to the directory, not to the manifest file: a second manifest with the same `tool`
+  section is trusted too.
+- A run: working directory the pack, stdin closed, its own process group, killed with all it
+  started when it passes the deadline (`specapp render --deadline`, default 30 s). The answer is
+  validated against `specapp-findings/1`; another version is refused with both named. The run
+  is not cut off from the network yet, and it inherits the environment.
+- `specapp render --pack <dir> [--manifest <file>] --out <dir>` writes `index.html` and
+  `<class>/<file stem>.html` per `parts-links/1` document. A page is one file: CSS and SVG
+  inline, no font, no script that runs, no request; its data is `specapp-document/1` in a
+  `<script type="application/json">` element. A `records/1` class is listed on the index with
+  its count; its pages come with the docs (wave 3). The drawing keeps its size and scrolls
+  inside its frame rather than shrinking text.
+- orgspec answers `check` with `orgspec specapp check <design>`; its manifest runs
+  `target/debug/orgspec specapp` (Q8: specapp builds nothing; `pack check` says when the binary
+  is missing). A violation's subject is `part:` when it names a part, `link:` when it names a
+  link the design wrote or a default added, else `document` with the name kept at the start of
+  the message (a name the border lists, the organization). A refused type is a gated finding
+  about the document.
+- orgspec's defaults add links the generic reader cannot see; a finding on such a link is a row,
+  not a mark. orgspec's `graph` verb closes that; no broken design or example needs it today.
+- The format keys `value`, `vary` and `message` are also words of real packs (a layer of orgspec,
+  a link of agenticspec). specapp reads them through typed structures, so the vocabulary check
+  stays strict.
+- Gaps of agenticspec's architectures, left to agenticspec: two blocks the documents use
+  (`pool`, `schedule`) are no block of `blocks/`, so their parts are drawn as "block the pack
+  does not have"; a link `over` a part (a channel) has no neutral field and is a field only;
+  part fields that name other parts (`egress`, `acts_for`) are fields only; the architectures
+  under `architectures/ladder/` are outside the manifest's glob.
 
 ## Open questions
 

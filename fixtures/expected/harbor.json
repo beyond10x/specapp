@@ -5,9 +5,9 @@
     "kpis": 4,
     "planned_blocks": 1,
     "document_classes": 2,
-    "documents": 3
+    "documents": 4
   },
   "level": "L3",
   "tool_state": "found",
-  "words": { "block": 5, "layer": 3, "link": 2, "kpi_id": 4, "rule": 2 }
+  "words": { "block": 5, "layer": 3, "link": 2, "kpi_id": 4, "rule": 4 }
 }

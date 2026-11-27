@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/specapp/schema/specapp-trust-1.schema.json",
+  "title": "specapp-trust/1",
+  "description": "The packs whose tool the user trusts: per pack directory (resolved) the digest of the manifest's `tool` section, `sha256:` and the SHA-256 of its JSON. Written by `specapp trust <dir>` to trust.json in the user's state directory ($XDG_STATE_HOME/specapp, else ~/.local/state/specapp).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "packs"],
+  "properties": {
+    "format": { "const": "specapp-trust/1" },
+    "packs": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+    }
+  }
+}

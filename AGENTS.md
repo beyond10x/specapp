@@ -52,12 +52,21 @@ repository; it describes itself in `specapp.yaml`.
   `scripts/planning-only.sh`, and `scripts/planning-only.test.sh` holds both sides of it.
 - `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <agenticspec-manifest>` is the
   acceptance of a wave: `specapp pack check` on both fixture packs and both real packs, with
-  the counts compared to what each pack's own tooling prints, then the vocabulary check with
-  all four packs. It is not part of `task check` and not run in CI. A real pack's manifest that
-  lives outside this repository is passed with `--manifest`; it is never committed here.
+  the counts compared to what each pack's own tooling prints; `specapp render` of every pack
+  (pages = documents) with the tools trusted in a state directory of the run, and for every
+  broken design and example of orgspec the rule ids of the page equal to
+  `orgspec check --json` and every finding about a part or link marked; then the vocabulary
+  check with all four packs. It is not part of `task check` and not run in CI. A real pack's
+  manifest that lives outside this repository is passed with `--manifest`; it is never
+  committed here.
 - Tests read `fixtures/expected/<pack>.json` for what a fixture pack must count, so no test
   names a word of a pack. The compiled model of a fixture's blocks is made once per digest of
   its sources under the target directory (`tests/cases/common.rs`).
+- The scenes and pages of the fixture packs are committed under `fixtures/expected/<pack>/`
+  and compared byte for byte. A change of the layout or the page rewrites them with
+  `SPECAPP_BLESS=1 cargo nextest run`; the diff of those files is part of the review.
+- A test or script that runs a pack's tool trusts it in a state directory of its own
+  (`XDG_STATE_HOME`), never in the user's.
 
 ## Open decisions
 

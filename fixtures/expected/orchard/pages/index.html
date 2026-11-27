@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orchard</title>
+<style>
+:root{color-scheme:light dark;--bg:#ffffff;--fg:#111827;--muted:#4b5563;--line:#6b7280;--band:#f8fafc;--finding:#b91c1c;--finding-fg:#ffffff;--link:#1d4ed8;}
+.c-blue{--fill:#dbeafe;--stroke:#1d4ed8}
+.c-violet{--fill:#ede9fe;--stroke:#6d28d9}
+.c-green{--fill:#dcfce7;--stroke:#15803d}
+.c-teal{--fill:#ccfbf1;--stroke:#0f766e}
+.c-amber{--fill:#fef3c7;--stroke:#b45309}
+.c-orange{--fill:#ffedd5;--stroke:#c2410c}
+.c-red{--fill:#fee2e2;--stroke:#b91c1c}
+.c-pink{--fill:#fce7f3;--stroke:#be185d}
+.c-cyan{--fill:#cffafe;--stroke:#0e7490}
+.c-lime{--fill:#ecfccb;--stroke:#4d7c0f}
+.c-brown{--fill:#f3e8dc;--stroke:#7c4a1e}
+.c-slate{--fill:#f1f5f9;--stroke:#334155}
+@media (prefers-color-scheme: dark){
+:root{--bg:#0f1115;--fg:#e5e7eb;--muted:#9ca3af;--line:#9ca3af;--band:#161a20;--finding:#f87171;--finding-fg:#0f1115;--link:#93c5fd;}
+.c-blue{--fill:#172554;--stroke:#60a5fa}
+.c-violet{--fill:#2e1065;--stroke:#a78bfa}
+.c-green{--fill:#052e16;--stroke:#4ade80}
+.c-teal{--fill:#042f2e;--stroke:#2dd4bf}
+.c-amber{--fill:#451a03;--stroke:#fbbf24}
+.c-orange{--fill:#431407;--stroke:#fb923c}
+.c-red{--fill:#450a0a;--stroke:#f87171}
+.c-pink{--fill:#500724;--stroke:#f472b6}
+.c-cyan{--fill:#083344;--stroke:#22d3ee}
+.c-lime{--fill:#1a2e05;--stroke:#a3e635}
+.c-brown{--fill:#2a1a0e;--stroke:#d4a373}
+.c-slate{--fill:#1e293b;--stroke:#94a3b8}
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--fg)}
+body{margin:0 auto;max-width:1240px;padding:16px 20px 48px;font:15px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;overflow-wrap:break-word}
+a{color:var(--link)}
+h1{font-size:26px;margin:4px 0}
+h2{font-size:19px;margin:28px 0 8px}
+td code{overflow-wrap:anywhere}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+.crumbs,.path,.meta,.note{color:var(--muted);margin:2px 0}
+.private{display:inline-block;border:1.5px solid var(--finding);color:var(--fg);border-radius:4px;padding:0 6px;font-size:13px;font-weight:600}
+.state{border-left:4px solid var(--line);padding:4px 10px;margin:6px 0}
+.state.bad{border-left-color:var(--finding)}
+nav ul{list-style:none;padding:0;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px 16px}
+figure.drawing{margin:8px 0;overflow-x:auto;border:1px solid var(--line);border-radius:8px;padding:4px}
+ul.legend{list-style:none;padding:0;margin:6px 0;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px}
+ul.legend svg{vertical-align:middle;margin-right:6px}
+.swatch{fill:var(--fill);stroke:var(--stroke);stroke-width:1.5}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:4px 8px;border-bottom:1px solid var(--line)}
+th{font-weight:600}
+.badge{display:inline-block;min-width:26px;text-align:center;border-radius:8px;padding:0 6px;font-size:12px;font-weight:700;background:var(--finding);color:var(--finding-fg)}
+.badge.note{background:var(--bg);color:var(--fg);border:1.5px solid var(--finding)}
+tr:target td{outline:2px solid var(--link)}
+svg.scene{display:block;max-width:none;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+svg.scene .band{fill:var(--band);stroke:none}
+svg.scene .band-title{fill:var(--muted);font-size:11px;font-weight:600}
+svg.scene .box>rect.body{fill:var(--fill);stroke:var(--stroke);stroke-width:1.5}
+svg.scene .box.container>rect.body{fill:var(--bg)}
+svg.scene .box.ghost>rect.body{fill:var(--bg);stroke-dasharray:5 3}
+svg.scene .box>rect.edge-of-border{fill:none;stroke:var(--stroke);stroke-width:1;stroke-dasharray:2 2}
+svg.scene .box.marked>rect.body{stroke:var(--finding);stroke-width:2.5}
+svg.scene .label{fill:var(--fg);font-size:13px;font-weight:600}
+svg.scene .child .label{font-size:11px;font-weight:500}
+svg.scene .line{fill:var(--fg);font-size:11px}
+svg.scene .icon{fill:none;stroke:var(--stroke);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+svg.scene .monogram{fill:var(--stroke);font-size:10px;font-weight:700}
+svg.scene .edge>path{fill:none;stroke:var(--line);stroke-width:1.4}
+svg.scene .edge.added>path{stroke-dasharray:6 4}
+svg.scene .edge.marked>path{stroke:var(--finding);stroke-width:2.4;stroke-dasharray:8 3}
+svg.scene .arrowhead{fill:var(--line)}
+svg.scene .pill{fill:var(--bg);stroke:var(--line);stroke-width:1}
+svg.scene .edge.marked .pill{stroke:var(--finding);stroke-width:1.6}
+svg.scene .edge-label{fill:var(--fg);font-size:11px}
+svg.scene .mark rect{fill:var(--finding)}
+svg.scene .mark text{fill:var(--finding-fg);font-size:10px;font-weight:700}
+svg.scene .mark.note rect{fill:var(--bg);stroke:var(--finding);stroke-width:1.5}
+svg.scene .mark.note text{fill:var(--fg)}
+</style>
+</head>
+<body>
+<header>
+<p><span class="private">private pack: not for publication</span></p>
+<h1>Orchard</h1>
+<p>An invented pack of an orchard, for the tests of specapp.</p>
+</header>
+<main>
+<section id="class-layout" aria-labelledby="class-layout-h"><h2 id="class-layout-h">Orchard layouts</h2>
+<div class="table-wrap"><table><thead><tr><th>Document</th><th>Check</th><th>Findings</th><th>Views</th></tr></thead><tbody>
+<tr><td><a href="layout/hillside.html">hillside</a><br><code>orchards/hillside.yaml</code></td><td>valid</td><td>2 (0 gated)</td><td>1</td></tr>
+</tbody></table></div></section>
+<section id="class-variety" aria-labelledby="class-variety-h"><h2 id="class-variety-h">Varieties</h2>
+<p class="note">1 document(s) of shape records/1; these pages draw only parts-links/1 documents.</p></section>
+</main>
+</body>
+</html>
