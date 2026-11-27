@@ -14,10 +14,24 @@ links, and a tool that checks such a document. A pack describes itself in one ma
 
 ## Status
 
-Design only. Nothing is built.
+Wave 1 of 8 ("Contract") is built: the manifest format `specapp-pack/1` with its JSON Schema,
+two invented fixture packs, and `specapp pack check`. There is no docs site and no studio yet.
+
+```sh
+cargo build -p specapp
+target/debug/specapp pack check fixtures/packs/harbor
+target/debug/specapp pack check <dir> --manifest <file> --json
+```
+
+`pack check` compiles the pack's blocks with `ess specify compile` (the `ess` CLI on PATH),
+reads its KPI catalogue and documents, and prints counts and warnings. It runs nothing of the
+pack. `task check` is the gate; `scripts/acceptance.sh` compares the counts on real packs with
+what their own tooling prints.
 
 - [design/specapp.md](design/specapp.md): the design, the manifest, the neutral formats, the
   tool protocol, the build order and the open questions.
+- [schema/](schema/): the JSON Schemas of the formats.
+- [CHANGELOG.md](CHANGELOG.md): what changed.
 - [AGENTS.md](AGENTS.md): rules for agent sessions that work here.
 
 ## License

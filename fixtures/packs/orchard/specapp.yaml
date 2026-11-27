@@ -1,0 +1,37 @@
+format: specapp-pack/1
+pack: orchard
+title: Orchard
+summary: An invented pack of an orchard, for the tests of specapp.
+visibility: private
+
+blocks:
+  path: blocks
+  strip_prefix: orchard.
+
+kpis:
+  path: kpis/catalogue.yaml
+  fields: { measure: sort, modes: seasons }
+
+documents:
+  - class: layout
+    title: Orchard layouts
+    paths: [orchards/*.yaml]
+    shape: parts-links/1
+    name: orchard
+    contain: { per: each }
+    views:
+      - id: work
+        title: Work
+        layout: rows
+  - class: variety
+    title: Varieties
+    paths: [varieties/*.yaml]
+    shape: records/1
+    name: variety
+    tables:
+      - { title: Traits, at: traits, key: name, columns: [summary] }
+      - { title: Rules, at: rules, key: id, columns: [summary] }
+
+tool:
+  run: [sh, tool/orchard-tool]
+  verbs: [check]

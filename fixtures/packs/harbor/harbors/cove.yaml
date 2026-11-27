@@ -1,0 +1,16 @@
+format: harbor-plan/1
+harbor: cove
+summary: An invented small cove with one quay and two berths.
+
+parts:
+  north_quay:  { block: quay }
+  berth_a:     { block: berth, within: north_quay }
+  berth_b:     { block: berth, within: north_quay }
+  skiff:       { block: vessel, draught: 1m }
+  tug_one:     { block: tug }
+
+links:
+  - { from: skiff,     to: berth_a, carries: moors_at }
+  - { from: tug_one,   to: skiff,   carries: guides }
+
+border: [skiff]

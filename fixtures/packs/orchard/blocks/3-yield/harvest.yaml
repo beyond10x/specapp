@@ -1,0 +1,115 @@
+domain: orchard.harvest
+
+summary: The fruit of one tree in one season.
+
+naming:
+  wire: harvest
+  display: Harvest
+
+entities:
+  - name: orchard.harvest.Harvest
+    identity:
+      name: harvest_id
+      type: orchard.seedbank.HarvestId
+    fields:
+      - name: tree_id
+        type: orchard.seedbank.TreeId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: tree_id, kind: references, target: orchard.tree.Tree, cardinality: one, via: tree_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: orchard.harvest.HarvestNotFound
+    summary: No harvest of this identity exists.
+    fields:
+      - {name: harvest_id, type: orchard.seedbank.HarvestId}
+
+  - name: orchard.harvest.HarvestStateConflict
+    summary: The harvest is not in a state this command acts from.
+    fields:
+      - {name: state, type: orchard.harvest.Harvest.State}
+
+events:
+  - name: orchard.harvest.HarvestStarted
+    fields:
+      - {name: harvest_id, type: orchard.seedbank.HarvestId}
+      - {name: at, type: Timestamp}
+
+  - name: orchard.harvest.HarvestRetired
+    fields:
+      - {name: harvest_id, type: orchard.seedbank.HarvestId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: orchard.harvest.StartHarvest
+    naming:
+      wire: start-harvest
+      display: Start a harvest
+    input:
+      - {name: harvest_id, type: orchard.seedbank.HarvestId}
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: orchard.harvest.Harvest
+        instance: harvest_id
+        sets:
+          tree_id: input.tree_id
+          started_at: input.at
+        emits: [orchard.harvest.HarvestStarted]
+        payload:
+          orchard.harvest.HarvestStarted:
+            harvest_id: input.harvest_id
+            at: input.at
+        summary: The harvest exists and is Active.
+
+  - name: orchard.harvest.RetireHarvest
+    naming:
+      wire: retire-harvest
+      display: Retire a harvest
+    input:
+      - {name: harvest_id, type: orchard.seedbank.HarvestId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-harvest
+        unknown_instance: true
+        error: orchard.harvest.HarvestNotFound
+        payload:
+          orchard.harvest.HarvestNotFound: {harvest_id: input.harvest_id}
+      - name: retired
+        moves: orchard.harvest.Harvest.retire
+        instance: harvest_id
+        emits: [orchard.harvest.HarvestRetired]
+        payload:
+          orchard.harvest.HarvestRetired:
+            harvest_id: input.harvest_id
+            at: input.at
+        summary: The harvest is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: orchard.harvest.HarvestStateConflict
+        payload:
+          orchard.harvest.HarvestStateConflict: {state: {subject: state}}
+        summary: The harvest had already retired.
+
+views:
+  - name: orchard.harvest.Harvests
+    source: orchard.harvest.Harvest
+    consistency: read_your_writes
+    fields:
+      - {name: harvest_id, type: orchard.seedbank.HarvestId}
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: orchard.harvest.Harvest.State}
+    naming:
+      wire: harvests
+      display: Harvests

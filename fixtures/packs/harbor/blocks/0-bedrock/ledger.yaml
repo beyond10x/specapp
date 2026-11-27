@@ -1,0 +1,13 @@
+domain: harbor.ledger
+
+summary: Identifiers of every entity of the harbor blocks.
+
+naming:
+  wire: ledger
+  display: Ledger
+
+types:
+  - {name: harbor.ledger.QuayId, kind: newtype, of: Uuid}
+  - {name: harbor.ledger.BerthId, kind: newtype, of: Uuid}
+  - {name: harbor.ledger.VesselId, kind: newtype, of: Uuid}
+  - {name: harbor.ledger.TugId, kind: newtype, of: Uuid}

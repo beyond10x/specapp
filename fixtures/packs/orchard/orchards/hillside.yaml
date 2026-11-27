@@ -1,0 +1,18 @@
+format: orchard-layout/1
+orchard: hillside
+summary: An invented hillside orchard; every picker carries a basket of its own.
+
+parts:
+  upper:   { block: grove }
+  apple:   { block: tree, grove: upper }
+  plum:    { block: tree, grove: upper }
+  picker:  { block: picker, hands: { value: 2, vary: [1, 2, 3] } }
+  basket:  { block: basket, each: picker }
+  crop:    { block: harvest }
+
+links:
+  - { from: picker, to: apple,  carries: tends }
+  - { from: picker, to: basket, carries: fills }
+  - { from: basket, to: crop,   carries: hauls_to }
+
+border: [crop]

@@ -1,0 +1,50 @@
+format: specapp-pack/1
+pack: harbor
+title: Harbor
+summary: An invented pack of a small harbor, for the tests of specapp.
+visibility: public
+source_url: https://example.org/harbor
+
+blocks:
+  path: blocks
+  strip_prefix: harbor.
+
+kpis:
+  path: kpis/catalogue.yaml
+  fields: { measure: gauge, modes: tides }
+
+documents:
+  - class: plan
+    title: Harbor plans
+    paths: [harbors/*.yaml]
+    shape: parts-links/1
+    name: harbor
+    contain: { in: within }
+    views:
+      - id: layout
+        title: Layout
+        layout: nested
+        blocks: [quay, berth, vessel]
+        carries: [moors_at]
+      - id: guidance
+        title: Who guides whom
+        layout: rows
+        carries: [guides]
+  - class: bylaw
+    title: Bylaws
+    paths: [bylaws/*.yaml]
+    shape: records/1
+    name: bylaw
+    tables:
+      - { title: Rules, at: rules, key: id, columns: [summary, gate] }
+
+tool:
+  run: [./tool/harbor-tool.sh]
+  verbs: [check]
+
+presentation:
+  families:
+    shore: { blocks: [ledger, quay, berth], colour: teal, icon: anchor }
+    craft: { blocks: [vessel, tug], colour: amber, icon: sailboat }
+  vocabulary:
+    moors_at: moors at

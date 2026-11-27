@@ -1,0 +1,11 @@
+format: harbor-bylaw/1
+bylaw: mooring
+summary: The rules the harbor tool checks a plan against.
+
+rules:
+  - id: berth_without_quay
+    summary: Every berth lies within a quay.
+    gate: true
+  - id: vessel_without_berth
+    summary: Every vessel on the border moors at a berth.
+    gate: true

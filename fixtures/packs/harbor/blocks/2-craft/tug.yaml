@@ -1,0 +1,115 @@
+domain: harbor.tug
+
+summary: Tows a vessel between the open water and its berth.
+
+naming:
+  wire: tug
+  display: Tug
+
+entities:
+  - name: harbor.tug.Tug
+    identity:
+      name: tug_id
+      type: harbor.ledger.TugId
+    fields:
+      - name: vessel_id
+        type: harbor.ledger.VesselId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: vessel_id, kind: references, target: harbor.vessel.Vessel, cardinality: one, via: vessel_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: harbor.tug.TugNotFound
+    summary: No tug of this identity exists.
+    fields:
+      - {name: tug_id, type: harbor.ledger.TugId}
+
+  - name: harbor.tug.TugStateConflict
+    summary: The tug is not in a state this command acts from.
+    fields:
+      - {name: state, type: harbor.tug.Tug.State}
+
+events:
+  - name: harbor.tug.TugStarted
+    fields:
+      - {name: tug_id, type: harbor.ledger.TugId}
+      - {name: at, type: Timestamp}
+
+  - name: harbor.tug.TugRetired
+    fields:
+      - {name: tug_id, type: harbor.ledger.TugId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: harbor.tug.StartTug
+    naming:
+      wire: start-tug
+      display: Start a tug
+    input:
+      - {name: tug_id, type: harbor.ledger.TugId}
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: harbor.tug.Tug
+        instance: tug_id
+        sets:
+          vessel_id: input.vessel_id
+          started_at: input.at
+        emits: [harbor.tug.TugStarted]
+        payload:
+          harbor.tug.TugStarted:
+            tug_id: input.tug_id
+            at: input.at
+        summary: The tug exists and is Active.
+
+  - name: harbor.tug.RetireTug
+    naming:
+      wire: retire-tug
+      display: Retire a tug
+    input:
+      - {name: tug_id, type: harbor.ledger.TugId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-tug
+        unknown_instance: true
+        error: harbor.tug.TugNotFound
+        payload:
+          harbor.tug.TugNotFound: {tug_id: input.tug_id}
+      - name: retired
+        moves: harbor.tug.Tug.retire
+        instance: tug_id
+        emits: [harbor.tug.TugRetired]
+        payload:
+          harbor.tug.TugRetired:
+            tug_id: input.tug_id
+            at: input.at
+        summary: The tug is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: harbor.tug.TugStateConflict
+        payload:
+          harbor.tug.TugStateConflict: {state: {subject: state}}
+        summary: The tug had already retired.
+
+views:
+  - name: harbor.tug.Tugs
+    source: harbor.tug.Tug
+    consistency: read_your_writes
+    fields:
+      - {name: tug_id, type: harbor.ledger.TugId}
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: harbor.tug.Tug.State}
+    naming:
+      wire: tugs
+      display: Tugs

@@ -1,0 +1,115 @@
+domain: orchard.tree
+
+summary: One tree of a grove.
+
+naming:
+  wire: tree
+  display: Tree
+
+entities:
+  - name: orchard.tree.Tree
+    identity:
+      name: tree_id
+      type: orchard.seedbank.TreeId
+    fields:
+      - name: grove_id
+        type: orchard.seedbank.GroveId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: grove_id, kind: references, target: orchard.grove.Grove, cardinality: one, via: grove_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: orchard.tree.TreeNotFound
+    summary: No tree of this identity exists.
+    fields:
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+
+  - name: orchard.tree.TreeStateConflict
+    summary: The tree is not in a state this command acts from.
+    fields:
+      - {name: state, type: orchard.tree.Tree.State}
+
+events:
+  - name: orchard.tree.TreeStarted
+    fields:
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: at, type: Timestamp}
+
+  - name: orchard.tree.TreeRetired
+    fields:
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: orchard.tree.StartTree
+    naming:
+      wire: start-tree
+      display: Start a tree
+    input:
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: orchard.tree.Tree
+        instance: tree_id
+        sets:
+          grove_id: input.grove_id
+          started_at: input.at
+        emits: [orchard.tree.TreeStarted]
+        payload:
+          orchard.tree.TreeStarted:
+            tree_id: input.tree_id
+            at: input.at
+        summary: The tree exists and is Active.
+
+  - name: orchard.tree.RetireTree
+    naming:
+      wire: retire-tree
+      display: Retire a tree
+    input:
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-tree
+        unknown_instance: true
+        error: orchard.tree.TreeNotFound
+        payload:
+          orchard.tree.TreeNotFound: {tree_id: input.tree_id}
+      - name: retired
+        moves: orchard.tree.Tree.retire
+        instance: tree_id
+        emits: [orchard.tree.TreeRetired]
+        payload:
+          orchard.tree.TreeRetired:
+            tree_id: input.tree_id
+            at: input.at
+        summary: The tree is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: orchard.tree.TreeStateConflict
+        payload:
+          orchard.tree.TreeStateConflict: {state: {subject: state}}
+        summary: The tree had already retired.
+
+views:
+  - name: orchard.tree.Trees
+    source: orchard.tree.Tree
+    consistency: read_your_writes
+    fields:
+      - {name: tree_id, type: orchard.seedbank.TreeId}
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: orchard.tree.Tree.State}
+    naming:
+      wire: trees
+      display: Trees

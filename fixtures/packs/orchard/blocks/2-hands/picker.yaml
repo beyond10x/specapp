@@ -1,0 +1,115 @@
+domain: orchard.picker
+
+summary: A hand that picks fruit in a grove.
+
+naming:
+  wire: picker
+  display: Picker
+
+entities:
+  - name: orchard.picker.Picker
+    identity:
+      name: picker_id
+      type: orchard.seedbank.PickerId
+    fields:
+      - name: grove_id
+        type: orchard.seedbank.GroveId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: grove_id, kind: references, target: orchard.grove.Grove, cardinality: one, via: grove_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: orchard.picker.PickerNotFound
+    summary: No picker of this identity exists.
+    fields:
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+
+  - name: orchard.picker.PickerStateConflict
+    summary: The picker is not in a state this command acts from.
+    fields:
+      - {name: state, type: orchard.picker.Picker.State}
+
+events:
+  - name: orchard.picker.PickerStarted
+    fields:
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: at, type: Timestamp}
+
+  - name: orchard.picker.PickerRetired
+    fields:
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: orchard.picker.StartPicker
+    naming:
+      wire: start-picker
+      display: Start a picker
+    input:
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: orchard.picker.Picker
+        instance: picker_id
+        sets:
+          grove_id: input.grove_id
+          started_at: input.at
+        emits: [orchard.picker.PickerStarted]
+        payload:
+          orchard.picker.PickerStarted:
+            picker_id: input.picker_id
+            at: input.at
+        summary: The picker exists and is Active.
+
+  - name: orchard.picker.RetirePicker
+    naming:
+      wire: retire-picker
+      display: Retire a picker
+    input:
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-picker
+        unknown_instance: true
+        error: orchard.picker.PickerNotFound
+        payload:
+          orchard.picker.PickerNotFound: {picker_id: input.picker_id}
+      - name: retired
+        moves: orchard.picker.Picker.retire
+        instance: picker_id
+        emits: [orchard.picker.PickerRetired]
+        payload:
+          orchard.picker.PickerRetired:
+            picker_id: input.picker_id
+            at: input.at
+        summary: The picker is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: orchard.picker.PickerStateConflict
+        payload:
+          orchard.picker.PickerStateConflict: {state: {subject: state}}
+        summary: The picker had already retired.
+
+views:
+  - name: orchard.picker.Pickers
+    source: orchard.picker.Picker
+    consistency: read_your_writes
+    fields:
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: orchard.picker.Picker.State}
+    naming:
+      wire: pickers
+      display: Pickers

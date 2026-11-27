@@ -1,0 +1,14 @@
+domain: orchard.seedbank
+
+summary: Identifiers of every entity of the orchard blocks.
+
+naming:
+  wire: seedbank
+  display: Seedbank
+
+types:
+  - {name: orchard.seedbank.GroveId, kind: newtype, of: Uuid}
+  - {name: orchard.seedbank.TreeId, kind: newtype, of: Uuid}
+  - {name: orchard.seedbank.PickerId, kind: newtype, of: Uuid}
+  - {name: orchard.seedbank.BasketId, kind: newtype, of: Uuid}
+  - {name: orchard.seedbank.HarvestId, kind: newtype, of: Uuid}

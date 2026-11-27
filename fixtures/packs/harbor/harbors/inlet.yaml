@@ -1,0 +1,12 @@
+format: harbor-plan/1
+harbor: inlet
+summary: An invented inlet whose only berth has no quay; its tool refuses it.
+
+parts:
+  lone_berth: { block: berth }
+  barge:      { block: vessel, draught: { value: 3m, vary: [2m, 3m, 4m] } }
+
+links:
+  - { from: barge, to: lone_berth, carries: moors_at }
+
+border: [barge]

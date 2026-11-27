@@ -1,0 +1,22 @@
+[package]
+name = "specapp-core"
+description = "The manifest of a specification pack, pack loading and the neutral model of specapp."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml_ng.workspace = true
+glob.workspace = true
+jsonschema.workspace = true
+
+[dev-dependencies]
+sha2.workspace = true

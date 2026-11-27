@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/specapp/schema/specapp-pack-1.schema.json",
+  "title": "specapp-pack/1",
+  "description": "The manifest of a pack, specapp.yaml. Every path is relative to the pack directory and stays inside it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "pack", "title", "visibility", "blocks"],
+  "properties": {
+    "format": { "const": "specapp-pack/1" },
+    "pack": { "$ref": "#/$defs/name" },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string" },
+    "visibility": { "enum": ["public", "private"] },
+    "source_url": { "type": "string", "pattern": "^https://" },
+    "extends": {
+      "description": "The name of the public pack this pack builds on. Where it is checked out is given when specapp is started.",
+      "$ref": "#/$defs/name"
+    },
+    "blocks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "strip_prefix": { "type": "string", "minLength": 1 }
+      }
+    },
+    "kpis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "fields": {
+          "description": "The pack's names of the neutral KPI fields. Default: measure and modes.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "measure": { "$ref": "#/$defs/key" },
+            "modes": { "$ref": "#/$defs/key" }
+          }
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/document_class" }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run", "verbs"],
+      "properties": {
+        "run": {
+          "description": "The argv prefix of the pack's tool. A first element with a slash is a path inside the pack; any other is looked up on PATH.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "verbs": {
+          "description": "The verbs of the tool protocol the tool answers beside describe.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["graph", "check", "simulate", "search", "apply"] }
+        }
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "families": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/key" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["blocks", "colour", "icon"],
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": { "$ref": "#/$defs/key" }
+              },
+              "colour": { "$ref": "#/$defs/colour" },
+              "icon": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+            }
+          }
+        },
+        "vocabulary": {
+          "description": "Display words for block names and link names. The identifier stays visible.",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/key" },
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "key": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$" },
+    "path": {
+      "description": "A relative path or glob inside the pack: no leading slash, no .. component.",
+      "type": "string",
+      "minLength": 1,
+      "not": { "pattern": "(^/)|(^\\.\\.(/|$))|(/\\.\\.(/|$))|\\\\" }
+    },
+    "colour": {
+      "description": "A colour of specapp's palette. A pack never writes a colour value.",
+      "enum": ["blue", "violet", "green", "teal", "amber", "orange", "red", "pink", "cyan", "lime", "brown", "slate"]
+    },
+    "document_class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "title", "paths", "shape", "name"],
+      "properties": {
+        "class": { "$ref": "#/$defs/key" },
+        "title": { "type": "string", "minLength": 1 },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/path" }
+        },
+        "shape": { "enum": ["parts-links/1", "records/1"] },
+        "name": {
+          "description": "The key of a document that holds its name.",
+          "$ref": "#/$defs/key"
+        },
+        "contain": {
+          "description": "How one part contains another: `in` names the field of a part that names the part it sits in; `per` names the field of a part that names the part it exists once per instance of.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "in": { "$ref": "#/$defs/key" },
+            "per": { "$ref": "#/$defs/key" }
+          }
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title", "layout"],
+            "properties": {
+              "id": { "$ref": "#/$defs/key" },
+              "title": { "type": "string", "minLength": 1 },
+              "layout": { "enum": ["rows", "nested"] },
+              "blocks": { "type": "array", "items": { "$ref": "#/$defs/key" } },
+              "carries": { "type": "array", "items": { "$ref": "#/$defs/key" } }
+            }
+          }
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "at", "columns"],
+            "properties": {
+              "title": { "type": "string", "minLength": 1 },
+              "at": { "$ref": "#/$defs/key" },
+              "key": { "$ref": "#/$defs/key" },
+              "columns": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/key" } }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "shape": { "const": "records/1" } } },
+          "then": { "not": { "anyOf": [{ "required": ["contain"] }, { "required": ["views"] }] } }
+        },
+        {
+          "if": { "properties": { "shape": { "const": "parts-links/1" } } },
+          "then": { "not": { "required": ["tables"] } }
+        }
+      ]
+    }
+  }
+}
