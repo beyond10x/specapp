@@ -17,6 +17,5 @@ serde_json.workspace = true
 serde_yaml_ng.workspace = true
 glob.workspace = true
 jsonschema.workspace = true
-
-[dev-dependencies]
 sha2.workspace = true
+libc.workspace = true

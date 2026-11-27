@@ -1,0 +1,151 @@
+{
+  "format": "specapp-scene/1",
+  "document": "harbors/reef.yaml",
+  "view": {
+    "id": "guidance",
+    "title": "Who guides whom",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 288.0,
+  "height": 245.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 38.0,
+      "h": 92.0
+    },
+    {
+      "title": "1 shore",
+      "y": 148.0,
+      "h": 77.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "pilot",
+      "block": "tug",
+      "label": "pilot",
+      "lines": [
+        "tug",
+        "in outer_quay"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 16.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "pilot (block tug), craft\nwithin: outer_quay"
+    },
+    {
+      "id": "ketch",
+      "block": "vessel",
+      "label": "ketch",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 160.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [
+        2
+      ],
+      "title": "ketch (block vessel), craft\ndraught: 2m"
+    },
+    {
+      "id": "outer_quay",
+      "block": "quay",
+      "label": "outer_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 172.0,
+      "w": 118.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "outer_quay (block quay), shore"
+    }
+  ],
+  "edges": [
+    {
+      "id": "pilot->ketch:guides",
+      "from": "pilot",
+      "to": "ketch",
+      "carries": "guides",
+      "label": "guides",
+      "points": [
+        [
+          72.0,
+          62.0
+        ],
+        [
+          144.0,
+          25.0
+        ],
+        [
+          216.0,
+          62.0
+        ]
+      ],
+      "label_at": {
+        "x": 119.4,
+        "y": 16.0,
+        "w": 49.2,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "pilot->ketch:guides"
+    }
+  ],
+  "marks": [
+    {
+      "finding": 2,
+      "rule": "vessel_without_berth",
+      "gate": true,
+      "subject": "part:ketch",
+      "x": 256.2,
+      "y": 62.0,
+      "w": 19.6
+    }
+  ],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "tug",
+        "vessel"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay"
+      ]
+    }
+  ]
+}

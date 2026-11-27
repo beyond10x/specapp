@@ -1,0 +1,145 @@
+{
+  "format": "specapp-scene/1",
+  "document": "harbors/cove.yaml",
+  "view": {
+    "id": "layout",
+    "title": "Layout",
+    "layout": "nested",
+    "implicit": false
+  },
+  "width": 460.0,
+  "height": 151.0,
+  "rows": [],
+  "boxes": [
+    {
+      "id": "north_quay",
+      "block": "quay",
+      "label": "north_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 16.0,
+      "w": 268.0,
+      "h": 108.0,
+      "container": true,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "north_quay (block quay), shore"
+    },
+    {
+      "id": "berth_a",
+      "block": "berth",
+      "label": "berth_a",
+      "lines": [
+        "berth"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 26.0,
+      "y": 65.0,
+      "w": 112.0,
+      "h": 49.0,
+      "parent": "north_quay",
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "berth_a (block berth), shore\nwithin: north_quay"
+    },
+    {
+      "id": "berth_b",
+      "block": "berth",
+      "label": "berth_b",
+      "lines": [
+        "berth"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 162.0,
+      "y": 65.0,
+      "w": 112.0,
+      "h": 49.0,
+      "parent": "north_quay",
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "berth_b (block berth), shore\nwithin: north_quay"
+    },
+    {
+      "id": "skiff",
+      "block": "vessel",
+      "label": "skiff",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 332.0,
+      "y": 16.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "skiff (block vessel), craft\ndraught: 1m"
+    }
+  ],
+  "edges": [
+    {
+      "id": "skiff->berth_a:moors_at",
+      "from": "skiff",
+      "to": "berth_a",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          332.0,
+          55.6
+        ],
+        [
+          138.0,
+          81.9
+        ]
+      ],
+      "label_at": {
+        "x": 204.4,
+        "y": 117.0,
+        "w": 61.3,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "skiff->berth_a:moors_at"
+    }
+  ],
+  "marks": [],
+  "legend": [
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay",
+        "berth"
+      ]
+    },
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel"
+      ]
+    }
+  ]
+}

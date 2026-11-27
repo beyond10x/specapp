@@ -1,0 +1,30 @@
+{
+  "format": "specapp-findings/1",
+  "valid": false,
+  "findings": [
+    {
+      "rule": "mooring_without_berth",
+      "gate": true,
+      "subject": "link:ketch->berth_x:moors_at",
+      "message": "The mooring names berth_x, which the plan does not have."
+    },
+    {
+      "rule": "vessel_without_berth",
+      "gate": true,
+      "subject": "part:ketch",
+      "message": "The vessel is on the border and moors at no berth of the plan."
+    },
+    {
+      "rule": "border_names_nothing",
+      "gate": false,
+      "subject": "document",
+      "message": "The border names sandbar, which is no part of the plan."
+    }
+  ],
+  "counts": {
+    "berth_without_quay": 0,
+    "vessel_without_berth": 1,
+    "mooring_without_berth": 1,
+    "border_names_nothing": 1
+  }
+}

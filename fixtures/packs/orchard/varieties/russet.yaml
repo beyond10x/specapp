@@ -11,3 +11,5 @@ rules:
     summary: Every basket belongs to one picker.
   - id: harvest_unhauled
     summary: Every harvest is reached by a link that carries fruit to it.
+  - id: fill_over_capacity
+    summary: A basket is not filled faster than it is hauled away.

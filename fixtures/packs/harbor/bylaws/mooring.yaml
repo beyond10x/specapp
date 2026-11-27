@@ -9,3 +9,9 @@ rules:
   - id: vessel_without_berth
     summary: Every vessel on the border moors at a berth.
     gate: true
+  - id: mooring_without_berth
+    summary: Every mooring names a berth of the plan.
+    gate: true
+  - id: border_names_nothing
+    summary: Every name on the border is a part of the plan.
+    gate: false

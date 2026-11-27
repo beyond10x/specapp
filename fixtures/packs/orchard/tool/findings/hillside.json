@@ -7,6 +7,12 @@
       "gate": false,
       "subject": "part:crop",
       "message": "Only one of two trees is tended, so half of the harvest is never hauled."
+    },
+    {
+      "rule": "fill_over_capacity",
+      "gate": false,
+      "subject": "link:picker->basket:fills",
+      "message": "Two hands fill one basket faster than it is hauled away."
     }
   ]
 }

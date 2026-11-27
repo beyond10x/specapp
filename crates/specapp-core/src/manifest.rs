@@ -146,6 +146,8 @@ pub struct View {
     pub title: String,
     pub layout: Layout,
     #[serde(default)]
+    pub rows: RowsBy,
+    #[serde(default)]
     pub blocks: Vec<String>,
     #[serde(default)]
     pub carries: Vec<String>,
@@ -156,6 +158,26 @@ pub struct View {
 pub enum Layout {
     Rows,
     Nested,
+}
+
+impl Layout {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Layout::Rows => "rows",
+            Layout::Nested => "nested",
+        }
+    }
+}
+
+/// What a row of the layout `rows` is.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RowsBy {
+    /// The layer of the part's block.
+    #[default]
+    Layer,
+    /// The family of the part's block; a block in no family keeps the row of its layer.
+    Family,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/specapp/schema/specapp-scene-1.schema.json",
+  "title": "specapp-scene/1",
+  "description": "One laid-out view of a graph: boxes, edge paths, labels and the marks of findings, in coordinates (pixels, origin top left). Produced by specapp's layout, the same bytes for the same input.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "document", "view", "width", "height", "rows", "boxes", "edges", "marks", "legend"],
+  "properties": {
+    "format": { "const": "specapp-scene/1" },
+    "document": { "type": "string", "minLength": 1 },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "layout", "implicit"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "layout": { "enum": ["rows", "nested"] },
+        "implicit": { "description": "specapp added the view because the declared views leave a part or link out.", "type": "boolean" }
+      }
+    },
+    "width": { "type": "number", "minimum": 0 },
+    "height": { "type": "number", "minimum": 0 },
+    "rows": {
+      "description": "The rows of the layout rows, top to bottom.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "y", "h"],
+        "properties": {
+          "title": { "type": "string" },
+          "y": { "type": "number" },
+          "h": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "boxes": {
+      "description": "In drawing order: a container before what it contains.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "lines", "colour", "group", "x", "y", "w", "h", "container", "on_border", "ghost", "findings", "title"],
+        "properties": {
+          "id": { "description": "The part's id; for a ghost, the name a link gives that no part has.", "type": "string" },
+          "block": { "type": "string" },
+          "label": { "type": "string" },
+          "lines": { "type": "array", "items": { "type": "string" } },
+          "colour": { "$ref": "#/$defs/colour" },
+          "icon": { "type": "string" },
+          "group": { "description": "What the colour stands for in words: the family or the layer.", "type": "string" },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "w": { "type": "number", "minimum": 0 },
+          "h": { "type": "number", "minimum": 0 },
+          "parent": { "description": "The id of the box this box is drawn inside.", "type": "string" },
+          "container": { "type": "boolean" },
+          "on_border": { "type": "boolean" },
+          "ghost": { "type": "boolean" },
+          "findings": { "$ref": "#/$defs/numbers" },
+          "title": { "description": "The text shown on hover.", "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "to", "label", "points", "label_at", "findings", "title"],
+        "properties": {
+          "id": { "description": "The link's id.", "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "carries": { "type": "string" },
+          "label": { "type": "string" },
+          "points": {
+            "description": "The path from `from` to `to`; rows draws a curve through the points, nested straight segments.",
+            "type": "array",
+            "minItems": 2,
+            "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } }
+          },
+          "label_at": { "$ref": "#/$defs/rect" },
+          "added_by": { "type": "string" },
+          "findings": { "$ref": "#/$defs/numbers" },
+          "title": { "type": "string" }
+        }
+      }
+    },
+    "marks": {
+      "description": "One mark per finding attached to a box or an edge of this scene, readable without colour: it shows the finding's number.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding", "rule", "gate", "subject", "x", "y", "w"],
+        "properties": {
+          "finding": { "type": "integer", "minimum": 1 },
+          "rule": { "type": "string" },
+          "gate": { "type": "boolean" },
+          "subject": { "type": "string", "pattern": "^(part|link):.+$" },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "w": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "legend": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "colour", "blocks"],
+        "properties": {
+          "label": { "type": "string" },
+          "colour": { "$ref": "#/$defs/colour" },
+          "icon": { "type": "string" },
+          "blocks": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "colour": { "enum": ["blue", "violet", "green", "teal", "amber", "orange", "red", "pink", "cyan", "lime", "brown", "slate"] },
+    "numbers": { "description": "Numbers of findings in the document's list, from 1.", "type": "array", "items": { "type": "integer", "minimum": 1 } },
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number", "minimum": 0 },
+        "h": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

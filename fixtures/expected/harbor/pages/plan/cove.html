@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>cove · Harbor plans · Harbor</title>
+<style>
+:root{color-scheme:light dark;--bg:#ffffff;--fg:#111827;--muted:#4b5563;--line:#6b7280;--band:#f8fafc;--finding:#b91c1c;--finding-fg:#ffffff;--link:#1d4ed8;}
+.c-blue{--fill:#dbeafe;--stroke:#1d4ed8}
+.c-violet{--fill:#ede9fe;--stroke:#6d28d9}
+.c-green{--fill:#dcfce7;--stroke:#15803d}
+.c-teal{--fill:#ccfbf1;--stroke:#0f766e}
+.c-amber{--fill:#fef3c7;--stroke:#b45309}
+.c-orange{--fill:#ffedd5;--stroke:#c2410c}
+.c-red{--fill:#fee2e2;--stroke:#b91c1c}
+.c-pink{--fill:#fce7f3;--stroke:#be185d}
+.c-cyan{--fill:#cffafe;--stroke:#0e7490}
+.c-lime{--fill:#ecfccb;--stroke:#4d7c0f}
+.c-brown{--fill:#f3e8dc;--stroke:#7c4a1e}
+.c-slate{--fill:#f1f5f9;--stroke:#334155}
+@media (prefers-color-scheme: dark){
+:root{--bg:#0f1115;--fg:#e5e7eb;--muted:#9ca3af;--line:#9ca3af;--band:#161a20;--finding:#f87171;--finding-fg:#0f1115;--link:#93c5fd;}
+.c-blue{--fill:#172554;--stroke:#60a5fa}
+.c-violet{--fill:#2e1065;--stroke:#a78bfa}
+.c-green{--fill:#052e16;--stroke:#4ade80}
+.c-teal{--fill:#042f2e;--stroke:#2dd4bf}
+.c-amber{--fill:#451a03;--stroke:#fbbf24}
+.c-orange{--fill:#431407;--stroke:#fb923c}
+.c-red{--fill:#450a0a;--stroke:#f87171}
+.c-pink{--fill:#500724;--stroke:#f472b6}
+.c-cyan{--fill:#083344;--stroke:#22d3ee}
+.c-lime{--fill:#1a2e05;--stroke:#a3e635}
+.c-brown{--fill:#2a1a0e;--stroke:#d4a373}
+.c-slate{--fill:#1e293b;--stroke:#94a3b8}
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--fg)}
+body{margin:0 auto;max-width:1240px;padding:16px 20px 48px;font:15px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;overflow-wrap:break-word}
+a{color:var(--link)}
+h1{font-size:26px;margin:4px 0}
+h2{font-size:19px;margin:28px 0 8px}
+td code{overflow-wrap:anywhere}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+.crumbs,.path,.meta,.note{color:var(--muted);margin:2px 0}
+.private{display:inline-block;border:1.5px solid var(--finding);color:var(--fg);border-radius:4px;padding:0 6px;font-size:13px;font-weight:600}
+.state{border-left:4px solid var(--line);padding:4px 10px;margin:6px 0}
+.state.bad{border-left-color:var(--finding)}
+nav ul{list-style:none;padding:0;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px 16px}
+figure.drawing{margin:8px 0;overflow-x:auto;border:1px solid var(--line);border-radius:8px;padding:4px}
+ul.legend{list-style:none;padding:0;margin:6px 0;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px}
+ul.legend svg{vertical-align:middle;margin-right:6px}
+.swatch{fill:var(--fill);stroke:var(--stroke);stroke-width:1.5}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:4px 8px;border-bottom:1px solid var(--line)}
+th{font-weight:600}
+.badge{display:inline-block;min-width:26px;text-align:center;border-radius:8px;padding:0 6px;font-size:12px;font-weight:700;background:var(--finding);color:var(--finding-fg)}
+.badge.note{background:var(--bg);color:var(--fg);border:1.5px solid var(--finding)}
+tr:target td{outline:2px solid var(--link)}
+svg.scene{display:block;max-width:none;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+svg.scene .band{fill:var(--band);stroke:none}
+svg.scene .band-title{fill:var(--muted);font-size:11px;font-weight:600}
+svg.scene .box>rect.body{fill:var(--fill);stroke:var(--stroke);stroke-width:1.5}
+svg.scene .box.container>rect.body{fill:var(--bg)}
+svg.scene .box.ghost>rect.body{fill:var(--bg);stroke-dasharray:5 3}
+svg.scene .box>rect.edge-of-border{fill:none;stroke:var(--stroke);stroke-width:1;stroke-dasharray:2 2}
+svg.scene .box.marked>rect.body{stroke:var(--finding);stroke-width:2.5}
+svg.scene .label{fill:var(--fg);font-size:13px;font-weight:600}
+svg.scene .child .label{font-size:11px;font-weight:500}
+svg.scene .line{fill:var(--fg);font-size:11px}
+svg.scene .icon{fill:none;stroke:var(--stroke);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+svg.scene .monogram{fill:var(--stroke);font-size:10px;font-weight:700}
+svg.scene .edge>path{fill:none;stroke:var(--line);stroke-width:1.4}
+svg.scene .edge.added>path{stroke-dasharray:6 4}
+svg.scene .edge.marked>path{stroke:var(--finding);stroke-width:2.4;stroke-dasharray:8 3}
+svg.scene .arrowhead{fill:var(--line)}
+svg.scene .pill{fill:var(--bg);stroke:var(--line);stroke-width:1}
+svg.scene .edge.marked .pill{stroke:var(--finding);stroke-width:1.6}
+svg.scene .edge-label{fill:var(--fg);font-size:11px}
+svg.scene .mark rect{fill:var(--finding)}
+svg.scene .mark text{fill:var(--finding-fg);font-size:10px;font-weight:700}
+svg.scene .mark.note rect{fill:var(--bg);stroke:var(--finding);stroke-width:1.5}
+svg.scene .mark.note text{fill:var(--fg)}
+</style>
+</head>
+<body>
+<header>
+<p class="crumbs"><a href="../index.html">Harbor</a> / Harbor plans</p>
+<h1>cove</h1>
+<p class="path"><code>harbors/cove.yaml</code></p>
+</header>
+<main>
+<section id="check" aria-labelledby="check-h"><h2 id="check-h">Check</h2><p class="state">Valid. The pack&#39;s tool reports 0 finding(s), 0 gated, 0 not gated.</p><p class="note">A finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list below.</p></section>
+<nav aria-label="Views"><ul><li><a href="#view-layout">Layout</a></li><li><a href="#view-guidance">Who guides whom</a></li><li><a href="#findings">Findings</a></li><li><a href="#parts">Parts</a></li><li><a href="#links">Links</a></li></ul></nav>
+<section class="view" id="view-layout" aria-labelledby="view-layout-h"><h2 id="view-layout-h">Layout</h2>
+<p class="meta">Layout nested: 4 part(s), 1 link(s), 0 finding mark(s).</p>
+<figure class="drawing"><svg xmlns="http://www.w3.org/2000/svg" class="scene" viewBox="0 0 460 151" width="460" height="151" role="img" aria-labelledby="v-layout-t v-layout-d"><title id="v-layout-t">Layout of harbors/cove.yaml</title><desc id="v-layout-d">4 boxes and 1 edges, each edge labelled by what it carries; 0 findings marked with their number. The tables below the drawing list the same parts, links and findings as text.</desc><defs><marker id="v-layout-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrowhead"/></marker></defs><g class="boxes"><g class="box c-teal container" id="v-layout-b0" data-id="north_quay"><title>north_quay (block quay), shore</title><rect class="body" x="16" y="16" width="268" height="108" rx="6"/><path class="icon" transform="translate(26 26) scale(1.1428571428571428)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"><title>anchor</title></path><text class="label" x="48" y="39">north_quay</text><text class="line" x="26" y="55">quay</text></g><g class="box c-teal" id="v-layout-b1" data-id="berth_a"><title>berth_a (block berth), shore
+within: north_quay</title><rect class="body" x="26" y="65" width="112" height="49" rx="6"/><path class="icon" transform="translate(36 75) scale(1.1428571428571428)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"><title>anchor</title></path><text class="label" x="58" y="88">berth_a</text><text class="line" x="36" y="104">berth</text></g><g class="box c-teal" id="v-layout-b2" data-id="berth_b"><title>berth_b (block berth), shore
+within: north_quay</title><rect class="body" x="162" y="65" width="112" height="49" rx="6"/><path class="icon" transform="translate(172 75) scale(1.1428571428571428)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"><title>anchor</title></path><text class="label" x="194" y="88">berth_b</text><text class="line" x="172" y="104">berth</text></g><g class="box c-amber" id="v-layout-b3" data-id="skiff"><title>skiff (block vessel), craft
+draught: 1m</title><rect class="edge-of-border" x="329" y="13" width="118" height="70" rx="9"/><rect class="body" x="332" y="16" width="112" height="64" rx="6"/><g><title>sailboat</title><circle class="icon" cx="350" cy="34" r="7.5"/><text class="monogram" x="350" y="37.5" text-anchor="middle">S</text></g><text class="label" x="364" y="39">skiff</text><text class="line" x="342" y="55">vessel</text><text class="line" x="342" y="70">on the border</text></g></g><g class="edges"><g class="edge" id="v-layout-e0" data-id="skiff-&gt;berth_a:moors_at"><title>skiff-&gt;berth_a:moors_at</title><path d="M332 55.6L138 81.9" marker-end="url(#v-layout-arrow)"/><rect class="pill" x="204.4" y="117" width="61.3" height="18" rx="9"/><text class="edge-label" x="235.1" y="130" text-anchor="middle">moors at</text></g></g><g class="marks"></g></svg></figure>
+<ul class="legend" aria-label="Legend"><li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true" class="c-teal"><rect class="swatch" x="1" y="1" width="20" height="16" rx="4"/><path style="fill:none;stroke:var(--stroke);stroke-width:1.4" transform="translate(4 2)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"/></svg><strong>shore</strong>: quay, berth</li><li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true" class="c-amber"><rect class="swatch" x="1" y="1" width="20" height="16" rx="4"/><text x="11" y="13" text-anchor="middle" style="fill:var(--stroke);font-size:10px;font-weight:700">S</text></svg><strong>craft</strong>: vessel</li></ul>
+</section>
+<section class="view" id="view-guidance" aria-labelledby="view-guidance-h"><h2 id="view-guidance-h">Who guides whom</h2>
+<p class="meta">Layout rows: 5 part(s), 1 link(s), 0 finding mark(s).</p>
+<figure class="drawing"><svg xmlns="http://www.w3.org/2000/svg" class="scene" viewBox="0 0 438 260" width="438" height="260" role="img" aria-labelledby="v-guidance-t v-guidance-d"><title id="v-guidance-t">Who guides whom of harbors/cove.yaml</title><desc id="v-guidance-d">5 boxes and 1 edges, each edge labelled by what it carries; 0 findings marked with their number. The tables below the drawing list the same parts, links and findings as text.</desc><defs><marker id="v-guidance-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrowhead"/></marker></defs><g class="bands"><rect class="band" x="4" y="38" width="430" height="92" rx="6"/><text class="band-title" x="12" y="54">2 craft</text><rect class="band" x="4" y="148" width="430" height="92" rx="6"/><text class="band-title" x="12" y="164">1 shore</text></g><g class="boxes"><g class="box c-amber" id="v-guidance-b0" data-id="tug_one"><title>tug_one (block tug), craft</title><rect class="body" x="16" y="62" width="112" height="49" rx="6"/><g><title>sailboat</title><circle class="icon" cx="34" cy="80" r="7.5"/><text class="monogram" x="34" y="83.5" text-anchor="middle">S</text></g><text class="label" x="48" y="85">tug_one</text><text class="line" x="26" y="101">tug</text></g><g class="box c-amber" id="v-guidance-b1" data-id="skiff"><title>skiff (block vessel), craft
+draught: 1m</title><rect class="edge-of-border" x="157" y="59" width="118" height="70" rx="9"/><rect class="body" x="160" y="62" width="112" height="64" rx="6"/><g><title>sailboat</title><circle class="icon" cx="178" cy="80" r="7.5"/><text class="monogram" x="178" y="83.5" text-anchor="middle">S</text></g><text class="label" x="192" y="85">skiff</text><text class="line" x="170" y="101">vessel</text><text class="line" x="170" y="116">on the border</text></g><g class="box c-teal" id="v-guidance-b2" data-id="north_quay"><title>north_quay (block quay), shore</title><rect class="body" x="16" y="172" width="118" height="49" rx="6"/><path class="icon" transform="translate(26 182) scale(1.1428571428571428)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"><title>anchor</title></path><text class="label" x="48" y="195">north_quay</text><text class="line" x="26" y="211">quay</text></g><g class="box c-teal" id="v-guidance-b3" data-id="berth_a"><title>berth_a (block berth), shore
+within: north_quay</title><rect class="body" x="166" y="172" width="112" height="64" rx="6"/><path class="icon" transform="translate(176 182) scale(1.1428571428571428)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"><title>anchor</title></path><text class="label" x="198" y="195">berth_a</text><text class="line" x="176" y="211">berth</text><text class="line" x="176" y="226">in north_quay</text></g><g class="box c-teal" id="v-guidance-b4" data-id="berth_b"><title>berth_b (block berth), shore
+within: north_quay</title><rect class="body" x="310" y="172" width="112" height="64" rx="6"/><path class="icon" transform="translate(320 182) scale(1.1428571428571428)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"><title>anchor</title></path><text class="label" x="342" y="195">berth_b</text><text class="line" x="320" y="211">berth</text><text class="line" x="320" y="226">in north_quay</text></g></g><g class="edges"><g class="edge" id="v-guidance-e0" data-id="tug_one-&gt;skiff:guides"><title>tug_one-&gt;skiff:guides</title><path d="M72 62C72 43.5 144 43.5 144 25C144 43.5 216 43.5 216 62" marker-end="url(#v-guidance-arrow)"/><rect class="pill" x="119.4" y="16" width="49.2" height="18" rx="9"/><text class="edge-label" x="144" y="29" text-anchor="middle">guides</text></g></g><g class="marks"></g></svg></figure>
+<ul class="legend" aria-label="Legend"><li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true" class="c-amber"><rect class="swatch" x="1" y="1" width="20" height="16" rx="4"/><text x="11" y="13" text-anchor="middle" style="fill:var(--stroke);font-size:10px;font-weight:700">S</text></svg><strong>craft</strong>: tug, vessel</li><li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true" class="c-teal"><rect class="swatch" x="1" y="1" width="20" height="16" rx="4"/><path style="fill:none;stroke:var(--stroke);stroke-width:1.4" transform="translate(4 2)" d="M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"/></svg><strong>shore</strong>: quay, berth</li></ul>
+</section>
+<section id="findings" aria-labelledby="findings-h"><h2 id="findings-h">Findings</h2>
+<p>None.</p>
+</section>
+<section id="parts" aria-labelledby="parts-h"><h2 id="parts-h">Parts</h2><div class="table-wrap"><table><thead><tr><th>Part</th><th>Block</th><th>Contained</th><th>Fields</th></tr></thead><tbody>
+<tr><td><code>north_quay</code></td><td>quay</td><td></td><td></td></tr>
+<tr><td><code>berth_a</code></td><td>berth</td><td>in north_quay</td><td>within: north_quay</td></tr>
+<tr><td><code>berth_b</code></td><td>berth</td><td>in north_quay</td><td>within: north_quay</td></tr>
+<tr><td><code>skiff</code> (on the border)</td><td>vessel</td><td></td><td>draught: 1m</td></tr>
+<tr><td><code>tug_one</code></td><td>tug</td><td></td><td></td></tr>
+</tbody></table></div></section>
+<section id="links" aria-labelledby="links-h"><h2 id="links-h">Links</h2><div class="table-wrap"><table><thead><tr><th>Link</th><th>From</th><th>To</th><th>Carries</th><th>Fields</th></tr></thead><tbody>
+<tr><td><code>skiff-&gt;berth_a:moors_at</code></td><td>skiff</td><td>berth_a</td><td>moors_at</td><td></td></tr>
+<tr><td><code>tug_one-&gt;skiff:guides</code></td><td>tug_one</td><td>skiff</td><td>guides</td><td></td></tr>
+</tbody></table></div></section>
+</main>
+<script type="application/json" id="specapp-data">{"format":"specapp-document/1","pack":"harbor","title":"Harbor","visibility":"public","class":"plan","class_title":"Harbor plans","document":"harbors/cove.yaml","name":"cove","page":"plan/cove.html","check":{"state":"ran","result":{"format":"specapp-findings/1","valid":true,"findings":[]}},"findings":[],"graph":{"format":"specapp-graph/1","document":"harbors/cove.yaml","class":"plan","name":"cove","parts":[{"id":"north_quay","block":"quay","fields":{},"on_border":false,"markers":[]},{"id":"berth_a","block":"berth","fields":{"within":"north_quay"},"inside":"north_quay","on_border":false,"markers":[]},{"id":"berth_b","block":"berth","fields":{"within":"north_quay"},"inside":"north_quay","on_border":false,"markers":[]},{"id":"skiff","block":"vessel","fields":{"draught":"1m"},"on_border":true,"markers":[]},{"id":"tug_one","block":"tug","fields":{},"on_border":false,"markers":[]}],"links":[{"id":"skiff->berth_a:moors_at","from":"skiff","to":"berth_a","carries":"moors_at","fields":{},"markers":[]},{"id":"tug_one->skiff:guides","from":"tug_one","to":"skiff","carries":"guides","fields":{},"markers":[]}],"groups":[{"id":"north_quay","contain":"in","members":["berth_a","berth_b"]}],"border":["skiff"],"markers":[]},"scenes":[{"format":"specapp-scene/1","document":"harbors/cove.yaml","view":{"id":"layout","title":"Layout","layout":"nested","implicit":false},"width":460.0,"height":151.0,"rows":[],"boxes":[{"id":"north_quay","block":"quay","label":"north_quay","lines":["quay"],"colour":"teal","icon":"anchor","group":"shore","x":16.0,"y":16.0,"w":268.0,"h":108.0,"container":true,"on_border":false,"ghost":false,"findings":[],"title":"north_quay (block quay), shore"},{"id":"berth_a","block":"berth","label":"berth_a","lines":["berth"],"colour":"teal","icon":"anchor","group":"shore","x":26.0,"y":65.0,"w":112.0,"h":49.0,"parent":"north_quay","container":false,"on_border":false,"ghost":false,"findings":[],"title":"berth_a (block berth), shore\nwithin: north_quay"},{"id":"berth_b","block":"berth","label":"berth_b","lines":["berth"],"colour":"teal","icon":"anchor","group":"shore","x":162.0,"y":65.0,"w":112.0,"h":49.0,"parent":"north_quay","container":false,"on_border":false,"ghost":false,"findings":[],"title":"berth_b (block berth), shore\nwithin: north_quay"},{"id":"skiff","block":"vessel","label":"skiff","lines":["vessel","on the border"],"colour":"amber","icon":"sailboat","group":"craft","x":332.0,"y":16.0,"w":112.0,"h":64.0,"container":false,"on_border":true,"ghost":false,"findings":[],"title":"skiff (block vessel), craft\ndraught: 1m"}],"edges":[{"id":"skiff->berth_a:moors_at","from":"skiff","to":"berth_a","carries":"moors_at","label":"moors at","points":[[332.0,55.6],[138.0,81.9]],"label_at":{"x":204.4,"y":117.0,"w":61.3,"h":18.0},"findings":[],"title":"skiff->berth_a:moors_at"}],"marks":[],"legend":[{"label":"shore","colour":"teal","icon":"anchor","blocks":["quay","berth"]},{"label":"craft","colour":"amber","icon":"sailboat","blocks":["vessel"]}]},{"format":"specapp-scene/1","document":"harbors/cove.yaml","view":{"id":"guidance","title":"Who guides whom","layout":"rows","implicit":false},"width":438.0,"height":260.0,"rows":[{"title":"2 craft","y":38.0,"h":92.0},{"title":"1 shore","y":148.0,"h":92.0}],"boxes":[{"id":"tug_one","block":"tug","label":"tug_one","lines":["tug"],"colour":"amber","icon":"sailboat","group":"craft","x":16.0,"y":62.0,"w":112.0,"h":49.0,"container":false,"on_border":false,"ghost":false,"findings":[],"title":"tug_one (block tug), craft"},{"id":"skiff","block":"vessel","label":"skiff","lines":["vessel","on the border"],"colour":"amber","icon":"sailboat","group":"craft","x":160.0,"y":62.0,"w":112.0,"h":64.0,"container":false,"on_border":true,"ghost":false,"findings":[],"title":"skiff (block vessel), craft\ndraught: 1m"},{"id":"north_quay","block":"quay","label":"north_quay","lines":["quay"],"colour":"teal","icon":"anchor","group":"shore","x":16.0,"y":172.0,"w":118.0,"h":49.0,"container":false,"on_border":false,"ghost":false,"findings":[],"title":"north_quay (block quay), shore"},{"id":"berth_a","block":"berth","label":"berth_a","lines":["berth","in north_quay"],"colour":"teal","icon":"anchor","group":"shore","x":166.0,"y":172.0,"w":112.0,"h":64.0,"container":false,"on_border":false,"ghost":false,"findings":[],"title":"berth_a (block berth), shore\nwithin: north_quay"},{"id":"berth_b","block":"berth","label":"berth_b","lines":["berth","in north_quay"],"colour":"teal","icon":"anchor","group":"shore","x":310.0,"y":172.0,"w":112.0,"h":64.0,"container":false,"on_border":false,"ghost":false,"findings":[],"title":"berth_b (block berth), shore\nwithin: north_quay"}],"edges":[{"id":"tug_one->skiff:guides","from":"tug_one","to":"skiff","carries":"guides","label":"guides","points":[[72.0,62.0],[144.0,25.0],[216.0,62.0]],"label_at":{"x":119.4,"y":16.0,"w":49.2,"h":18.0},"findings":[],"title":"tug_one->skiff:guides"}],"marks":[],"legend":[{"label":"craft","colour":"amber","icon":"sailboat","blocks":["tug","vessel"]},{"label":"shore","colour":"teal","icon":"anchor","blocks":["quay","berth"]}]}]}</script>
+</body>
+</html>
