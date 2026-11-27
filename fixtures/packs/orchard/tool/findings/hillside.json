@@ -1,0 +1,12 @@
+{
+  "format": "specapp-findings/1",
+  "valid": true,
+  "findings": [
+    {
+      "rule": "harvest_unhauled",
+      "gate": false,
+      "subject": "part:crop",
+      "message": "Only one of two trees is tended, so half of the harvest is never hauled."
+    }
+  ]
+}

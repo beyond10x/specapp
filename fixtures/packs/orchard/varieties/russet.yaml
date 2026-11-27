@@ -1,0 +1,13 @@
+format: orchard-variety/1
+variety: russet
+summary: An invented variety and the rules an orchard of it keeps.
+
+traits:
+  - { name: thick_skin, summary: Keeps well after picking. }
+  - { name: late_bloom, summary: Flowers after the last frost. }
+
+rules:
+  - id: basket_without_picker
+    summary: Every basket belongs to one picker.
+  - id: harvest_unhauled
+    summary: Every harvest is reached by a link that carries fruit to it.

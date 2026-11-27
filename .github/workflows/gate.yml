@@ -1,0 +1,82 @@
+name: Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Planning-only change
+        id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/changed.txt"
+            if scripts/planning-only.sh < "$RUNNER_TEMP/changed.txt"; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Install the Rust toolchain rust-toolchain.toml names
+        if: steps.paths.outputs.skip != 'true'
+        run: |
+          set -eu
+          channel=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          [ -n "$channel" ]
+          rustup toolchain install "$channel" --profile minimal --component rustfmt --component clippy
+          rustc --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+        if: steps.paths.outputs.skip != 'true'
+
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52
+        if: steps.paths.outputs.skip != 'true'
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172
+        if: steps.paths.outputs.skip != 'true'
+        with:
+          tool: cargo-nextest@0.9.143
+
+      - name: Install the ESS CLI (ess 0.99.2, release binary)
+        if: steps.paths.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          dir="$RUNNER_TEMP/ess-tool"
+          mkdir -p "$dir/bin"
+          cd "$RUNNER_TEMP"
+          gh release download 0.99.2 --repo beyond10x/ess --pattern ess-0.99.2-x86_64-unknown-linux-gnu.tar.gz --pattern SHA256SUMS
+          grep " ess-0.99.2-x86_64-unknown-linux-gnu.tar.gz$" SHA256SUMS | sha256sum -c -
+          tar -xzf ess-0.99.2-x86_64-unknown-linux-gnu.tar.gz
+          install -m 0755 "$(find . -type f -name ess -perm -u+x | head -1)" "$dir/bin/ess"
+          echo "$dir/bin" >> "$GITHUB_PATH"
+          "$dir/bin/ess" --version
+
+      - name: Run the gate
+        if: steps.paths.outputs.skip != 'true'
+        run: task check

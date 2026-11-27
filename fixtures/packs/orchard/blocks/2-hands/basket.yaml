@@ -1,0 +1,115 @@
+domain: orchard.basket
+
+summary: What one picker fills; one exists for each picker.
+
+naming:
+  wire: basket
+  display: Basket
+
+entities:
+  - name: orchard.basket.Basket
+    identity:
+      name: basket_id
+      type: orchard.seedbank.BasketId
+    fields:
+      - name: picker_id
+        type: orchard.seedbank.PickerId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: picker_id, kind: references, target: orchard.picker.Picker, cardinality: one, via: picker_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: orchard.basket.BasketNotFound
+    summary: No basket of this identity exists.
+    fields:
+      - {name: basket_id, type: orchard.seedbank.BasketId}
+
+  - name: orchard.basket.BasketStateConflict
+    summary: The basket is not in a state this command acts from.
+    fields:
+      - {name: state, type: orchard.basket.Basket.State}
+
+events:
+  - name: orchard.basket.BasketStarted
+    fields:
+      - {name: basket_id, type: orchard.seedbank.BasketId}
+      - {name: at, type: Timestamp}
+
+  - name: orchard.basket.BasketRetired
+    fields:
+      - {name: basket_id, type: orchard.seedbank.BasketId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: orchard.basket.StartBasket
+    naming:
+      wire: start-basket
+      display: Start a basket
+    input:
+      - {name: basket_id, type: orchard.seedbank.BasketId}
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: orchard.basket.Basket
+        instance: basket_id
+        sets:
+          picker_id: input.picker_id
+          started_at: input.at
+        emits: [orchard.basket.BasketStarted]
+        payload:
+          orchard.basket.BasketStarted:
+            basket_id: input.basket_id
+            at: input.at
+        summary: The basket exists and is Active.
+
+  - name: orchard.basket.RetireBasket
+    naming:
+      wire: retire-basket
+      display: Retire a basket
+    input:
+      - {name: basket_id, type: orchard.seedbank.BasketId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-basket
+        unknown_instance: true
+        error: orchard.basket.BasketNotFound
+        payload:
+          orchard.basket.BasketNotFound: {basket_id: input.basket_id}
+      - name: retired
+        moves: orchard.basket.Basket.retire
+        instance: basket_id
+        emits: [orchard.basket.BasketRetired]
+        payload:
+          orchard.basket.BasketRetired:
+            basket_id: input.basket_id
+            at: input.at
+        summary: The basket is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: orchard.basket.BasketStateConflict
+        payload:
+          orchard.basket.BasketStateConflict: {state: {subject: state}}
+        summary: The basket had already retired.
+
+views:
+  - name: orchard.basket.Baskets
+    source: orchard.basket.Basket
+    consistency: read_your_writes
+    fields:
+      - {name: basket_id, type: orchard.seedbank.BasketId}
+      - {name: picker_id, type: orchard.seedbank.PickerId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: orchard.basket.Basket.State}
+    naming:
+      wire: baskets
+      display: Baskets

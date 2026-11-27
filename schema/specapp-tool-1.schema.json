@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/specapp/schema/specapp-tool-1.schema.json",
+  "title": "specapp-tool/1",
+  "description": "What the pack's tool answers to `describe`: its verbs, the format each verb answers in, the edit verbs beyond the generic ones, and the KPI ids a run reports.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "verbs", "formats"],
+  "properties": {
+    "format": { "const": "specapp-tool/1" },
+    "verbs": {
+      "type": "array",
+      "uniqueItems": true,
+      "contains": { "const": "describe" },
+      "items": { "enum": ["describe", "graph", "check", "simulate", "search", "apply"] }
+    },
+    "formats": {
+      "type": "object",
+      "propertyNames": { "enum": ["graph", "check", "simulate", "search", "apply"] },
+      "additionalProperties": { "type": "string", "pattern": "^specapp-[a-z-]+/[0-9]+$" }
+    },
+    "edit_verbs": { "type": "array", "items": { "type": "string" } },
+    "kpis": { "type": "array", "items": { "type": "string" } }
+  }
+}

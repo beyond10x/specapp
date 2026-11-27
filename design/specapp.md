@@ -1,6 +1,8 @@
 # specapp: one docs site and one studio for every specification pack (draft 1, 2026-11-27)
 
-Status: design only. Nothing is built. The build order is at the end.
+Status: wave 1 ("Contract") is built: the manifest, the schemas, two fixture packs and
+`specapp pack check`. The build order is at the end; "Decided in wave 1" lists what the build
+decided that this design had left open.
 
 ## What it is
 
@@ -124,7 +126,7 @@ documents:
     paths: [organizations/*.yaml]
     shape: parts-links/1
     name: organization              # the key that holds the document's name
-    contain: { field: in }          # a part sits inside the part this field names
+    contain: { in: in }             # a part sits inside the part its field `in` names
     views:
       - id: structure
         title: Structure
@@ -152,7 +154,7 @@ tool:
 presentation:
   families:
     structure: { blocks: [organization, unit, role, position], colour: blue,  icon: boxes }
-    authority: { blocks: [decision_class, delegation, policy],  colour: violet, icon: gavel }
+    authority: { blocks: [decision, delegation, policy],  colour: violet, icon: gavel }
 ```
 
 The same manifest for agenticspec differs in names and in four places: `strip_prefix: agentic.`,
@@ -191,6 +193,13 @@ orgspec today reaches L3 with a manifest and one small subcommand. agenticspec r
 specapp's own formats. A pack's formats stay the pack's.
 
 - `specapp-pack/1`: the manifest.
+- `specapp-pack-check/1`: what `specapp pack check --json` prints. `valid`, `errors` and
+  `warnings` (`{code, subject, message}`); for a pack that loads also its name, visibility,
+  `extends`, the level it declares, `counts` (blocks, layers, KPIs, planned blocks, document
+  classes, documents), the layers with their blocks, the documents per class, and the state of
+  the tool (`none`, `found`, `not_found`). One producer: specapp.
+- `specapp-tool/1`: the tool's answer to `describe`: `verbs`, the format each verb answers
+  in (`formats`), `edit_verbs`, `kpis`. Produced by the tool only.
 - `specapp-model/1`: the blocks, from the compiled ESS model. Layers, blocks, dependency edges
   with counts, and per block its entities, lifecycles, commands, events, views, types and source
   lines. One producer: specapp, from `ess specify compile --format json`.
@@ -412,6 +421,7 @@ specapp must not become agenticspec's UI with a second skin. Three gates:
 ```text
 design/                 this document
 schema/                 JSON Schemas of the neutral formats
+scripts/                the vocabulary check, the acceptance script, the planning-only path list
 spec/                   the ESS system `specapp` and its ess-ui model
 crates/specapp-core/    manifest, pack loading, the neutral model
 crates/specapp-layout/  graph layout to a scene
@@ -422,6 +432,7 @@ web/ui/                 @beyond10x/specapp-ui (React)
 web/docusaurus/         @beyond10x/specapp-docusaurus
 web/studio/             the studio (React, Vite)
 fixtures/packs/         two invented packs
+fixtures/expected/      what each fixture pack's check must count
 ux/                     adapter, baseline, rounds of the UI loop
 ```
 
@@ -443,6 +454,51 @@ Each wave ends with its acceptance on both real packs and both fixture packs.
 7. **Runs.** `simulate` and `search`, results, variants. agenticspec first; orgspec when it has
    a simulator.
 8. **Agent.** The four tools, the agent screen, `specapp mcp`.
+
+## Decided in wave 1
+
+What the build of wave 1 decided where this design was open or wrong. The open questions Q1 to
+Q8 below kept their defaults.
+
+- `contain` is `{ in: <field> }` or `{ per: <field> }`, exactly one key; the value names the
+  part's field. The first draft wrote `{ field: in }` for orgspec, which the schema refuses.
+- `visibility` is required: a manifest that forgets it is refused rather than published.
+- `extends` is the name of a pack, not a path. Where that pack is checked out is given when
+  specapp is started, so a manifest names no path outside its pack.
+- The KPI catalogue keeps its rows in a list `kpis`. `kpis.fields` defaults to `measure` and
+  `modes`.
+- A block is a domain of the compiled system, the domain of identifiers included. Its layer is
+  the numbered directory, directly under `blocks.path`, of its file in the system's
+  `ess-inputs.yaml` specification list.
+- A block that the KPI catalogue names and the blocks do not have is a planned block: counted
+  (`counts.planned_blocks`), not a warning.
+- `pack check` runs nothing of the pack, also not `describe`. It says whether `tool.run`'s
+  program can be started: a first element with a slash is a path inside the pack to an
+  executable file, any other is looked up on PATH. `describe` is a verb every tool answers;
+  `tool.verbs` lists the others (`graph`, `check`, `simulate`, `search`, `apply`).
+- The level a pack is at is the highest one its manifest declares (`level` in the report).
+- The palette has twelve names: blue, violet, green, teal, amber, orange, red, pink, cyan, lime,
+  brown, slate.
+- The manifest is validated against `schema/specapp-pack-1.schema.json` when it is read; the
+  schema is the contract, not a copy of the code.
+- orgspec's manifest has no `presentation`: the families of the first draft named
+  `decision_class`, which is no block of orgspec, and every block in a family would be a choice
+  of orgspec's authors. Without it a block takes the colour of its layer. It has no `tool` until
+  `orgspec specapp check` exists (wave 2).
+- The words of a pack come from `specapp pack words <dir>`: block and layer names, link names
+  (`carries` of documents and views, keys of a `links` mapping in a document), KPI ids (the
+  catalogue and `kpis` lists in documents) and rule ids (`rules` lists in documents).
+  `scripts/check-vocabulary.sh` finds a word with an underscore, hyphen or digit as a whole word
+  anywhere under `crates/` and `web/src/`, and a word of letters only as a whole string literal
+  (`"word"`): block names such as `tool` or `kpi` are common nouns, and specapp's own code uses
+  them; a table of a pack's block names in the code is a set of string literals.
+- A rule id that a pack keeps only in its tool's source is not found by `pack words`.
+  agenticspec has seven such rule ids today; its tool's `describe` will list them when
+  agenticspec answers the protocol.
+- The acceptance compares with the packs' own tooling: `check-layers.sh` (blocks, and layers
+  from `--graph`), `check-kpis.sh` (KPIs), `orgspec check --json` and
+  `orgspec type check --json` (orgspec's documents), and agenticspec's generated pages
+  (`docs/architectures/`, `website/src/generated/blocks.json`) for its architectures and layers.
 
 ## Open questions
 

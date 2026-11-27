@@ -1,0 +1,108 @@
+domain: orchard.grove
+
+summary: A planted piece of land.
+
+naming:
+  wire: grove
+  display: Grove
+
+entities:
+  - name: orchard.grove.Grove
+    identity:
+      name: grove_id
+      type: orchard.seedbank.GroveId
+    fields:
+      - name: started_at
+        type: Timestamp
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: orchard.grove.GroveNotFound
+    summary: No grove of this identity exists.
+    fields:
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+
+  - name: orchard.grove.GroveStateConflict
+    summary: The grove is not in a state this command acts from.
+    fields:
+      - {name: state, type: orchard.grove.Grove.State}
+
+events:
+  - name: orchard.grove.GroveStarted
+    fields:
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: at, type: Timestamp}
+
+  - name: orchard.grove.GroveRetired
+    fields:
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: orchard.grove.StartGrove
+    naming:
+      wire: start-grove
+      display: Start a grove
+    input:
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: orchard.grove.Grove
+        instance: grove_id
+        sets:
+          started_at: input.at
+        emits: [orchard.grove.GroveStarted]
+        payload:
+          orchard.grove.GroveStarted:
+            grove_id: input.grove_id
+            at: input.at
+        summary: The grove exists and is Active.
+
+  - name: orchard.grove.RetireGrove
+    naming:
+      wire: retire-grove
+      display: Retire a grove
+    input:
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-grove
+        unknown_instance: true
+        error: orchard.grove.GroveNotFound
+        payload:
+          orchard.grove.GroveNotFound: {grove_id: input.grove_id}
+      - name: retired
+        moves: orchard.grove.Grove.retire
+        instance: grove_id
+        emits: [orchard.grove.GroveRetired]
+        payload:
+          orchard.grove.GroveRetired:
+            grove_id: input.grove_id
+            at: input.at
+        summary: The grove is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: orchard.grove.GroveStateConflict
+        payload:
+          orchard.grove.GroveStateConflict: {state: {subject: state}}
+        summary: The grove had already retired.
+
+views:
+  - name: orchard.grove.Groves
+    source: orchard.grove.Grove
+    consistency: read_your_writes
+    fields:
+      - {name: grove_id, type: orchard.seedbank.GroveId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: orchard.grove.Grove.State}
+    naming:
+      wire: groves
+      display: Groves

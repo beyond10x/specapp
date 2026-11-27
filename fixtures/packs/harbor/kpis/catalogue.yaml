@@ -1,0 +1,41 @@
+format: harbor-kpis/1
+kpis:
+  - id: berth_idle_share
+    block: berth
+    gauge: efficiency
+    unit: share
+    summary: Share of the day a berth holds no vessel.
+    direction: lower
+    tides: { flood: lower, ebb: ignore }
+    gate: false
+    status: sketched
+
+  - id: vessel_unmoored_count
+    block: vessel
+    gauge: soundness
+    unit: count
+    summary: Vessels in the harbor that are moored at no berth.
+    direction: lower
+    tides: { flood: lower, ebb: lower }
+    gate: true
+    status: sketched
+
+  - id: tug_wait_minutes
+    block: tug
+    gauge: efficiency
+    unit: minutes
+    summary: Minutes a vessel waits for a tug at the harbor mouth.
+    direction: lower
+    tides: { flood: lower, ebb: ignore }
+    gate: false
+    status: sketched
+
+  - id: crane_lift_rate
+    block: crane
+    gauge: efficiency
+    unit: count
+    summary: Loads a crane lifts per hour. The crane block is planned.
+    direction: higher
+    tides: { flood: higher, ebb: ignore }
+    gate: false
+    status: planned

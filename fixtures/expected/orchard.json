@@ -1,0 +1,13 @@
+{
+  "counts": {
+    "blocks": 6,
+    "layers": 4,
+    "kpis": 3,
+    "planned_blocks": 0,
+    "document_classes": 2,
+    "documents": 2
+  },
+  "level": "L3",
+  "tool_state": "found",
+  "words": { "block": 6, "layer": 4, "link": 3, "kpi_id": 3, "rule": 2 }
+}

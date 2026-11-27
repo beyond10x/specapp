@@ -1,0 +1,115 @@
+domain: harbor.vessel
+
+summary: A craft that comes in, moors at a berth and leaves.
+
+naming:
+  wire: vessel
+  display: Vessel
+
+entities:
+  - name: harbor.vessel.Vessel
+    identity:
+      name: vessel_id
+      type: harbor.ledger.VesselId
+    fields:
+      - name: berth_id
+        type: harbor.ledger.BerthId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: berth_id, kind: references, target: harbor.berth.Berth, cardinality: one, via: berth_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: harbor.vessel.VesselNotFound
+    summary: No vessel of this identity exists.
+    fields:
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+
+  - name: harbor.vessel.VesselStateConflict
+    summary: The vessel is not in a state this command acts from.
+    fields:
+      - {name: state, type: harbor.vessel.Vessel.State}
+
+events:
+  - name: harbor.vessel.VesselStarted
+    fields:
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: at, type: Timestamp}
+
+  - name: harbor.vessel.VesselRetired
+    fields:
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: harbor.vessel.StartVessel
+    naming:
+      wire: start-vessel
+      display: Start a vessel
+    input:
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: harbor.vessel.Vessel
+        instance: vessel_id
+        sets:
+          berth_id: input.berth_id
+          started_at: input.at
+        emits: [harbor.vessel.VesselStarted]
+        payload:
+          harbor.vessel.VesselStarted:
+            vessel_id: input.vessel_id
+            at: input.at
+        summary: The vessel exists and is Active.
+
+  - name: harbor.vessel.RetireVessel
+    naming:
+      wire: retire-vessel
+      display: Retire a vessel
+    input:
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-vessel
+        unknown_instance: true
+        error: harbor.vessel.VesselNotFound
+        payload:
+          harbor.vessel.VesselNotFound: {vessel_id: input.vessel_id}
+      - name: retired
+        moves: harbor.vessel.Vessel.retire
+        instance: vessel_id
+        emits: [harbor.vessel.VesselRetired]
+        payload:
+          harbor.vessel.VesselRetired:
+            vessel_id: input.vessel_id
+            at: input.at
+        summary: The vessel is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: harbor.vessel.VesselStateConflict
+        payload:
+          harbor.vessel.VesselStateConflict: {state: {subject: state}}
+        summary: The vessel had already retired.
+
+views:
+  - name: harbor.vessel.Vessels
+    source: harbor.vessel.Vessel
+    consistency: read_your_writes
+    fields:
+      - {name: vessel_id, type: harbor.ledger.VesselId}
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: harbor.vessel.Vessel.State}
+    naming:
+      wire: vessels
+      display: Vessels

@@ -1,0 +1,31 @@
+format: orchard-kpis/1
+kpis:
+  - id: tree_yield_kilograms
+    block: harvest
+    sort: output
+    unit: kilograms
+    summary: Fruit picked from one tree in one season.
+    direction: higher
+    seasons: { spring: ignore, autumn: higher }
+    gate: false
+    status: drafted
+
+  - id: basket_overflow_count
+    block: basket
+    sort: fault
+    unit: count
+    summary: Baskets filled past their rim.
+    direction: lower
+    seasons: { spring: lower, autumn: lower }
+    gate: true
+    status: drafted
+
+  - id: grove_unpicked_share
+    block: grove
+    sort: output
+    unit: share
+    summary: Share of the trees of a grove that no picker reached.
+    direction: lower
+    seasons: { spring: ignore, autumn: lower }
+    gate: false
+    status: drafted

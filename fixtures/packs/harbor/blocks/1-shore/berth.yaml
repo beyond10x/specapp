@@ -1,0 +1,115 @@
+domain: harbor.berth
+
+summary: A place at a quay where one vessel moors.
+
+naming:
+  wire: berth
+  display: Berth
+
+entities:
+  - name: harbor.berth.Berth
+    identity:
+      name: berth_id
+      type: harbor.ledger.BerthId
+    fields:
+      - name: quay_id
+        type: harbor.ledger.QuayId
+      - name: started_at
+        type: Timestamp
+    relations:
+      - {name: quay_id, kind: references, target: harbor.quay.Quay, cardinality: one, via: quay_id}
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: harbor.berth.BerthNotFound
+    summary: No berth of this identity exists.
+    fields:
+      - {name: berth_id, type: harbor.ledger.BerthId}
+
+  - name: harbor.berth.BerthStateConflict
+    summary: The berth is not in a state this command acts from.
+    fields:
+      - {name: state, type: harbor.berth.Berth.State}
+
+events:
+  - name: harbor.berth.BerthStarted
+    fields:
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: at, type: Timestamp}
+
+  - name: harbor.berth.BerthRetired
+    fields:
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: harbor.berth.StartBerth
+    naming:
+      wire: start-berth
+      display: Start a berth
+    input:
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: harbor.berth.Berth
+        instance: berth_id
+        sets:
+          quay_id: input.quay_id
+          started_at: input.at
+        emits: [harbor.berth.BerthStarted]
+        payload:
+          harbor.berth.BerthStarted:
+            berth_id: input.berth_id
+            at: input.at
+        summary: The berth exists and is Active.
+
+  - name: harbor.berth.RetireBerth
+    naming:
+      wire: retire-berth
+      display: Retire a berth
+    input:
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-berth
+        unknown_instance: true
+        error: harbor.berth.BerthNotFound
+        payload:
+          harbor.berth.BerthNotFound: {berth_id: input.berth_id}
+      - name: retired
+        moves: harbor.berth.Berth.retire
+        instance: berth_id
+        emits: [harbor.berth.BerthRetired]
+        payload:
+          harbor.berth.BerthRetired:
+            berth_id: input.berth_id
+            at: input.at
+        summary: The berth is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: harbor.berth.BerthStateConflict
+        payload:
+          harbor.berth.BerthStateConflict: {state: {subject: state}}
+        summary: The berth had already retired.
+
+views:
+  - name: harbor.berth.Berths
+    source: harbor.berth.Berth
+    consistency: read_your_writes
+    fields:
+      - {name: berth_id, type: harbor.ledger.BerthId}
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: harbor.berth.Berth.State}
+    naming:
+      wire: berths
+      display: Berths

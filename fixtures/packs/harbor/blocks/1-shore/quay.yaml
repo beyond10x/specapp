@@ -1,0 +1,108 @@
+domain: harbor.quay
+
+summary: A stretch of shore where berths are laid out.
+
+naming:
+  wire: quay
+  display: Quay
+
+entities:
+  - name: harbor.quay.Quay
+    identity:
+      name: quay_id
+      type: harbor.ledger.QuayId
+    fields:
+      - name: started_at
+        type: Timestamp
+    lifecycle:
+      initial: Active
+      states: [Active, Retired]
+      terminal: [Retired]
+      transitions:
+        - name: retire
+          from: [Active]
+          to: Retired
+
+errors:
+  - name: harbor.quay.QuayNotFound
+    summary: No quay of this identity exists.
+    fields:
+      - {name: quay_id, type: harbor.ledger.QuayId}
+
+  - name: harbor.quay.QuayStateConflict
+    summary: The quay is not in a state this command acts from.
+    fields:
+      - {name: state, type: harbor.quay.Quay.State}
+
+events:
+  - name: harbor.quay.QuayStarted
+    fields:
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: at, type: Timestamp}
+
+  - name: harbor.quay.QuayRetired
+    fields:
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: at, type: Timestamp}
+
+commands:
+  - name: harbor.quay.StartQuay
+    naming:
+      wire: start-quay
+      display: Start a quay
+    input:
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: started
+        creates: harbor.quay.Quay
+        instance: quay_id
+        sets:
+          started_at: input.at
+        emits: [harbor.quay.QuayStarted]
+        payload:
+          harbor.quay.QuayStarted:
+            quay_id: input.quay_id
+            at: input.at
+        summary: The quay exists and is Active.
+
+  - name: harbor.quay.RetireQuay
+    naming:
+      wire: retire-quay
+      display: Retire a quay
+    input:
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: at, type: Timestamp}
+    outcomes:
+      - name: no-such-quay
+        unknown_instance: true
+        error: harbor.quay.QuayNotFound
+        payload:
+          harbor.quay.QuayNotFound: {quay_id: input.quay_id}
+      - name: retired
+        moves: harbor.quay.Quay.retire
+        instance: quay_id
+        emits: [harbor.quay.QuayRetired]
+        payload:
+          harbor.quay.QuayRetired:
+            quay_id: input.quay_id
+            at: input.at
+        summary: The quay is Retired.
+      - name: wrong-state
+        wrong_state: true
+        error: harbor.quay.QuayStateConflict
+        payload:
+          harbor.quay.QuayStateConflict: {state: {subject: state}}
+        summary: The quay had already retired.
+
+views:
+  - name: harbor.quay.Quays
+    source: harbor.quay.Quay
+    consistency: read_your_writes
+    fields:
+      - {name: quay_id, type: harbor.ledger.QuayId}
+      - {name: started_at, type: Timestamp}
+      - {name: state, type: harbor.quay.Quay.State}
+    naming:
+      wire: quays
+      display: Quays
