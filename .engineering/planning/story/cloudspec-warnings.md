@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:cloudspec-warnings
 kind: story
-status: active
+status: implemented
 title: The page of a document shows the warnings of the pack's check
 summary: packs/cloudspec.yaml declares a /warnings finding list with gate false; the page of journeys.yaml shows its 3 findings.
 relations:
@@ -15,10 +15,11 @@ scope:
   path: packs/cloudspec.yaml
 - confidence: cited
   path: scripts/acceptance.sh
-revision: 12
+revision: 13
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T16:19:54Z", actor: "human:operator", revision: 11}
 - {from: "proposed", to: "active", at: "2026-11-28T16:19:54Z", actor: "human:operator", revision: 12}
+- {from: "active", to: "implemented", at: "2026-11-28T18:43:05Z", actor: "human:operator", revision: 13, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # The page of a document shows the warnings of the pack's check
 

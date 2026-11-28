@@ -58,7 +58,7 @@ scope:
   path: schema/metaspec-scene-1.schema.json
 - confidence: inferred
   path: spec/domains/documents.yaml
-revision: 27
+revision: 28
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 3}
@@ -76,6 +76,11 @@ with a count (`src/render/map.rs` of cloudspec).
 
 - A view may name regions to collapse (`collapse: [<part id>]`, or `collapse: all` for every
   container at its top level).
+- A view may collapse every region whose block is one of a list: `collapse: { blocks: [<block>] }`
+  (the coordinator's D54, 2026-11-28, from a consumer whose architectures hold eight `group`
+  regions per environment). The block is the one the graph carries, after
+  story:part-block-aliases. A block the pack does not have is a `view_unknown_block` warning, as
+  for `hubs.blocks`.
 - `metaspec-scene/1`: a collapsed region is one box with the number of parts inside; links that
   cross its border are drawn from or to the box, rolled up by far end and name, with a count.
 - Drill-down: each collapsed region links to a view of its own children (generated, id
@@ -84,6 +89,10 @@ with a count (`src/render/map.rs` of cloudspec).
   own view.
 
 ## Acceptance
+
+The `region_` cases include `region_collapse_by_block`: on a fixture view with
+`collapse: { blocks: [<block>] }`, every region of that block is one box and no region of another
+block is collapsed.
 
 `cargo nextest run -p metaspec-core -p metaspec-layout -p metaspec -E 'test(region_)'` passes with
 cases showing a collapsed region is one box carrying its part count, two links from inside to one

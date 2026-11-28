@@ -9,6 +9,7 @@ relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
 - depends_on: story:part-block-aliases
+- depends_on: story:collapsed-regions
 scope:
 - confidence: inferred
   path: CHANGELOG.md
