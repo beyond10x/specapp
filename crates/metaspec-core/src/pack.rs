@@ -239,6 +239,35 @@ pub fn load_with(
     };
     let names: BTreeSet<&str> = blocks.iter().map(|b| b.name.as_str()).collect();
 
+    // The aliases of a part's block word: each stands for a block, and none is a block itself.
+    for (word, block) in &manifest.blocks.aliases {
+        let subject = format!("alias:{word}");
+        if names.contains(word.as_str()) {
+            errors.push(Issue::new(
+                "manifest_invalid",
+                &subject,
+                format!(
+                    "blocks.aliases names {word}, which is a block of the pack; an alias is no block"
+                ),
+            ));
+        } else if blocks.iter().any(|b| b.domain == *word) {
+            errors.push(Issue::new(
+                "manifest_invalid",
+                &subject,
+                format!(
+                    "blocks.aliases names {word}, which is the domain of a block of the pack; an alias is no block"
+                ),
+            ));
+        }
+        if !names.contains(block.as_str()) {
+            errors.push(Issue::new(
+                "manifest_invalid",
+                &subject,
+                format!("blocks.aliases maps {word} to {block}, which the blocks do not have"),
+            ));
+        }
+    }
+
     // The KPI catalogue.
     let mut kpis = Vec::new();
     let mut planned = BTreeSet::new();
@@ -312,7 +341,13 @@ pub fn load_with(
         for view in &class.views {
             let hub_blocks = view.hubs.iter().flat_map(|h| h.blocks.iter());
             for block in view.blocks.iter().chain(hub_blocks) {
-                if !names.contains(block.as_str()) {
+                if let Some(target) = manifest.blocks.aliases.get(block) {
+                    warnings.push(Issue::new(
+                        "view_alias_block",
+                        format!("view:{}/{}", class.class, view.id),
+                        format!("{block} is an alias of {target}; name {target}"),
+                    ));
+                } else if !names.contains(block.as_str()) {
                     warnings.push(Issue::new(
                         "view_unknown_block",
                         format!("view:{}/{}", class.class, view.id),
@@ -330,7 +365,13 @@ pub fn load_with(
         let mut family_of: BTreeMap<&str, &str> = BTreeMap::new();
         for (family, spec) in &presentation.families {
             for block in &spec.blocks {
-                if !names.contains(block.as_str()) {
+                if let Some(target) = manifest.blocks.aliases.get(block) {
+                    warnings.push(Issue::new(
+                        "family_alias_block",
+                        format!("family:{family}"),
+                        format!("{block} is an alias of {target}; name {target}"),
+                    ));
+                } else if !names.contains(block.as_str()) {
                     warnings.push(Issue::new(
                         "family_unknown_block",
                         format!("family:{family}"),

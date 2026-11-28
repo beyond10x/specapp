@@ -15,6 +15,7 @@ arrange:
         manifest: held
         directory: packs/equal-value
         blocks_path: blocks
+        block_aliases: {}
         declares_kpis: false
         declares_documents: false
         tool_run: []

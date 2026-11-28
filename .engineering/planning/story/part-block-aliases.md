@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:part-block-aliases
 kind: story
-status: active
+status: implemented
 title: A manifest names which block a part's block word stands for
 summary: blocks.aliases maps a part's block word to a block of the pack; cloudspec declares group, node_pool and endpoints.
 relations:
@@ -33,10 +33,11 @@ scope:
   path: scripts/acceptance.sh
 - confidence: inferred
   path: spec/domains/packs.yaml
-revision: 22
+revision: 23
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T16:19:54Z", actor: "human:operator", revision: 21}
 - {from: "proposed", to: "active", at: "2026-11-28T16:19:54Z", actor: "human:operator", revision: 22}
+- {from: "active", to: "implemented", at: "2026-11-28T19:04:12Z", actor: "human:operator", revision: 23, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # A manifest names which block a part's block word stands for
 

@@ -2,7 +2,7 @@
 //! graph that follows `metaspec-graph/1`, with containment, markers and link ids as the format
 //! says.
 
-use super::common::{load_pack, packs, schema_errors};
+use super::common::{block_names, load_pack, load_with_aliases, packs, schema_errors};
 use metaspec_core::graph::{self, Graph};
 use metaspec_core::manifest::{self, Contain, Shape};
 use serde_json::Value;
@@ -213,4 +213,80 @@ fn contain_both_in_a_fixture_document_keeps_both_and_a_group_of_each() {
         both >= 1,
         "a fixture document has a part both in and per another"
     );
+}
+
+/// A word no fixture pack has as a block, given an alias in the tests below.
+const ALIAS: &str = "zz_alias_word";
+/// A word no fixture pack has as a block and no alias names.
+const NO_BLOCK: &str = "zz_no_block_word";
+
+/// The first `parts-links/1` class of a pack.
+fn graph_class(pack: &metaspec_core::Pack) -> &manifest::DocumentClass {
+    pack.manifest
+        .documents
+        .iter()
+        .find(|c| c.shape == Shape::PartsLinks)
+        .expect("a parts-links/1 class")
+}
+
+#[test]
+fn alias_names_the_target_block() {
+    for (name, dir) in packs() {
+        let blocks = block_names(&dir);
+        let target = blocks[0].as_str();
+        let (report, pack) = load_with_aliases(&dir, &[(ALIAS, target)]);
+        assert!(report.valid, "{name}: {:?}", report.errors);
+        let pack = pack.expect("loads");
+        let class = graph_class(&pack);
+        let doc: Value = serde_yaml_ng::from_str(&format!(
+            "n: x\nparts:\n  a: {{ block: {ALIAS} }}\n  b: {{ block: {target} }}\nlinks:\n  - {{ from: a, to: b, carries: c }}\n"
+        ))
+        .unwrap();
+        let g = graph::read_with_aliases(class, "d/x.yaml", &doc, &pack.manifest.blocks.aliases);
+        assert_eq!(
+            schema_errors(
+                "metaspec-graph-1.schema.json",
+                &serde_json::to_value(&g).unwrap()
+            ),
+            Vec::<String>::new(),
+            "{name}"
+        );
+        let block_of = |id: &str| g.part(id).unwrap().block.clone();
+        assert_eq!(
+            block_of("a").as_deref(),
+            Some(target),
+            "{name}: the aliased word stands for its block"
+        );
+        assert_eq!(block_of("b").as_deref(), Some(target), "{name}");
+        assert!(!g.part("a").unwrap().fields.contains_key("block"));
+        let plain = graph::read(class, "d/x.yaml", &doc);
+        assert_eq!(
+            plain.part("a").unwrap().block.as_deref(),
+            Some(ALIAS),
+            "{name}: graph::read applies no alias"
+        );
+    }
+}
+
+#[test]
+fn alias_unknown_word_keeps_its_word() {
+    for (name, dir) in packs() {
+        let blocks = block_names(&dir);
+        assert!(!blocks.iter().any(|b| b == NO_BLOCK), "{name}");
+        let (report, pack) = load_with_aliases(&dir, &[(ALIAS, &blocks[0])]);
+        assert!(report.valid, "{name}: {:?}", report.errors);
+        let pack = pack.expect("loads");
+        let class = graph_class(&pack);
+        let doc: Value = serde_yaml_ng::from_str(&format!(
+            "n: x\nparts:\n  a: {{ block: {NO_BLOCK} }}\n  b: {{ k: 1 }}\nlinks: []\n"
+        ))
+        .unwrap();
+        let g = graph::read_with_aliases(class, "d/x.yaml", &doc, &pack.manifest.blocks.aliases);
+        assert_eq!(
+            g.part("a").unwrap().block.as_deref(),
+            Some(NO_BLOCK),
+            "{name}: a word with neither alias nor block keeps its word"
+        );
+        assert_eq!(g.part("b").unwrap().block, None, "{name}: no block, none");
+    }
 }

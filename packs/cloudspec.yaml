@@ -9,6 +9,7 @@ source_file_url: https://github.com/beyond10x/cloudspec/blob/main/{path}
 blocks:
   path: blocks
   strip_prefix: cloud.
+  aliases: { group: architecture, node_pool: infrastructure, endpoints: edge }
 
 documents:
   - class: architecture

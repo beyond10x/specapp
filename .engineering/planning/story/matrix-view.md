@@ -10,6 +10,7 @@ relations:
 - depends_on: story:cloudspec-manifest
 - depends_on: story:part-block-aliases
 - depends_on: story:collapsed-regions
+- depends_on: story:extends-inherits
 scope:
 - confidence: inferred
   path: CHANGELOG.md

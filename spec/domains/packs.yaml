@@ -250,6 +250,12 @@ entities:
         type: String
       - name: strip_prefix
         type: Optional<String>
+      - name: block_aliases
+        type: Map<String, String>
+        summary: >-
+          `blocks.aliases`: a part's block word mapped to the block of the pack it stands for,
+          applied once when the graph of a document is read. Every value is a block of the pack
+          and no key is one; else the manifest is refused (manifest_invalid). Empty without it.
       - name: declares_kpis
         type: Boolean
         summary: The manifest has a `kpis` section.
