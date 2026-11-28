@@ -721,17 +721,18 @@ defaults.
   an edge is a straight segment between box borders, and its label takes the first place along
   or beside it that covers no box text. Labels can still cross a line in a dense design; `rows`
   is the layout that guarantees no overlap.
-- Hubs (`hubs: {in_degree: N}`, `{parts: [id]}`, `{blocks: [block]}`, one key or more): a hub is
-  a shown part with at least N incoming links the view shows, or one the manifest names. It is
-  drawn once: `rows` puts it in the bottom band `hubs` and never inside a `per` host; `nested`
-  starts a row of the hubs no shown part contains after the other parts, and a contained hub
-  stays in its container. A link to a hub from a part that is no hub, or from a name no part
-  has, is a badge `→ <hub> · <link>` inside its caller's box, below the box's text, wrapped to
-  the box's width, and not an edge; a part drawn inside its `per` host carries its badges in its
-  own box. Links between hubs and out of a hub stay edges. A finding on an elided link is a
-  mark at the left of its badge. A view with hubs is followed by the view `<id>/edges` (title
-  `<title>, every link an edge`), the same view with every link an edge: the static page has no
-  script, so it shows two views; the docs site shows one view with a switch (`GraphSwitch`).
+- Hubs (`hubs: {in_degree: N}`, `{parts: [id]}`, `{blocks: [block]}`, one key or more, no empty
+  list): a hub is a shown part with at least N incoming links the view shows, or one the manifest
+  names. It is drawn once: `rows` puts it in the bottom band `hubs` and never inside a `per` host;
+  `nested` starts a row of the hubs no shown part contains after the other parts, and a contained
+  hub stays in its container. A link to a hub from a part that is no hub, or from a name no part
+  has, is a badge `→ <hub> · <link>` inside its caller's box, below the box's text, wrapped to the
+  box's width, and not an edge; a part drawn inside its `per` host carries its badges in its own
+  box. Links between hubs and out of a hub stay edges. A finding on an elided link is a mark at the
+  left of its badge. A view with hubs that elides a link of the document is followed by the view
+  `<id>/edges` (title `<title>, every link an edge`), the same view with every link an edge: the
+  static page has no script, so it shows two views; the docs site shows one view with a switch
+  (`GraphSwitch`).
 - Lifted from agenticspec's renderer and made generic: rows with label rows between them,
   barycentre sweeps keeping the order with the fewest crossings, placement by isotonic
   regression, text widths by character class. Not lifted: the table of block names, channel
