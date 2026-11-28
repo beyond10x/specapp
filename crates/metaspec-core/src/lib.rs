@@ -10,6 +10,7 @@ pub mod known;
 pub mod manifest;
 pub mod pack;
 pub mod paths;
+pub mod quality;
 pub mod report;
 pub mod tool;
 pub mod words;
