@@ -1,0 +1,171 @@
+{
+  "format": "metaspec-quality/1",
+  "pack": "harbor",
+  "question": "kpi_catalogue",
+  "source_digest": "sha256:36221a79c16a6d4883796edef9e47c56b681319f056ace1f6540833663a955e9",
+  "measurements": [
+    {
+      "measure": "coverage.blocks",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "value",
+        "value": 0.6
+      },
+      "behind": [
+        {
+          "kind": "block",
+          "name": "ledger"
+        },
+        {
+          "kind": "block",
+          "name": "quay"
+        }
+      ]
+    },
+    {
+      "measure": "coverage.rules",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "coverage.lifecycles",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "grounding",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "completeness.fields",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "value",
+        "value": 0.75
+      },
+      "behind": [
+        {
+          "kind": "kpi",
+          "name": "vessel_unmoored_count"
+        }
+      ]
+    },
+    {
+      "measure": "alive",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "discrimination",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "gate_fidelity",
+      "unit": "share",
+      "direction": "higher_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "redundancy",
+      "unit": "count",
+      "direction": "lower_is_better",
+      "reading": {
+        "kind": "gap",
+        "gap": "not built yet"
+      },
+      "behind": []
+    },
+    {
+      "measure": "planned",
+      "unit": "count",
+      "direction": "lower_is_better",
+      "reading": {
+        "kind": "value",
+        "value": 1
+      },
+      "behind": [
+        {
+          "kind": "kpi",
+          "name": "crane_lift_rate"
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "kind": "measure",
+      "feature": "coverage.rules",
+      "needs": null,
+      "summary": "not built yet"
+    },
+    {
+      "kind": "measure",
+      "feature": "coverage.lifecycles",
+      "needs": null,
+      "summary": "not built yet"
+    },
+    {
+      "kind": "measure",
+      "feature": "grounding",
+      "needs": null,
+      "summary": "not built yet"
+    },
+    {
+      "kind": "measure",
+      "feature": "alive",
+      "needs": null,
+      "summary": "not built yet"
+    },
+    {
+      "kind": "measure",
+      "feature": "discrimination",
+      "needs": null,
+      "summary": "not built yet"
+    },
+    {
+      "kind": "measure",
+      "feature": "gate_fidelity",
+      "needs": null,
+      "summary": "not built yet"
+    },
+    {
+      "kind": "measure",
+      "feature": "redundancy",
+      "needs": null,
+      "summary": "not built yet"
+    }
+  ]
+}

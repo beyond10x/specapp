@@ -37,7 +37,8 @@ th{font-weight:600}
 tr:target td{outline:2px solid var(--link)}
 ";
 
-fn head(title: &str) -> String {
+/// The head of every page: the title, the palette of both themes and the CSS, inline.
+pub(crate) fn head(title: &str) -> String {
     format!(
         "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>{}</title>\n<style>\n{}{}{}</style>\n</head>\n",
         esc(title),
@@ -297,8 +298,10 @@ pub fn document(p: &DocumentPage) -> String {
     h
 }
 
-/// The index page: every class, and for a drawn class every document with its check.
-pub fn index(pack: &Pack, rendered: &Rendered) -> String {
+/// The index page: every class, and for a drawn class every document with its check. With
+/// `quality`, the file of the quality page, one line more links it; without, the index is the
+/// same as before the quality page existed.
+pub fn index(pack: &Pack, rendered: &Rendered, quality: Option<&str>) -> String {
     let title = &pack.manifest.title;
     let mut h = head(title);
     h.push_str("<body>\n<header>\n");
@@ -310,6 +313,13 @@ pub fn index(pack: &Pack, rendered: &Rendered) -> String {
         let _ = writeln!(h, "<p>{}</p>", esc(summary));
     }
     h.push_str("</header>\n<main>\n");
+    if let Some(file) = quality {
+        let _ = writeln!(
+            h,
+            "<nav aria-label=\"Pages\"><ul><li><a href=\"{}\">Quality</a></li></ul></nav>",
+            esc(file)
+        );
+    }
     for class in &rendered.classes {
         let _ = writeln!(
             h,
