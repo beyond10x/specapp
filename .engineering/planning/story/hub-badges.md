@@ -8,7 +8,46 @@ summary: 'A view elides parts with many incoming links: drawn once, each link to
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
-revision: 3
+scope:
+- confidence: inferred
+  path: CHANGELOG.md
+- confidence: cited
+  path: crates/metaspec-core/src/manifest.rs
+- confidence: inferred
+  path: crates/metaspec-core/src/pack.rs
+- confidence: inferred
+  path: crates/metaspec-core/tests/cases/manifest.rs
+- confidence: inferred
+  path: crates/metaspec-docs/src/documents.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/lib.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/nested.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/rows.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/scene.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/svg.rs
+- confidence: inferred
+  path: crates/metaspec-layout/tests/cases/hubs.rs
+- confidence: inferred
+  path: crates/metaspec-layout/tests/cases/mod.rs
+- confidence: inferred
+  path: crates/metaspec-layout/tests/cases/scenes.rs
+- confidence: inferred
+  path: crates/metaspec/src/page.rs
+- confidence: inferred
+  path: crates/metaspec/tests/main.rs
+- confidence: inferred
+  path: design/metaspec.md
+- confidence: inferred
+  path: fixtures/manifests
+- confidence: cited
+  path: schema/metaspec-pack-1.schema.json
+- confidence: cited
+  path: schema/metaspec-scene-1.schema.json
+revision: 22
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 3}

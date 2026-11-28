@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:cloudspec-manifest
 kind: story
-status: active
+status: implemented
 title: 'packs/cloudspec.yaml: cloudspec at levels L0, L2 and L3'
 summary: cloudspec's manifest with blocks, the architecture class and the check verb, held by the acceptance.
 relations:
@@ -31,10 +31,11 @@ scope:
   path: scripts/acceptance.sh
 - confidence: inferred
   path: spec/domains/documents.yaml
-revision: 6
+revision: 7
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 3}
+- {from: "active", to: "implemented", at: "2026-11-28T15:31:25Z", actor: "human:operator", revision: 7, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # packs/cloudspec.yaml: cloudspec at levels L0, L2 and L3
 

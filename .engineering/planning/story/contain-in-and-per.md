@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:contain-in-and-per
 kind: story
-status: active
+status: implemented
 title: One document class holds parts contained by in and by per
 summary: The manifest's contain takes in, per or both; graph and nested layout keep both.
 relations:
@@ -44,10 +44,11 @@ scope:
   path: schema/metaspec-pack-1.schema.json
 - confidence: cited
   path: spec/domains/documents.yaml
-revision: 5
+revision: 6
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 3}
+- {from: "active", to: "implemented", at: "2026-11-28T15:02:29Z", actor: "human:operator", revision: 6, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # One document class holds parts contained by `in` and by `per`
 
