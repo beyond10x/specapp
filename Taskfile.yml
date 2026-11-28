@@ -11,6 +11,7 @@ tasks:
       - task: check:public
       - task: check:scripts
       - task: check:fixtures
+      - task: check:spec
       - task: check:rust
       - task: test
       - task: check:docs
@@ -45,6 +46,16 @@ tasks:
           ess specify validate --path "$blocks" --strict-requires
         done
       - scripts/check-pack-dirs.sh
+
+  check:spec:
+    desc: Validate metaspec's own ESS specification (spec/, ess pinned by spec/ess-inputs.yaml) with --strict-requires and run its conformance suite on the interpreted reference target. The suite is synthesized once per digest of its sources under target/spec-conform/; scenarios listed in spec/known-failing.txt are known failures (scripts/check-spec-conform.sh).
+    cmds:
+      - scripts/check-spec-conform.sh
+
+  check:spec:slow:
+    desc: The slow lane of check:spec, not part of check. Synthesizes the suite afresh and compares its bytes with the cached suite of the same digest.
+    cmds:
+      - scripts/check-spec-conform.sh --slow
 
   check:rust:
     desc: Format and lint the Rust workspace.

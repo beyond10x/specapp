@@ -77,6 +77,18 @@ jobs:
           echo "$dir/bin" >> "$GITHUB_PATH"
           "$dir/bin/ess" --version
 
+      - name: Install the ess release spec/ess-inputs.yaml pins (checksummed toolchain cache)
+        if: steps.paths.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          release=$(sed -n 's/^requires: ess \([0-9][0-9.]*\)$/\1/p' spec/ess-inputs.yaml)
+          [ -n "$release" ]
+          cd spec
+          ess specify toolchain install "$release"
+          ess specify toolchain which --strict-requires
+
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         if: steps.paths.outputs.skip != 'true'
         with:

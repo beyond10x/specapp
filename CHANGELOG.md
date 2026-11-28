@@ -26,6 +26,21 @@
   state directory (`$XDG_STATE_HOME/metaspec`). Nothing was published, so every format version
   restarts at /1: the manifest format of the reversal below is `metaspec-pack/1`. Behaviour is
   unchanged.
+- Wave 4, "Model": the ESS system `metaspec` in `spec/` (the meta model of a pack, the studio's
+  nouns and pack quality; ess pinned to 0.99.9 in `spec/ess-inputs.yaml`), held by `task check`'s
+  new `check:spec` (`scripts/check-spec-conform.sh`: validate, then the conformance suite on the
+  interpreted target, synthesized once per digest under `target/spec-conform/`); CI installs the
+  pinned release.
+- The 22 open questions of `spec/` are settled (D1 to D22 in `design/metaspec.md`, "Decided for
+  the meta model"): the check adapter of metaspec-pack/1, gaps per feature, dependency rows,
+  typed KPI columns, the check of a draft's revision (`CheckRevision`), a finding's rule, the
+  `pack_verb` edit, revision findings, the pack carried by the draft, evidence rows behind a
+  measured value and a required KPI row per measure. `spec/` holds no `UNMAPPED:` marker.
+- Hardening of `spec/`: a design review (`spec/hardening/design-review-1.md`, 25 findings, fixed
+  as D23 to D34), a mutation audit (`spec/hardening/mutation-audit-1.md`, score 137/138) and an
+  authored scenario that pins its survivor (`spec/scenarios/ratchet-equal-lower-is-better.yaml`,
+  the provided rows arranged with `arrange:`).
+
 - Wave 3, "Docs".
 - `crates/metaspec-docs` and `metaspec docs build [NAME | --manifest <file>] --pack <dir> --out
   <dir> [--check] [--deadline <s>]`: the docs site of a pack as MDX pages with their data

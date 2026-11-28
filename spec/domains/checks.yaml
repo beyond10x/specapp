@@ -1,0 +1,561 @@
+domain: metaspec.checks
+
+summary: >-
+  What the pack's tool says about a document (L3): the rules it reports, a check result
+  (metaspec-findings/1 and the state of the run) and its findings. metaspec implements no rule of
+  a pack; every value here is the tool's answer, recorded by the tool runner.
+
+naming:
+  wire: checks
+  display: Checks
+
+types:
+  - name: metaspec.checks.RuleId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.checks.CheckResultId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.checks.FindingId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.checks.RuleCountId
+    kind: newtype
+    of: Uuid
+
+  - name: metaspec.checks.CheckAnswer
+    kind: enum
+    naming:
+      summary: >-
+        How the check of a document ended (metaspec-document/1 `check.state`): ran, the tool
+        answered; no_tool, no_check: the manifest names no tool or no verb check; not_trusted:
+        the user has not trusted this tool section; timed_out: killed at its deadline; refused:
+        exit 2 with {error}; failed: not started, or no metaspec-findings/1.
+    variants: [ran, no_tool, no_check, not_trusted, timed_out, refused, failed]
+
+  - name: metaspec.checks.Subject
+    kind: newtype
+    of: String
+    naming:
+      summary: "What a finding is about: `part:<id>`, `link:<id>` or `document` (metaspec-findings/1)."
+
+entities:
+  - name: metaspec.checks.Rule
+    naming:
+      summary: >-
+        A rule id the pack's tool reports, read from the documents' `rules` lists and the
+        tool's findings; a rule kept only in the tool's source is found once the tool reports it.
+    provided: true
+    identity:
+      name: rule_id
+      type: metaspec.checks.RuleId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: name
+        type: String
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.checks.CheckResult
+    naming:
+      summary: One check of one document by the pack's tool, as the tool runner recorded it.
+    identity:
+      name: check_result_id
+      type: metaspec.checks.CheckResultId
+    fields:
+      - name: document_id
+        type: metaspec.documents.DocumentId
+      - name: revision_id
+        type: Optional<metaspec.drafts.RevisionId>
+        summary: The draft's revision that was checked; absent for a check of the document file.
+      - name: answer
+        type: metaspec.checks.CheckAnswer
+      - name: valid
+        type: Optional<Boolean>
+        summary: The tool's `valid`; present exactly when the tool answered.
+      - name: message
+        type: Optional<String>
+      - name: document_digest
+        type: String
+        summary: >-
+          The digest of the document text that was checked: the file's bytes for a check of
+          the file, the patched text for a check of a revision. A result whose digest is not the
+          document's current Document.digest is a check of another state of the file, so the
+          check runs again when the file changes.
+      - name: checked_at
+        type: Timestamp
+        summary: When the tool answered. The newest result of a document is its check status.
+    invariants:
+      - {any: [{answer: {none_of: [ran]}}, defined(valid)]}
+      - {any: [answer == ran, not defined(valid)]}
+    relations:
+      # A check result is a record of a run and stands on its own: it references its document.
+      - name: document
+        kind: references
+        target: metaspec.documents.Document
+        cardinality: one
+        via: document_id
+      - name: revision
+        kind: references
+        target: metaspec.drafts.Revision
+        cardinality: one
+        via: revision_id
+      - name: findings
+        kind: owns
+        target: metaspec.checks.Finding
+        cardinality: many
+        via: check_result_id
+      - name: rule_counts
+        kind: owns
+        target: metaspec.checks.RuleCount
+        cardinality: many
+        via: check_result_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+  - name: metaspec.checks.RuleCount
+    naming:
+      summary: >-
+        The count of one rule in a check result, as the tool answered it (metaspec-findings/1
+        "counts per rule"; the adapter's `counts`). The KPI-quality measures read it beside the
+        findings.
+    identity:
+      name: rule_count_id
+      type: metaspec.checks.RuleCountId
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - name: rule
+        type: String
+        summary: The rule id as the tool writes it.
+      - name: rule_id
+        type: Optional<metaspec.checks.RuleId>
+        summary: The Rule row of that rule id; absent when the tool's rule is not among the pack's known rules.
+      - {name: count, type: Integer}
+    invariants:
+      - count >= 0
+    relations:
+      - name: rule
+        kind: references
+        target: metaspec.checks.Rule
+        cardinality: one
+        via: rule_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+  - name: metaspec.checks.Finding
+    naming:
+      summary: >-
+        One finding of a check: a rule, whether it gates, what it is about, a sentence. Its
+        number is its position in the tool's answer, from 1.
+    identity:
+      name: finding_id
+      type: metaspec.checks.FindingId
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: n, type: Integer}
+      - {name: rule, type: String}
+      - name: rule_id
+        type: Optional<metaspec.checks.RuleId>
+        summary: The Rule row of that rule id; absent when the tool's rule is not among the pack's known rules.
+      - {name: gate, type: Boolean}
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: message, type: String}
+    invariants:
+      - n >= 1
+    relations:
+      - name: rule
+        kind: references
+        target: metaspec.checks.Rule
+        cardinality: one
+        via: rule_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+actors:
+  - name: metaspec.checks.ToolRunner
+    naming:
+      display: Tool runner
+      summary: >-
+        metaspec's runner of a pack's tool, a caller of these commands: it records what the
+        tool answered. Not `system: true`: ess 0.99.9 awaits a system-issued step only on an
+        existing record (ESS-SYNTH-023), and these steps create one.
+    may:
+      - metaspec.checks.RecordCheck
+      - metaspec.checks.RecordFinding
+      - metaspec.checks.RecordRuleCount
+      - metaspec.runs.EndRun
+      - metaspec.runs.RecordKpiValue
+      - metaspec.runs.RecordVariant
+
+errors:
+  - name: metaspec.checks.NoSuchDocument
+    summary: No document of a loaded pack has this id.
+    fields:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+  - name: metaspec.checks.RanWithoutValid
+    summary: A check that ran carries the tool's `valid`; nothing was recorded.
+    fields: []
+  - name: metaspec.checks.BadFindingNumber
+    summary: A finding's number is its position in the tool's answer, from 1; nothing was recorded.
+    fields:
+      - {name: n, type: Integer}
+  - name: metaspec.checks.NoSuchCheck
+    summary: No check result has this id.
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+  - name: metaspec.checks.NoSuchDraft
+    summary: No draft has this id.
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.checks.NoSuchRevision
+    summary: No revision has this id.
+    fields:
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+  - name: metaspec.checks.NoAnswer
+    summary: The pack's tool did not answer the check of the revision; nothing was recorded.
+    fields:
+      - {name: answer, type: metaspec.checks.CheckAnswer}
+      - {name: message, type: Optional<String>}
+  - name: metaspec.checks.RevisionOfOtherDraft
+    summary: The revision is not one of this draft's; nothing was checked.
+    fields:
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+  - name: metaspec.checks.ValidWithoutRan
+    summary: Only a check the tool answered carries the tool's `valid`; nothing was recorded.
+    fields: []
+  - name: metaspec.checks.NotRan
+    summary: The tool did not answer this check, so it has no findings or counts; nothing was recorded.
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+  - name: metaspec.checks.FindingNumberTaken
+    summary: The check result holds a finding with this number already; a number is one position in the tool's answer. Nothing was recorded.
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: n, type: Integer}
+  - name: metaspec.checks.BadCount
+    summary: A count is at least 0; nothing was recorded.
+    fields:
+      - {name: count, type: Integer}
+  - name: metaspec.checks.RuleCountTaken
+    summary: The check result holds a count of this rule already; nothing was recorded.
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: rule, type: String}
+
+commands:
+  - name: metaspec.checks.RecordCheck
+    naming:
+      wire: record-check
+      display: Record a check
+      summary: >-
+        Record what the pack's tool answered for a check of the document file. A check of a
+        draft's revision is CheckRevision, which holds the revision to its draft; this command
+        takes no revision, so it cannot record a check of a revision that does not exist or
+        belongs to another document.
+    input:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: answer, type: metaspec.checks.CheckAnswer}
+      - {name: valid, type: Optional<Boolean>}
+      - {name: message, type: Optional<String>}
+      - name: document_digest
+        type: String
+        summary: The digest of the document text the tool checked.
+    outcomes:
+      - name: ran-without-valid
+        when: {all: [answer == ran, not defined(valid)]}
+        error: metaspec.checks.RanWithoutValid
+      - name: valid-without-ran
+        when: {all: [{answer: {none_of: [ran]}}, defined(valid)]}
+        error: metaspec.checks.ValidWithoutRan
+      - name: no-document
+        when_related: {via: input.document_id, exists: false}
+        error: metaspec.checks.NoSuchDocument
+        payload:
+          metaspec.checks.NoSuchDocument: {document_id: input.document_id}
+      - name: recorded
+        creates: metaspec.checks.CheckResult
+        instance: check_result_id
+        sets:
+          document_id: input.document_id
+          revision_id: {cleared: true}
+          answer: input.answer
+          valid: input.valid
+          message: input.message
+          document_digest: input.document_digest
+          checked_at: {generated: true}
+        emits: [metaspec.checks.DocumentChecked]
+        payload:
+          metaspec.checks.DocumentChecked:
+            check_result_id: {generated: true}
+            document_id: input.document_id
+            answer: input.answer
+            valid: input.valid
+
+  - name: metaspec.checks.CheckRevision
+    naming:
+      wire: check
+      display: Check a draft's revision
+      summary: >-
+        Run the pack's tool's check on a draft's revision and record what it answered as a check
+        result; the findings follow through RecordFinding. The agent's tool `check`.
+    input:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+    outcomes:
+      - name: no-draft
+        when_related: {via: input.draft_id, exists: false}
+        error: metaspec.checks.NoSuchDraft
+        payload:
+          metaspec.checks.NoSuchDraft: {draft_id: input.draft_id}
+      - name: no-revision
+        when_related: {via: input.revision_id, exists: false}
+        error: metaspec.checks.NoSuchRevision
+        payload:
+          metaspec.checks.NoSuchRevision: {revision_id: input.revision_id}
+      - name: other-draft
+        when_related: {via: input.revision_id, predicate: draft_id != input.draft_id}
+        error: metaspec.checks.RevisionOfOtherDraft
+        payload:
+          metaspec.checks.RevisionOfOtherDraft: {revision_id: input.revision_id}
+      # A check that did not run is refused, not recorded: ess 0.99.9 has no conditional value,
+      # so a recorded `answer` the tool runner supplies could break the invariant `ran` ->
+      # `valid` (ESS-CF-TARGET on the interpreted target).
+      - name: no-answer
+        external: the pack's tool gave no answer (no tool, no verb check, not trusted, timed out, refused or failed)
+        error: metaspec.checks.NoAnswer
+        payload:
+          metaspec.checks.NoAnswer:
+            answer: {generated: true}
+            message: {generated: true}
+      - name: checked
+        creates: metaspec.checks.CheckResult
+        instance: check_result_id
+        sets:
+          document_id: {related: {via: input.draft_id, field: document_id}}
+          revision_id: input.revision_id
+          answer: ran
+          valid: {payload: metaspec.checks.RevisionChecked.valid}
+          message: {generated: true}
+          document_digest: {generated: true}
+          checked_at: {generated: true}
+        emits: [metaspec.checks.RevisionChecked]
+        payload:
+          metaspec.checks.RevisionChecked:
+            check_result_id: {generated: true}
+            document_id: {related: {via: input.draft_id, field: document_id}}
+            revision_id: input.revision_id
+            valid: {generated: true}
+
+  - name: metaspec.checks.RecordFinding
+    naming:
+      wire: record-finding
+      display: Record a finding
+    input:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: n, type: Integer}
+      - {name: rule, type: String}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: gate, type: Boolean}
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: message, type: String}
+    outcomes:
+      - name: bad-number
+        when: n < 1
+        error: metaspec.checks.BadFindingNumber
+        payload:
+          metaspec.checks.BadFindingNumber: {n: input.n}
+      - name: no-check
+        when_related: {via: input.check_result_id, exists: false}
+        error: metaspec.checks.NoSuchCheck
+        payload:
+          metaspec.checks.NoSuchCheck: {check_result_id: input.check_result_id}
+      - name: not-ran
+        when_related: {via: input.check_result_id, predicate: {answer: {none_of: [ran]}}}
+        error: metaspec.checks.NotRan
+        payload:
+          metaspec.checks.NotRan: {check_result_id: input.check_result_id}
+      - name: number-taken
+        when_related:
+          entity: metaspec.checks.Finding
+          where: {all: [check_result_id == input.check_result_id, n == input.n]}
+          exists: true
+        error: metaspec.checks.FindingNumberTaken
+        payload:
+          metaspec.checks.FindingNumberTaken: {check_result_id: input.check_result_id, n: input.n}
+      - name: recorded
+        creates: metaspec.checks.Finding
+        instance: finding_id
+        sets:
+          check_result_id: input.check_result_id
+          n: input.n
+          rule: input.rule
+          rule_id: input.rule_id
+          gate: input.gate
+          subject: input.subject
+          message: input.message
+        emits: [metaspec.checks.FindingRecorded]
+        payload:
+          metaspec.checks.FindingRecorded:
+            finding_id: {generated: true}
+            check_result_id: input.check_result_id
+            rule: input.rule
+            gate: input.gate
+            subject: input.subject
+
+  - name: metaspec.checks.RecordRuleCount
+    naming:
+      wire: record-rule-count
+      display: Record the count of a rule
+    input:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: rule, type: String}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: count, type: Integer}
+    outcomes:
+      - name: bad-count
+        when: count < 0
+        error: metaspec.checks.BadCount
+        payload:
+          metaspec.checks.BadCount: {count: input.count}
+      - name: no-check
+        when_related: {via: input.check_result_id, exists: false}
+        error: metaspec.checks.NoSuchCheck
+        payload:
+          metaspec.checks.NoSuchCheck: {check_result_id: input.check_result_id}
+      - name: not-ran
+        when_related: {via: input.check_result_id, predicate: {answer: {none_of: [ran]}}}
+        error: metaspec.checks.NotRan
+        payload:
+          metaspec.checks.NotRan: {check_result_id: input.check_result_id}
+      - name: counted-before
+        when_related:
+          entity: metaspec.checks.RuleCount
+          where: {all: [check_result_id == input.check_result_id, rule == input.rule]}
+          exists: true
+        error: metaspec.checks.RuleCountTaken
+        payload:
+          metaspec.checks.RuleCountTaken: {check_result_id: input.check_result_id, rule: input.rule}
+      - name: recorded
+        creates: metaspec.checks.RuleCount
+        instance: rule_count_id
+        sets:
+          check_result_id: input.check_result_id
+          rule: input.rule
+          rule_id: input.rule_id
+          count: input.count
+        emits: [metaspec.checks.RuleCounted]
+        payload:
+          metaspec.checks.RuleCounted:
+            rule_count_id: {generated: true}
+            check_result_id: input.check_result_id
+            rule: input.rule
+            count: input.count
+
+events:
+  - name: metaspec.checks.DocumentChecked
+    naming: {summary: A check of the document file was recorded.}
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: answer, type: metaspec.checks.CheckAnswer}
+      - {name: valid, type: Optional<Boolean>}
+
+  - name: metaspec.checks.RevisionChecked
+    naming: {summary: "The tool checked a draft's revision and answered."}
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+      - {name: valid, type: Boolean}
+
+  - name: metaspec.checks.FindingRecorded
+    fields:
+      - {name: finding_id, type: metaspec.checks.FindingId}
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: rule, type: String}
+      - {name: gate, type: Boolean}
+      - {name: subject, type: metaspec.checks.Subject}
+
+  - name: metaspec.checks.RuleCounted
+    fields:
+      - {name: rule_count_id, type: metaspec.checks.RuleCountId}
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: rule, type: String}
+      - {name: count, type: Integer}
+
+views:
+  - name: metaspec.checks.Rules
+    source: metaspec.checks.Rule
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: rules
+      display: Rules
+    fields:
+      - {name: rule_id, type: metaspec.checks.RuleId}
+      - {name: name, type: String}
+
+  - name: metaspec.checks.CheckResults
+    source: metaspec.checks.CheckResult
+    consistency: read_your_writes
+    naming:
+      wire: check-results
+      display: Check results
+    fields:
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: revision_id, type: Optional<metaspec.drafts.RevisionId>}
+      - {name: answer, type: metaspec.checks.CheckAnswer}
+      - {name: valid, type: Optional<Boolean>}
+      - {name: message, type: Optional<String>}
+      - {name: document_digest, type: String}
+      - {name: checked_at, type: Timestamp}
+      - {name: state, type: metaspec.checks.CheckResult.State}
+
+  - name: metaspec.checks.Findings
+    source: metaspec.checks.Finding
+    consistency: read_your_writes
+    naming:
+      wire: findings
+      display: Findings
+    fields:
+      - {name: finding_id, type: metaspec.checks.FindingId}
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: n, type: Integer}
+      - {name: rule, type: String}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: gate, type: Boolean}
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: message, type: String}
+      - {name: state, type: metaspec.checks.Finding.State}
+
+  - name: metaspec.checks.RuleCounts
+    source: metaspec.checks.RuleCount
+    consistency: read_your_writes
+    naming:
+      wire: rule-counts
+      display: Counts per rule
+    fields:
+      - {name: rule_count_id, type: metaspec.checks.RuleCountId}
+      - {name: check_result_id, type: metaspec.checks.CheckResultId}
+      - {name: rule, type: String}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: count, type: Integer}
+      - {name: state, type: metaspec.checks.RuleCount.State}

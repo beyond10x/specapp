@@ -1,0 +1,650 @@
+domain: metaspec.quality
+
+summary: >-
+  The quality of every pack's KPI catalogue and of every specification, measured by metaspec
+  ("KPIs for KPIs", "KPIs for specs"; owner, 2026-11-28). The same measures run on every pack
+  through its manifest; a measure a pack cannot supply data for is a gap of that pack, never a
+  silent zero. The first run sets a baseline; a better value is taken into it, a worse one fails.
+  The measures themselves are data (rows), not declarations of this model.
+
+naming:
+  wire: quality
+  display: Quality
+
+types:
+  - name: metaspec.quality.MeasureId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.quality.ReportId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.quality.MeasurementId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.quality.BaselineId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.quality.EvidenceId
+    kind: newtype
+    of: Uuid
+
+  - name: metaspec.quality.Question
+    kind: enum
+    naming:
+      summary: What a measure is about, a pack's KPI catalogue or a specification.
+    variants: [kpi_catalogue, specification]
+
+  - name: metaspec.quality.Direction
+    kind: enum
+    naming:
+      summary: >-
+        Which way a value of a measure is better; the ratchet reads it. metaspec's own words; a
+        pack's catalogue keeps its own words for `direction`.
+    variants: [higher_is_better, lower_is_better]
+
+  - name: metaspec.quality.BehindKind
+    kind: enum
+    naming:
+      summary: What an id behind a measured value names.
+    variants: [kpi, rule, document, finding, block, lifecycle, event, scenario, mutant, marker, edge, file]
+
+
+entities:
+  - name: metaspec.quality.Measure
+    naming:
+      summary: >-
+        A quality measure, such as the share of blocks with a KPI or the share of mutants a
+        suite kills. Each is a row of metaspec's own KPI catalogue.
+    provided: true
+    identity:
+      name: measure_id
+      type: metaspec.quality.MeasureId
+    fields:
+      - name: id
+        type: String
+        summary: The measure's id, such as `coverage.blocks`.
+      - name: question
+        type: metaspec.quality.Question
+      - name: unit
+        type: String
+      - name: direction
+        type: metaspec.quality.Direction
+      - name: kpi_id
+        type: metaspec.blocks.KpiId
+        summary: >-
+          The measure's row in metaspec's own KPI catalogue: metaspec is a pack with a manifest
+          and a KPI catalogue of its own.
+    relations:
+      - name: kpi
+        kind: references
+        target: metaspec.blocks.Kpi
+        cardinality: one
+        via: kpi_id
+    lifecycle:
+      initial: Listed
+      states: [Listed]
+      terminal: [Listed]
+
+  - name: metaspec.quality.QualityReport
+    naming:
+      summary: One run of the quality measures over one pack at one state of its sources.
+    identity:
+      name: report_id
+      type: metaspec.quality.ReportId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: question
+        type: metaspec.quality.Question
+      - name: source_digest
+        type: String
+        summary: The digest (or revision) of the pack's sources the measures read.
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: measurements
+        kind: owns
+        target: metaspec.quality.Measurement
+        cardinality: many
+        via: report_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+  - name: metaspec.quality.Measurement
+    naming:
+      summary: >-
+        The value of one measure for one pack in one report, with the ids behind it; or the gap
+        of the pack that says why it cannot supply it (never a silent zero). Exactly one of
+        `value` and `gap_id` is present.
+    identity:
+      name: measurement_id
+      type: metaspec.quality.MeasurementId
+    fields:
+      - name: report_id
+        type: metaspec.quality.ReportId
+      - name: measure_id
+        type: metaspec.quality.MeasureId
+      - name: key
+        type: Optional<String>
+        summary: >-
+          A breakdown key, such as a rule id or a mutant class, as the pack's data writes it
+          ("findings per rule", "mutation score per mutant class"); absent for the measure's
+          value over the whole pack. metaspec's measures name no key.
+      - name: value
+        type: Optional<Decimal>
+      - name: gap_id
+        type: Optional<metaspec.packs.GapId>
+        summary: >-
+          The pack's gap (kind measure) that says why it cannot supply the value, one row of the
+          per-pack gap list.
+    # Not declared, each with its reason:
+    # - that the gap is the report's pack's and names this measure: it compares text fields of
+    #   two rows (Gap.pack with QualityReport.pack, Gap.feature with Measure.id), and an ess
+    #   0.99.9 guard compares two rows only one branch per value of an enum;
+    # - that value and gap_id are not both present: as an invariant or as an input guard beside
+    #   the guard `no-gap`, ess 0.99.9 synthesis then writes no scenario of RecordMeasurement
+    #   (ESS-SYNTH-003, "no candidate satisfies"). That one of them is present is declared.
+    invariants:
+      - {any: [defined(value), defined(gap_id)]}
+    relations:
+      - name: measure
+        kind: references
+        target: metaspec.quality.Measure
+        cardinality: one
+        via: measure_id
+      - name: gap
+        kind: references
+        target: metaspec.packs.Gap
+        cardinality: one
+        via: gap_id
+      - name: evidence
+        kind: owns
+        target: metaspec.quality.Evidence
+        cardinality: many
+        via: measurement_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+  - name: metaspec.quality.Evidence
+    naming:
+      summary: >-
+        One id behind a measured value (a flat KPI, a surviving mutant, a broken rule), as the
+        pack writes it, with a typed reference to the row it names where metaspec has one: a
+        KPI, a rule, a document, a finding or a block. Each reference is absent for the other
+        kinds and for a name no row has.
+    identity:
+      name: evidence_id
+      type: metaspec.quality.EvidenceId
+    fields:
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+      - {name: kind, type: metaspec.quality.BehindKind}
+      - {name: name, type: String}
+      - name: value
+        type: Optional<Decimal>
+        summary: The id's own figure where the measure has one (a KPI's value, a count); absent for a bare id.
+      - {name: kpi_id, type: Optional<metaspec.blocks.KpiId>}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: document_id, type: Optional<metaspec.documents.DocumentId>}
+      - {name: finding_id, type: Optional<metaspec.checks.FindingId>}
+      - {name: block_id, type: Optional<metaspec.blocks.BlockId>}
+    relations:
+      - name: kpi
+        kind: references
+        target: metaspec.blocks.Kpi
+        cardinality: one
+        via: kpi_id
+      - name: rule
+        kind: references
+        target: metaspec.checks.Rule
+        cardinality: one
+        via: rule_id
+      - name: document
+        kind: references
+        target: metaspec.documents.Document
+        cardinality: one
+        via: document_id
+      - name: finding
+        kind: references
+        target: metaspec.checks.Finding
+        cardinality: one
+        via: finding_id
+      - name: block
+        kind: references
+        target: metaspec.blocks.Block
+        cardinality: one
+        via: block_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+  - name: metaspec.quality.Baseline
+    naming:
+      summary: >-
+        The ratchet of one measure for one pack: the best value taken so far. A better or equal
+        value is taken into it; a worse one fails. One baseline per measure and pack. A public
+        or fixture pack's baselines are a file committed in metaspec; a private pack's are in
+        the user's state directory, keyed by the pack's name, never in the metaspec checkout
+        (owner, 2026-11-28).
+    identity:
+      name: baseline_id
+      type: metaspec.quality.BaselineId
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - name: direction
+        type: metaspec.quality.Direction
+        summary: The measure's direction, copied from it when the baseline is set; the ratchet reads it.
+      - {name: value, type: Decimal}
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: measure
+        kind: references
+        target: metaspec.quality.Measure
+        cardinality: one
+        via: measure_id
+    lifecycle:
+      initial: Held
+      states: [Held]
+      terminal: [Held]
+
+actors:
+  - name: metaspec.quality.QualityRunner
+    naming:
+      display: Quality runner
+      summary: "`metaspec quality kpis` and `metaspec quality spec`: the runner that measures a pack."
+    may:
+      - metaspec.quality.RecordReport
+      - metaspec.quality.RecordMeasurement
+      - metaspec.quality.RecordEvidence
+      - metaspec.quality.SetBaseline
+      - metaspec.quality.Ratchet
+
+errors:
+  - name: metaspec.quality.NoSuchPack
+    summary: No loaded pack has this name.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.quality.NoSuchReport
+    summary: No quality report has this id.
+    fields:
+      - {name: report_id, type: metaspec.quality.ReportId}
+  - name: metaspec.quality.NoSuchMeasurement
+    summary: No measurement has this id.
+    fields:
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+  - name: metaspec.quality.NoSuchMeasure
+    summary: No quality measure has this id.
+    fields:
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+  - name: metaspec.quality.NoBaseline
+    summary: No baseline has this id; set it first.
+    fields:
+      - {name: baseline_id, type: metaspec.quality.BaselineId}
+  - name: metaspec.quality.BadReading
+    summary: A measurement holds a value or a gap of the pack (never a silent zero); nothing was recorded.
+    fields: []
+  - name: metaspec.quality.NoSuchGap
+    summary: No gap has this id; nothing was recorded.
+    fields:
+      - {name: gap_id, type: Optional<metaspec.packs.GapId>}
+  - name: metaspec.quality.OtherQuestion
+    summary: The measure is about another question than the report (KPI catalogue against specification); nothing was recorded.
+    fields:
+      - {name: report_id, type: metaspec.quality.ReportId}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+  - name: metaspec.quality.NotTheMeasuresDirection
+    summary: The direction is not the measure's; nothing changed.
+    fields:
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - {name: direction, type: metaspec.quality.Direction}
+  - name: metaspec.quality.BaselineExists
+    summary: The pack has a baseline of this measure already (one per measure and pack); ratchet it instead. Nothing changed.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+  - name: metaspec.quality.Regressed
+    summary: The value is worse than the baseline; the baseline is kept and the run fails.
+    fields:
+      - {name: baseline_id, type: metaspec.quality.BaselineId}
+      - {name: baseline, type: Decimal}
+      - {name: value, type: Decimal}
+
+commands:
+  - name: metaspec.quality.RecordReport
+    naming:
+      wire: record-report
+      display: Record a quality report
+    input:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: question, type: metaspec.quality.Question}
+      - {name: source_digest, type: String}
+    outcomes:
+      - name: no-pack
+        when_related: {via: input.pack, exists: false}
+        error: metaspec.quality.NoSuchPack
+        payload:
+          metaspec.quality.NoSuchPack: {pack: input.pack}
+      - name: recorded
+        creates: metaspec.quality.QualityReport
+        instance: report_id
+        sets:
+          pack: input.pack
+          question: input.question
+          source_digest: input.source_digest
+        emits: [metaspec.quality.ReportRecorded]
+        payload:
+          metaspec.quality.ReportRecorded:
+            report_id: {generated: true}
+            pack: input.pack
+            question: input.question
+
+  - name: metaspec.quality.RecordMeasurement
+    naming:
+      wire: record-measurement
+      display: Record a measurement
+    input:
+      - {name: report_id, type: metaspec.quality.ReportId}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - {name: key, type: Optional<String>}
+      - {name: value, type: Optional<Decimal>}
+      - {name: gap_id, type: Optional<metaspec.packs.GapId>}
+    outcomes:
+      - name: neither
+        when: {all: [not defined(value), not defined(gap_id)]}
+        error: metaspec.quality.BadReading
+      - name: no-report
+        when_related: {via: input.report_id, exists: false}
+        error: metaspec.quality.NoSuchReport
+        payload:
+          metaspec.quality.NoSuchReport: {report_id: input.report_id}
+      - name: no-measure
+        when_related: {via: input.measure_id, exists: false}
+        error: metaspec.quality.NoSuchMeasure
+        payload:
+          metaspec.quality.NoSuchMeasure: {measure_id: input.measure_id}
+      - name: no-gap
+        when_related: {via: input.gap_id, exists: false}
+        error: metaspec.quality.NoSuchGap
+        payload:
+          metaspec.quality.NoSuchGap: {gap_id: input.gap_id}
+      # kpi-quality and spec-quality report separately: a measure answers the question of its
+      # report. Written as two typed branches, one per value of the enum (`when_related: {all:
+      # [{via: input.report_id, predicate: question == kpi_catalogue}, {via: input.measure_id,
+      # predicate: question == specification}]}` and the mirror), it validates, but the branches
+      # read the provided Measure's field, and ess 0.99.9 synthesis then writes no scenario for
+      # them, for `recorded` or for RecordEvidence (ESS-SYNTH-003, ESS-SYNTH-004). So it is
+      # external.
+      - name: other-question
+        external: the measure's question (Measure.question) is not the report's (QualityReport.question)
+        error: metaspec.quality.OtherQuestion
+        payload:
+          metaspec.quality.OtherQuestion: {report_id: input.report_id, measure_id: input.measure_id}
+      - name: recorded
+        creates: metaspec.quality.Measurement
+        instance: measurement_id
+        sets:
+          report_id: input.report_id
+          measure_id: input.measure_id
+          key: input.key
+          value: input.value
+          gap_id: input.gap_id
+        emits: [metaspec.quality.Measured]
+        payload:
+          metaspec.quality.Measured:
+            measurement_id: {generated: true}
+            report_id: input.report_id
+            measure_id: input.measure_id
+            key: input.key
+            value: input.value
+            gap_id: input.gap_id
+
+  - name: metaspec.quality.RecordEvidence
+    naming:
+      wire: record-evidence
+      display: Record an id behind a measured value
+    input:
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+      - {name: kind, type: metaspec.quality.BehindKind}
+      - {name: name, type: String, example: a-flat-kpi}
+      - {name: value, type: Optional<Decimal>}
+      - {name: kpi_id, type: Optional<metaspec.blocks.KpiId>}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: document_id, type: Optional<metaspec.documents.DocumentId>}
+      - {name: finding_id, type: Optional<metaspec.checks.FindingId>}
+      - {name: block_id, type: Optional<metaspec.blocks.BlockId>}
+    outcomes:
+      - name: no-measurement
+        when_related: {via: input.measurement_id, exists: false}
+        error: metaspec.quality.NoSuchMeasurement
+        payload:
+          metaspec.quality.NoSuchMeasurement: {measurement_id: input.measurement_id}
+      - name: recorded
+        creates: metaspec.quality.Evidence
+        instance: evidence_id
+        sets:
+          measurement_id: input.measurement_id
+          kind: input.kind
+          name: input.name
+          value: input.value
+          kpi_id: input.kpi_id
+          rule_id: input.rule_id
+          document_id: input.document_id
+          finding_id: input.finding_id
+          block_id: input.block_id
+        emits: [metaspec.quality.EvidenceRecorded]
+        payload:
+          metaspec.quality.EvidenceRecorded:
+            evidence_id: {generated: true}
+            measurement_id: input.measurement_id
+            kind: input.kind
+            name: input.name
+
+  - name: metaspec.quality.SetBaseline
+    naming:
+      wire: set-baseline
+      display: Set a baseline
+      summary: The first value of a measure for a pack sets its baseline.
+    input:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - name: direction
+        type: metaspec.quality.Direction
+        summary: >-
+          The measure's direction, held to Measure.direction by the refusal other-direction. Read
+          from the measure (`{related: {via: input.measure_id, field: direction}}`) it validates,
+          but the value is then the provided Measure's, which ess 0.99.9 synthesis cannot choose,
+          and Ratchet loses every scenario (ESS-SYNTH-003).
+      - {name: value, type: Decimal}
+    outcomes:
+      - name: no-pack
+        when_related: {via: input.pack, exists: false}
+        error: metaspec.quality.NoSuchPack
+        payload:
+          metaspec.quality.NoSuchPack: {pack: input.pack}
+      - name: no-measure
+        when_related: {via: input.measure_id, exists: false}
+        error: metaspec.quality.NoSuchMeasure
+        payload:
+          metaspec.quality.NoSuchMeasure: {measure_id: input.measure_id}
+      # One baseline per measure and pack (D22). As the row-set guard `when_related: {entity:
+      # metaspec.quality.Baseline, where: {all: [pack == input.pack, measure_id ==
+      # input.measure_id]}, exists: true}` it validates, but ess 0.99.9 synthesis places one
+      # provided Pack and one Measure, so the decoy baseline Ratchet arranges hits the guard and
+      # Ratchet's worse-lower and worse-higher get no scenario (ESS-SYNTH-001). So it is
+      # external.
+      - name: has-baseline
+        external: the pack has a baseline of this measure already (a Baseline row with this pack and measure_id)
+        error: metaspec.quality.BaselineExists
+        payload:
+          metaspec.quality.BaselineExists: {pack: input.pack, measure_id: input.measure_id}
+      - name: other-direction
+        external: the direction is not the measure's (Measure.direction), so the baseline would ratchet the wrong way
+        error: metaspec.quality.NotTheMeasuresDirection
+        payload:
+          metaspec.quality.NotTheMeasuresDirection: {measure_id: input.measure_id, direction: input.direction}
+      - name: set
+        creates: metaspec.quality.Baseline
+        instance: baseline_id
+        sets:
+          pack: input.pack
+          measure_id: input.measure_id
+          direction: input.direction
+          value: input.value
+        emits: [metaspec.quality.BaselineMoved]
+        payload:
+          metaspec.quality.BaselineMoved: {baseline_id: {generated: true}, value: input.value}
+
+  - name: metaspec.quality.Ratchet
+    naming:
+      wire: ratchet
+      display: Hold a value to its baseline
+      summary: A better or equal value is taken into the baseline; a worse one fails and the baseline is kept.
+    input:
+      - {name: baseline_id, type: metaspec.quality.BaselineId}
+      - {name: value, type: Decimal}
+    outcomes:
+      - name: no-baseline
+        unknown_instance: true
+        error: metaspec.quality.NoBaseline
+        payload:
+          metaspec.quality.NoBaseline: {baseline_id: input.baseline_id}
+      - name: worse-lower
+        when_subject:
+          predicate: {all: [direction == higher_is_better, value > input.value]}
+        error: metaspec.quality.Regressed
+        payload:
+          metaspec.quality.Regressed:
+            baseline_id: input.baseline_id
+            baseline: {subject: value}
+            value: input.value
+      - name: worse-higher
+        when_subject:
+          predicate: {all: [direction == lower_is_better, value < input.value]}
+        error: metaspec.quality.Regressed
+        payload:
+          metaspec.quality.Regressed:
+            baseline_id: input.baseline_id
+            baseline: {subject: value}
+            value: input.value
+      - name: taken
+        updates: metaspec.quality.Baseline
+        instance: baseline_id
+        sets:
+          value: input.value
+        emits: [metaspec.quality.BaselineMoved]
+        payload:
+          metaspec.quality.BaselineMoved: {baseline_id: input.baseline_id, value: input.value}
+
+events:
+  - name: metaspec.quality.ReportRecorded
+    fields:
+      - {name: report_id, type: metaspec.quality.ReportId}
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: question, type: metaspec.quality.Question}
+  - name: metaspec.quality.Measured
+    fields:
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+      - {name: report_id, type: metaspec.quality.ReportId}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - {name: key, type: Optional<String>}
+      - {name: value, type: Optional<Decimal>}
+      - {name: gap_id, type: Optional<metaspec.packs.GapId>}
+  - name: metaspec.quality.EvidenceRecorded
+    fields:
+      - {name: evidence_id, type: metaspec.quality.EvidenceId}
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+      - {name: kind, type: metaspec.quality.BehindKind}
+      - {name: name, type: String}
+  - name: metaspec.quality.BaselineMoved
+    fields:
+      - {name: baseline_id, type: metaspec.quality.BaselineId}
+      - {name: value, type: Decimal}
+
+views:
+  - name: metaspec.quality.Measures
+    source: metaspec.quality.Measure
+    consistency: read_your_writes
+    naming:
+      wire: measures
+      display: Quality measures
+    fields:
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - {name: id, type: String}
+      - {name: question, type: metaspec.quality.Question}
+      - {name: unit, type: String}
+      - {name: direction, type: metaspec.quality.Direction}
+
+  - name: metaspec.quality.Reports
+    source: metaspec.quality.QualityReport
+    consistency: read_your_writes
+    naming:
+      wire: reports
+      display: Quality reports
+    fields:
+      - {name: report_id, type: metaspec.quality.ReportId}
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: question, type: metaspec.quality.Question}
+      - {name: source_digest, type: String}
+      - {name: state, type: metaspec.quality.QualityReport.State}
+
+  - name: metaspec.quality.Measurements
+    source: metaspec.quality.Measurement
+    consistency: read_your_writes
+    naming:
+      wire: measurements
+      display: Measurements
+    fields:
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+      - {name: report_id, type: metaspec.quality.ReportId}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - {name: key, type: Optional<String>}
+      - {name: value, type: Optional<Decimal>}
+      - {name: gap_id, type: Optional<metaspec.packs.GapId>}
+      - {name: state, type: metaspec.quality.Measurement.State}
+
+  - name: metaspec.quality.MeasurementEvidence
+    source: metaspec.quality.Evidence
+    consistency: read_your_writes
+    params:
+      - {name: measurement_id, type: metaspec.quality.MeasurementId}
+    filter: measurement_id == param.measurement_id
+    naming:
+      wire: evidence
+      display: Ids behind a measured value
+    fields:
+      - {name: evidence_id, type: metaspec.quality.EvidenceId}
+      - {name: kind, type: metaspec.quality.BehindKind}
+      - {name: name, type: String}
+      - {name: value, type: Optional<Decimal>}
+      - {name: kpi_id, type: Optional<metaspec.blocks.KpiId>}
+      - {name: rule_id, type: Optional<metaspec.checks.RuleId>}
+      - {name: document_id, type: Optional<metaspec.documents.DocumentId>}
+      - {name: finding_id, type: Optional<metaspec.checks.FindingId>}
+      - {name: block_id, type: Optional<metaspec.blocks.BlockId>}
+      - {name: state, type: metaspec.quality.Evidence.State}
+
+  - name: metaspec.quality.Baselines
+    source: metaspec.quality.Baseline
+    consistency: read_your_writes
+    naming:
+      wire: baselines
+      display: Baselines
+    fields:
+      - {name: baseline_id, type: metaspec.quality.BaselineId}
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: measure_id, type: metaspec.quality.MeasureId}
+      - {name: direction, type: metaspec.quality.Direction}
+      - {name: value, type: Decimal}
+      - {name: state, type: metaspec.quality.Baseline.State}

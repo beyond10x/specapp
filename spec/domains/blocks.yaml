@@ -1,0 +1,367 @@
+domain: metaspec.blocks
+
+summary: >-
+  The building blocks of a pack and its KPI catalogue: an ESS system of blocks in numbered
+  layers (L0) and the KPI rows (L1). Read from the pack's files; no command creates them.
+
+naming:
+  wire: blocks
+  display: Blocks
+
+types:
+  - name: metaspec.blocks.LayerId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.blocks.BlockId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.blocks.KpiId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.blocks.DependencyId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.blocks.DeclarationId
+    kind: newtype
+    of: Uuid
+
+  # metaspec-model/1: per block its entities, lifecycles, commands, events, views, types and
+  # source lines, read from `ess specify compile --format json`. The kinds are ESS's own kinds of
+  # declaration, the same for every pack; the names are the pack's, kept as data.
+  - name: metaspec.blocks.DeclarationKind
+    kind: enum
+    naming:
+      summary: What a declaration of a block's ESS domain is.
+    variants: [entity, command, event, view, type]
+
+  - name: metaspec.blocks.Transition
+    kind: struct
+    fields:
+      - {name: name, type: String}
+      - {name: from, type: List<String>}
+      - {name: to, type: String}
+
+  - name: metaspec.blocks.Lifecycle
+    kind: struct
+    naming:
+      summary: An entity's lifecycle as the compiled model holds it; a block page draws it as a diagram.
+    fields:
+      - {name: initial, type: String}
+      - {name: states, type: List<String>}
+      - {name: terminal, type: List<String>}
+      - {name: transitions, type: List<metaspec.blocks.Transition>}
+
+  - name: metaspec.blocks.SourceLine
+    kind: struct
+    fields:
+      - name: path
+        type: String
+        summary: The file, relative to the pack.
+      - {name: line, type: Integer}
+
+entities:
+  - name: metaspec.blocks.Layer
+    naming:
+      summary: A numbered directory `<number>-<name>` directly under the manifest's `blocks.path`.
+    provided: true
+    identity:
+      name: layer_id
+      type: metaspec.blocks.LayerId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: number
+        type: Integer
+      - name: name
+        type: String
+    invariants:
+      - number >= 0
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.blocks.Block
+    naming:
+      summary: >-
+        A domain of the pack's compiled ESS system, named without the manifest's
+        `strip_prefix`. Its layer is the numbered directory of its file in the system's
+        `ess-inputs.yaml`.
+    provided: true
+    identity:
+      name: block_id
+      type: metaspec.blocks.BlockId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: name
+        type: String
+      - name: domain
+        type: String
+      - name: layer_id
+        type: Optional<metaspec.blocks.LayerId>
+        summary: Absent when the block's file is in no numbered directory.
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: layer
+        kind: references
+        target: metaspec.blocks.Layer
+        cardinality: one
+        via: layer_id
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.blocks.Dependency
+    naming:
+      summary: >-
+        A dependency edge between two blocks of the pack's compiled system, with the number of
+        references behind it (metaspec-model/1, "depends on, used by"). The spec-quality measure
+        "layering" reads it.
+    provided: true
+    identity:
+      name: dependency_id
+      type: metaspec.blocks.DependencyId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: from
+        type: metaspec.blocks.BlockId
+        summary: The block that depends.
+      - name: to
+        type: metaspec.blocks.BlockId
+        summary: The block it depends on.
+      - name: count
+        type: Integer
+        summary: The references from the one block to the other.
+    invariants:
+      - count >= 1
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: from
+        kind: references
+        target: metaspec.blocks.Block
+        cardinality: one
+        via: from
+      - name: to
+        kind: references
+        target: metaspec.blocks.Block
+        cardinality: one
+        via: to
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.blocks.Declaration
+    naming:
+      summary: >-
+        One declaration of a block's ESS domain in the pack's compiled system (metaspec-model/1):
+        an entity with its lifecycle, a command with its refusals, an event, a view or a type.
+        The block page, the grounding of KPIs in events and the coverage of lifecycles read it.
+    provided: true
+    identity:
+      name: declaration_id
+      type: metaspec.blocks.DeclarationId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: block_id
+        type: metaspec.blocks.BlockId
+      - name: kind
+        type: metaspec.blocks.DeclarationKind
+      - name: name
+        type: String
+        summary: The declaration's qualified name as the compiled model writes it.
+      - name: lifecycle
+        type: Optional<metaspec.blocks.Lifecycle>
+        summary: An entity's lifecycle; present exactly for an entity.
+      - name: refusals
+        type: List<String>
+        summary: The errors a command's outcomes answer; empty for every other kind.
+      - name: source
+        type: Optional<metaspec.blocks.SourceLine>
+        summary: Where the declaration is written; absent when the compiled model names no line.
+    invariants:
+      - {any: [kind == entity, not defined(lifecycle)]}
+      - {any: [{kind: {none_of: [entity]}}, defined(lifecycle)]}
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      # Written as `references` like Part -> Block: ess 0.99.9 cannot place a provided row that a
+      # provided owner holds as a fixture (ESS-SYNTH-004, see documents.yaml).
+      - name: block
+        kind: references
+        target: metaspec.blocks.Block
+        cardinality: one
+        via: block_id
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.blocks.Kpi
+    naming:
+      summary: >-
+        A row of the pack's KPI catalogue (metaspec-kpis/1): neutral field names `measure` and
+        `modes`, the pack's words for their values kept as data, the pack's own columns kept as
+        extra columns.
+    provided: true
+    identity:
+      name: kpi_id
+      type: metaspec.blocks.KpiId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: id
+        type: String
+        summary: The row's `id` as the catalogue writes it.
+      - name: block
+        type: String
+        summary: The block the row names, as written.
+      - name: block_id
+        type: Optional<metaspec.blocks.BlockId>
+        summary: The block of that name; absent for a planned block (named by the catalogue, not yet in the blocks).
+      - name: measure
+        type: String
+        summary: The pack's word for the measure kind, read from the field `kpis.fields.measure` names.
+      - name: modes
+        type: Map<String, String>
+        summary: A direction per mode, read from the field `kpis.fields.modes` names.
+      - name: unit
+        type: Optional<String>
+      - name: summary
+        type: Optional<String>
+      - name: reads
+        type: List<String>
+        summary: The events of the blocks the KPI reads.
+      - name: direction
+        type: Optional<String>
+        summary: The pack's word for which way the KPI's value is better, kept as data like the values of `modes`.
+      - name: gate
+        type: Boolean
+        summary: >-
+          Whether the KPI gates, as the catalogue writes it (`gate: true` or `gate: false`). The
+          KPI-quality measure "completeness.fields" reads it.
+      - name: status
+        type: Optional<String>
+        summary: The pack's word for the row's status, kept as data.
+      - name: columns
+        type: Map<String, Json>
+        summary: The pack's other columns (how, ...), kept as data.
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: block
+        kind: references
+        target: metaspec.blocks.Block
+        cardinality: one
+        via: block_id
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+views:
+  - name: metaspec.blocks.Layers
+    source: metaspec.blocks.Layer
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: layers
+      display: Layer map
+    fields:
+      - {name: layer_id, type: metaspec.blocks.LayerId}
+      - {name: number, type: Integer}
+      - {name: name, type: String}
+
+  - name: metaspec.blocks.Blocks
+    source: metaspec.blocks.Block
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: blocks
+      display: Blocks
+    fields:
+      - {name: block_id, type: metaspec.blocks.BlockId}
+      - {name: name, type: String}
+      - {name: domain, type: String}
+      - {name: layer_id, type: Optional<metaspec.blocks.LayerId>}
+
+  - name: metaspec.blocks.Catalogue
+    source: metaspec.blocks.Kpi
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: kpis
+      display: KPI catalogue
+    fields:
+      - {name: kpi_id, type: metaspec.blocks.KpiId}
+      - {name: id, type: String}
+      - {name: block, type: String}
+      - {name: block_id, type: Optional<metaspec.blocks.BlockId>}
+      - {name: measure, type: String}
+      - {name: unit, type: Optional<String>}
+      - {name: summary, type: Optional<String>}
+      - {name: direction, type: Optional<String>}
+      - {name: gate, type: Boolean}
+      - {name: status, type: Optional<String>}
+
+  - name: metaspec.blocks.Dependencies
+    source: metaspec.blocks.Dependency
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: dependencies
+      display: Dependencies between blocks
+    fields:
+      - {name: dependency_id, type: metaspec.blocks.DependencyId}
+      - {name: from, type: metaspec.blocks.BlockId}
+      - {name: to, type: metaspec.blocks.BlockId}
+      - {name: count, type: Integer}
+
+  - name: metaspec.blocks.Declarations
+    source: metaspec.blocks.Declaration
+    consistency: read_your_writes
+    params:
+      - {name: block_id, type: metaspec.blocks.BlockId}
+    filter: block_id == param.block_id
+    naming:
+      wire: declarations
+      display: Declarations of a block
+    fields:
+      - {name: declaration_id, type: metaspec.blocks.DeclarationId}
+      - {name: kind, type: metaspec.blocks.DeclarationKind}
+      - {name: name, type: String}
+      - {name: lifecycle, type: Optional<metaspec.blocks.Lifecycle>}
+      - {name: refusals, type: List<String>}
+      - {name: source, type: Optional<metaspec.blocks.SourceLine>}

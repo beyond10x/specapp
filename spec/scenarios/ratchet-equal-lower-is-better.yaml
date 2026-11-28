@@ -1,0 +1,57 @@
+type: ess-scenario/6
+domain: metaspec.quality
+scenario: an-equal-value-of-a-lower-is-better-measure-is-taken
+summary: >-
+  A ratchet of a lower_is_better baseline with its own value is taken, not refused as
+  worse-higher (mutation-audit-1: the guard-boundary survivor on Ratchet worse-higher).
+arrange:
+  - instance: pack
+    entity: metaspec.packs.Pack
+    setup:
+      identity: equal-value-pack
+      fields:
+        title: Equal value pack
+        visibility: public
+        manifest: held
+        directory: packs/equal-value
+        blocks_path: blocks
+        declares_kpis: false
+        declares_documents: false
+        tool_run: []
+        tool_verbs: []
+        level: L0
+      state: Loaded
+  - instance: measure
+    entity: metaspec.quality.Measure
+    setup:
+      identity: 6d0e6f3a-0000-4000-8000-000000000001
+      fields:
+        id: findings.open
+        question: specification
+        unit: count
+        direction: lower_is_better
+        kpi_id: 6d0e6f3a-0000-4000-8000-000000000002
+      state: Listed
+timeline:
+  - at: '2026-11-28T09:00:00Z'
+    command: metaspec.quality.SetBaseline
+    actor: metaspec.quality.QualityRunner
+    input:
+      pack: {$instance: pack}
+      measure_id: {$instance: measure}
+      direction: lower_is_better
+      value: 2.0
+    outcome: set
+    events:
+      - event: metaspec.quality.BaselineMoved
+        payload: {value: 2.0}
+  - at: '2026-11-28T09:00:01Z'
+    command: metaspec.quality.Ratchet
+    actor: metaspec.quality.QualityRunner
+    input:
+      baseline_id: {$observed: {event: metaspec.quality.BaselineMoved, field: baseline_id}}
+      value: 2.0
+    outcome: taken
+    events:
+      - event: metaspec.quality.BaselineMoved
+        payload: {value: 2.0}

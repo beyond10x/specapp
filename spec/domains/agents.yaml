@@ -1,0 +1,415 @@
+domain: metaspec.agents
+
+summary: >-
+  The agent channel: a conversation with an agent that works on the open draft through the same
+  operations as the user. Its four tools are the server's (`query` reads the views; `apply` with
+  `dry_run`, `check` and `simulate` are commands), also offered as an MCP server. The channel sends what the
+  agent reads to a model provider; for a private pack it is off until the user turns it on for
+  that pack.
+
+naming:
+  wire: agents
+  display: Agent
+
+types:
+  - name: metaspec.agents.ChannelId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.agents.SessionId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.agents.ToolCallId
+    kind: newtype
+    of: Uuid
+
+  - name: metaspec.agents.AgentTool
+    kind: enum
+    variants: [query, apply, check, simulate]
+
+entities:
+  - name: metaspec.agents.AgentChannel
+    naming:
+      summary: The user's consent that the agent channel may send what the agent reads of a pack to a model provider.
+    identity:
+      name: channel_id
+      type: metaspec.agents.ChannelId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+    lifecycle:
+      initial: On
+      states: [On, Off]
+      terminal: []
+      transitions:
+        - {name: turn_off, from: [On], to: Off}
+        - {name: turn_on, from: [Off], to: On}
+
+  - name: metaspec.agents.AgentSession
+    naming:
+      summary: A conversation with an agent on one open draft; it reads the pack its draft carries.
+    identity:
+      name: session_id
+      type: metaspec.agents.SessionId
+    fields:
+      - name: draft_id
+        type: metaspec.drafts.DraftId
+    relations:
+      - name: draft
+        kind: references
+        target: metaspec.drafts.Draft
+        cardinality: one
+        via: draft_id
+      - name: calls
+        kind: owns
+        target: metaspec.agents.ToolCall
+        cardinality: many
+        via: session_id
+    lifecycle:
+      initial: Open
+      states: [Open, Ended]
+      terminal: [Ended]
+      transitions:
+        - {name: end, from: [Open], to: Ended}
+
+  - name: metaspec.agents.ToolCall
+    naming:
+      summary: One call of one of the agent's tools in a session, with what it was given and what it answered.
+    identity:
+      name: call_id
+      type: metaspec.agents.ToolCallId
+    fields:
+      - {name: session_id, type: metaspec.agents.SessionId}
+      - {name: tool, type: metaspec.agents.AgentTool}
+      - {name: arguments, type: Json}
+      - name: answer
+        type: Json
+        summary: The server's answer to the call, as the agent received it.
+    # One record, written after the answer; a tool call has no lifecycle of its own.
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+actors:
+  - name: metaspec.agents.Agent
+    naming:
+      display: Agent
+      summary: An agent working on a draft through the same operations as the user; it cannot save.
+    may:
+      - metaspec.drafts.ApplyPatch
+      - metaspec.drafts.DryRunPatch
+      - metaspec.checks.CheckRevision
+      - metaspec.runs.StartRun
+      # The agent's tool `query` reads the views and is no command; `check` is CheckRevision;
+      # `simulate` is StartRun, which refuses the agent a search (agent-search).
+
+  - name: metaspec.agents.ChannelServer
+    naming:
+      display: Agent channel server
+      summary: The studio's agent channel and its MCP server (`metaspec mcp`); it records each tool call an agent makes.
+    may:
+      - metaspec.agents.RecordToolCall
+
+errors:
+  - name: metaspec.agents.NoSuchPack
+    summary: No loaded pack has this name.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.agents.NoSuchChannel
+    summary: No agent channel has this id.
+    fields:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+  - name: metaspec.agents.ChannelOff
+    summary: The pack is private and its agent channel is not on; no session was started.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.agents.NoSuchDraft
+    summary: No draft has this id.
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.agents.NoSuchSession
+    summary: No agent session has this id.
+    fields:
+      - {name: session_id, type: metaspec.agents.SessionId}
+  - name: metaspec.agents.SessionAlreadyEnded
+    summary: The session has ended; nothing changed.
+    fields:
+      - {name: session_id, type: metaspec.agents.SessionId}
+  - name: metaspec.agents.ChannelState
+    summary: The channel is not in a state this command acts from; nothing changed.
+    fields:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+  - name: metaspec.agents.ChannelExists
+    summary: The pack has its agent channel already (one per pack); turn it on again instead. Nothing changed.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.agents.DraftNotOpen
+    summary: The draft is saved; an agent works only on an open draft. No session was started.
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.agents.AgentChannelOff
+    summary: >-
+      The agent called on a draft of a private pack whose agent channel is not on, so nothing
+      the agent reads goes to a model provider; nothing changed.
+    fields: []
+
+# The consent of the agent channel holds for every call of the agent, not only for starting a
+# session: an MCP agent (`metaspec mcp`) has no session of the studio, and a session may be left
+# open after TurnOffChannel. Every command the agent's tools call, and the recording of each
+# tool call, carry the refusal. It reads the visibility of the draft's pack (a provided row) and
+# that pack's channel rows together, which ess 0.99.9 cannot guard in one predicate, so it is
+# external, as `channel-off` of StartSession (D18).
+outcome_groups:
+  - name: agent-channel
+    commands:
+      - metaspec.drafts.ApplyPatch
+      - metaspec.drafts.DryRunPatch
+      - metaspec.checks.CheckRevision
+      - metaspec.runs.StartRun
+      - metaspec.agents.RecordToolCall
+    outcomes:
+      - name: agent-channel-off
+        external: >-
+          the agent called on a draft of a private pack whose agent channel is not on (a call of
+          the user is never refused by it)
+        error: metaspec.agents.AgentChannelOff
+
+commands:
+  - name: metaspec.agents.TurnOnChannel
+    naming:
+      wire: turn-on-channel
+      display: Turn the agent channel on for a pack
+    input:
+      - {name: pack, type: metaspec.packs.PackName}
+    outcomes:
+      - name: no-pack
+        when_related: {via: input.pack, exists: false}
+        error: metaspec.agents.NoSuchPack
+        payload:
+          metaspec.agents.NoSuchPack: {pack: input.pack}
+      # A channel per pack (D18): a pack's channel that was turned off is turned on again by
+      # TurnOnChannelAgain.
+      - name: has-channel
+        when_related:
+          entity: metaspec.agents.AgentChannel
+          where: pack == input.pack
+          exists: true
+        error: metaspec.agents.ChannelExists
+        payload:
+          metaspec.agents.ChannelExists: {pack: input.pack}
+      - name: turned-on
+        creates: metaspec.agents.AgentChannel
+        instance: channel_id
+        sets: {pack: input.pack}
+        emits: [metaspec.agents.ChannelTurnedOn]
+        payload:
+          metaspec.agents.ChannelTurnedOn: {channel_id: {generated: true}, pack: input.pack}
+
+  - name: metaspec.agents.TurnOffChannel
+    naming:
+      wire: turn-off-channel
+      display: Turn the agent channel off
+    input:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+    outcomes:
+      - name: no-channel
+        unknown_instance: true
+        error: metaspec.agents.NoSuchChannel
+        payload:
+          metaspec.agents.NoSuchChannel: {channel_id: input.channel_id}
+      - name: turned-off
+        moves: metaspec.agents.AgentChannel.turn_off
+        instance: channel_id
+        emits: [metaspec.agents.ChannelTurnedOff]
+        payload:
+          metaspec.agents.ChannelTurnedOff: {channel_id: input.channel_id}
+      - name: not-on
+        wrong_state: true
+        error: metaspec.agents.ChannelState
+        payload:
+          metaspec.agents.ChannelState: {channel_id: input.channel_id}
+
+  - name: metaspec.agents.TurnOnChannelAgain
+    naming:
+      wire: turn-on-channel-again
+      display: Turn a channel that was turned off on again
+    input:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+    outcomes:
+      - name: no-channel
+        unknown_instance: true
+        error: metaspec.agents.NoSuchChannel
+        payload:
+          metaspec.agents.NoSuchChannel: {channel_id: input.channel_id}
+      - name: turned-on
+        moves: metaspec.agents.AgentChannel.turn_on
+        instance: channel_id
+        emits: [metaspec.agents.ChannelTurnedOn]
+        payload:
+          metaspec.agents.ChannelTurnedOn: {channel_id: input.channel_id, pack: {subject: pack}}
+      - name: not-off
+        wrong_state: true
+        error: metaspec.agents.ChannelState
+        payload:
+          metaspec.agents.ChannelState: {channel_id: input.channel_id}
+
+  - name: metaspec.agents.StartSession
+    naming:
+      wire: start-session
+      display: Start an agent session on a draft
+    input:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+    outcomes:
+      - name: no-draft
+        when_related: {via: input.draft_id, exists: false}
+        error: metaspec.agents.NoSuchDraft
+        payload:
+          metaspec.agents.NoSuchDraft: {draft_id: input.draft_id}
+      # The agent works on the open draft; SaveDraft ends the sessions of the draft it saves.
+      - name: draft-saved
+        when_related: {via: input.draft_id, predicate: state == Saved}
+        error: metaspec.agents.DraftNotOpen
+        payload:
+          metaspec.agents.DraftNotOpen: {draft_id: input.draft_id}
+      # The consent is a channel per pack (AgentChannel). "For a private pack it is off until
+      # the user turns it on for that pack" reads the visibility of the draft's pack (a provided
+      # row) and that pack's channel rows together, which ess 0.99.9 cannot guard in one
+      # predicate; it stays an external refusal.
+      - name: channel-off
+        external: the draft's pack is private and the user has not turned its agent channel on
+        error: metaspec.agents.ChannelOff
+        payload:
+          metaspec.agents.ChannelOff: {pack: {related: {via: input.draft_id, field: pack}}}
+      - name: started
+        creates: metaspec.agents.AgentSession
+        instance: session_id
+        sets: {draft_id: input.draft_id}
+        emits: [metaspec.agents.SessionStarted]
+        payload:
+          metaspec.agents.SessionStarted:
+            session_id: {generated: true}
+            draft_id: input.draft_id
+
+  - name: metaspec.agents.EndSession
+    naming:
+      wire: end-session
+      display: End an agent session
+    input:
+      - {name: session_id, type: metaspec.agents.SessionId}
+    outcomes:
+      - name: no-session
+        unknown_instance: true
+        error: metaspec.agents.NoSuchSession
+        payload:
+          metaspec.agents.NoSuchSession: {session_id: input.session_id}
+      - name: ended
+        moves: metaspec.agents.AgentSession.end
+        instance: session_id
+        emits: [metaspec.agents.SessionEnded]
+        payload:
+          metaspec.agents.SessionEnded: {session_id: input.session_id}
+      - name: already-ended
+        wrong_state: true
+        error: metaspec.agents.SessionAlreadyEnded
+        payload:
+          metaspec.agents.SessionAlreadyEnded: {session_id: input.session_id}
+
+  - name: metaspec.agents.RecordToolCall
+    naming:
+      wire: record-tool-call
+      display: Record a tool call of an agent
+    input:
+      - {name: session_id, type: metaspec.agents.SessionId}
+      - {name: tool, type: metaspec.agents.AgentTool}
+      - {name: arguments, type: Json, example: {draft_id: "00000000-0000-4000-8000-000000000001"}}
+      - {name: answer, type: Json, example: {valid: true}}
+    outcomes:
+      - name: no-session
+        when_related: {via: input.session_id, exists: false}
+        error: metaspec.agents.NoSuchSession
+        payload:
+          metaspec.agents.NoSuchSession: {session_id: input.session_id}
+      - name: session-ended
+        when_related: {via: input.session_id, predicate: state == Ended}
+        error: metaspec.agents.SessionAlreadyEnded
+        payload:
+          metaspec.agents.SessionAlreadyEnded: {session_id: input.session_id}
+      - name: recorded
+        creates: metaspec.agents.ToolCall
+        instance: call_id
+        sets:
+          session_id: input.session_id
+          tool: input.tool
+          arguments: input.arguments
+          answer: input.answer
+        emits: [metaspec.agents.ToolCalled]
+        payload:
+          metaspec.agents.ToolCalled:
+            call_id: {generated: true}
+            session_id: input.session_id
+            tool: input.tool
+
+events:
+  - name: metaspec.agents.ChannelTurnedOn
+    fields:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.agents.ChannelTurnedOff
+    fields:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+  - name: metaspec.agents.SessionStarted
+    fields:
+      - {name: session_id, type: metaspec.agents.SessionId}
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.agents.SessionEnded
+    fields:
+      - {name: session_id, type: metaspec.agents.SessionId}
+  - name: metaspec.agents.ToolCalled
+    fields:
+      - {name: call_id, type: metaspec.agents.ToolCallId}
+      - {name: session_id, type: metaspec.agents.SessionId}
+      - {name: tool, type: metaspec.agents.AgentTool}
+
+views:
+  - name: metaspec.agents.Channels
+    source: metaspec.agents.AgentChannel
+    consistency: read_your_writes
+    naming:
+      wire: channels
+      display: Agent channels
+    fields:
+      - {name: channel_id, type: metaspec.agents.ChannelId}
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: state, type: metaspec.agents.AgentChannel.State}
+
+  - name: metaspec.agents.Sessions
+    source: metaspec.agents.AgentSession
+    consistency: read_your_writes
+    naming:
+      wire: sessions
+      display: Agent sessions
+    fields:
+      - {name: session_id, type: metaspec.agents.SessionId}
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: pack, type: Optional<metaspec.packs.PackName>, field: {related: {via: draft_id, field: pack}}}
+      - {name: state, type: metaspec.agents.AgentSession.State}
+
+  - name: metaspec.agents.ToolCalls
+    source: metaspec.agents.ToolCall
+    consistency: read_your_writes
+    naming:
+      wire: tool-calls
+      display: Tool calls
+    fields:
+      - {name: call_id, type: metaspec.agents.ToolCallId}
+      - {name: session_id, type: metaspec.agents.SessionId}
+      - {name: tool, type: metaspec.agents.AgentTool}
+      - {name: arguments, type: Json}
+      - {name: answer, type: Json}
+      - {name: state, type: metaspec.agents.ToolCall.State}
