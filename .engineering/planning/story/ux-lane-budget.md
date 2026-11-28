@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:ux-lane-budget
 kind: story
-status: draft
+status: implemented
 title: The UX lane's gates step ends under 60 s
 summary: axe once per page and theme, in the page; the second viewport checks the layout
 scope:
@@ -18,7 +18,11 @@ scope:
   path: web/site/e2e/gates.spec.ts
 - confidence: cited
   path: web/site/playwright.config.ts
-revision: 2
+revision: 5
+transitions:
+- {from: "draft", to: "proposed", at: "2026-11-28T08:34:20Z", actor: "human:operator", revision: 3, decided_on: {"recorded":{"test_result":1}}}
+- {from: "proposed", to: "active", at: "2026-11-28T08:34:20Z", actor: "human:operator", revision: 4, decided_on: {"recorded":{"test_result":1}}}
+- {from: "active", to: "implemented", at: "2026-11-28T08:34:20Z", actor: "human:operator", revision: 5, decided_on: {"recorded":{"test_result":1}}}
 ---
 # The UX lane's gates step ends under 60 s
 

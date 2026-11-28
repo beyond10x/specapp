@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `spec/` pins ess 0.99.11 (was 0.99.9). Its synthesis expects the patch of the Variant row
+  that `AcceptVariant` names, so `metaspec.drafts.AcceptVariant/outcome/accepted` passes and
+  leaves `spec/known-failing.txt`; the list is empty and stays as the mechanism of
+  `scripts/check-spec-conform.sh`. `check:spec` runs 135 scenarios: 135 passed, 0 known failing
+  (before: 134 passed, 1 known failing). CI installs the release the pin names. A second
+  mutation audit (`spec/hardening/mutation-audit-2.md`, score 138/139) runs the authored
+  scenario with `--scenarios`, now that no `--known-failing` declaration is needed: it kills the
+  guard-boundary survivor of audit 1 (`domains/quality.yaml:534`); the TrustPack `tool_digest`
+  mutant that audit 1 counted as unwitnessed is now scored as the one survivor.
+
 - `scripts/acceptance.sh` reads the KPI count of a real pack with one helper: when
   `scripts/check-kpis.sh` prints the count per catalogue (agenticspec main:
   `check-kpis: N KPIs ok in M catalogue(s): <path> <n>, ...`), the count of the catalogue at
