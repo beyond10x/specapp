@@ -8,10 +8,13 @@
   before). The graph keeps a part's `inside` and `per` both; `groups` stays one group per
   containing part and word (`in` before `per`), so `metaspec-graph/1` is unchanged. `nested`
   draws such a part inside its `in` container with a line `per <part>`; `rows` draws it inside
-  its `per` host with `· in <part>` on its line; the table of parts says `in <part>, per <part>`.
+  its `per` host with `· in <part>` on its line (left out when that part is the host); the table
+  of parts says `in <part>, per <part>`.
   A part with one of the two is drawn as before. The fixture pack harbor gains `per: one_per`
   and the plan `harbors/lagoon.yaml` (5 documents); its site and pages are re-blessed, and no
-  page or scene of another document changes.
+  page or scene of another document changes. In `spec/`, `Contain` has the two optional fields
+  `inside` and `per`, and the draft edit `move` names the kind (`in` or `per`) whose field it
+  writes.
 - metaspec carries its own KPI catalogue, `kpis/catalogue.yaml` (format `metaspec-kpis/1`): one
   row per quality measure of the two questions, 10 of the KPI catalogue (`coverage.blocks` to
   `planned`) and 30 of the specification (`validity.refusals` to `drift`, with one

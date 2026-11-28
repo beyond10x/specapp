@@ -1163,6 +1163,10 @@ wave 2.
 - The table of parts on a document's page says `in <part>, per <part>`.
 - The fixture pack harbor holds it: `contain: { in: within, per: one_per }` and the plan
   `harbors/lagoon.yaml`, whose berth sits in the quay and exists once per ferry.
+- `spec/`: `metaspec.documents.Contain` has the two optional fields of the code (`inside` for
+  the key `in`, and `per`), so it cannot hold two entries of one kind; Part's invariant "not
+  both" is gone. The draft edit `move` names its kind, `in` or `per`, and writes the field the
+  class names for that kind; the kind may be left out only when the class has one key.
 
 ## Open questions
 
