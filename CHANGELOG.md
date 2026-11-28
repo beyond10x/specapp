@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- `packs/cloudspec.yaml`: the verb `check` reads `warnings` of `cloudspec check --json` as a
+  second finding list, mapped as `violations` and with `gate: false`, so the page of a document
+  shows its warnings and stays valid. `scripts/acceptance.sh` compares the rule ids of each
+  cloudspec page and the findings drawn on its parts and links with `violations` and `warnings`
+  together, and has the rows `journeys:warnings`, `journeys:gated` and `journeys:valid` for the
+  page of `architectures/journeys.yaml`, read from `cloudspec check --json` at run time
+  (cloudspec 6259dce or later).
+- `scripts/check-spec-conform.sh` looks for a warning of `ess specify validate` without the
+  dispatcher's note, which names the path of the checkout: a checkout whose path holds the word
+  "warning" no longer fails `check:spec`. `scripts/check-spec-conform.test.sh` holds that case
+  and a warning of ess still reported, with a stub `ess`.
+
 - A view may draw hubs apart: `hubs: { in_degree: <N> }` (each shown part with at least N incoming
   links the view shows), `hubs: { parts: [<id>] }` and `hubs: { blocks: [<block>] }`, one key or
   more, a list with one entry or more (`metaspec-pack/1`). A hub is drawn once: `rows` puts it in a

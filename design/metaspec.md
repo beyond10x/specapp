@@ -209,7 +209,8 @@ of `parts-links/1` with `contain: { in: in, per: per }`, `architecture` (`archit
 and `broken-architecture` (`architectures/broken/*.yaml`), each with an `exclude` for the
 bindings and contracts beside the architectures, and a `tool` whose `check` runs
 `target/debug/cloudspec check --json <architecture>` and reads the answer as orgspec's (`at: /0`,
-`error`, `valid`, `violations`) with `counts: /kpis`.
+`error`, `valid`, `violations`) with `counts: /kpis`, and a second finding list, `warnings`, with
+the same mapping and `gate: false`.
 
 Rules of the manifest:
 
