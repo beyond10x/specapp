@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `scripts/acceptance.sh` reads the KPI count of a real pack with one helper: when
+  `scripts/check-kpis.sh` prints the count per catalogue (agenticspec main:
+  `check-kpis: N KPIs ok in M catalogue(s): <path> <n>, ...`), the count of the catalogue at
+  the manifest's `kpis.path`, else the total of `check-kpis: N KPIs ok` (orgspec). The row
+  `agenticspec kpis` was empty since agenticspec added its packs' and fields' catalogues.
+  "Gaps per pack" names those catalogues as not read by metaspec.
+
 - KPI values per document: the `check` adapter has a new pointer `kpis`, a mapping from a KPI id
   to a number in the tool's answer, read into `metaspec-findings/1` as `kpis` (both schemas
   extended). A document's page gets a section "KPIs" with each value, in the order of the KPI

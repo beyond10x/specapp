@@ -522,7 +522,9 @@ tool, its own documents) or in a neutral format, never by code for one pack.
   (wave 7). The gaps of its architectures listed in "Decided in wave 2" stand: two blocks the
   documents use are no block of `blocks/`, a link `over` a part has no neutral field, part
   fields that name other parts are fields only, and `architectures/ladder/` is outside the
-  manifest's glob.
+  manifest's glob. metaspec reads one KPI catalogue, `kpis/catalogue.yaml` (the manifest's
+  `kpis.path`); the KPI catalogues of its packs and fields (`packs/*/kpis.yaml`,
+  `fields/*/kpis.yaml`, 33 KPIs at its main) are not read.
 - **cloudspec**. A planning store only, no blocks: no manifest yet. `packs/cloudspec.yaml` is
   added once it has blocks.
 
