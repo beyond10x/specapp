@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- A manifest may say which block a part's block word stands for: `blocks.aliases: { <word>:
+  <block> }`, optional; the format stays `metaspec-pack/1`. The graph of a document's page
+  (`graph::read_with_aliases`, called where the docs read a document) carries the block of an
+  aliased word; `graph::read` applies no alias. A value that is no block of the pack, or a key
+  that is a block of the pack, refuses the manifest with `manifest_invalid` (subject
+  `alias:<word>`). A word with no alias and no block stays in the group of a block the pack
+  does not have. In `spec/`, `Pack` has the field `block_aliases`. `packs/cloudspec.yaml`
+  declares `aliases: { group: architecture, node_pool: infrastructure, endpoints: edge }`, and
+  `scripts/acceptance.sh` has the rows `aliases:aliased` (every part of
+  `architectures/groups.yaml`, `node-pools.yaml` and `l4-media.yaml` whose word is an alias has
+  the aliased block on its page) and `aliases:kept` (every part of an architecture whose word is
+  neither an alias nor a block of `metaspec pack check --json` keeps its word).
 - `packs/cloudspec.yaml`: the verb `check` reads `warnings` of `cloudspec check --json` as a
   second finding list, mapped as `violations` and with `gate: false`, so the page of a document
   shows its warnings and stays valid. `scripts/acceptance.sh` compares the rule ids of each

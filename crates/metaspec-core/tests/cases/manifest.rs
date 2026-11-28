@@ -1,7 +1,7 @@
 //! The manifest: the schema and the decoder agree, and a manifest the schema refuses is
 //! refused with the place named.
 
-use super::common::{manifest_of, packs, repo, schema_errors};
+use super::common::{block_names, load_with_aliases, manifest_of, packs, repo, schema_errors};
 use metaspec_core::known;
 use metaspec_core::manifest::{self, PALETTE, Visibility, parse};
 use serde_json::Value;
@@ -321,6 +321,43 @@ fn hub_view_refuses_hubs_that_name_no_hub() {
         assert!(
             parse(&view(bad)).is_err(),
             "{bad} has a key and names no hub; it is refused like `hubs: {{}}`"
+        );
+    }
+}
+
+/// A word no fixture pack has as a block.
+const ALIAS: &str = "zz_alias_word";
+
+#[test]
+fn alias_target_not_a_block_is_refused() {
+    let target = "zz_no_block_word";
+    for (name, dir) in packs() {
+        assert!(!block_names(&dir).iter().any(|b| b == target), "{name}");
+        let (report, pack) = load_with_aliases(&dir, &[(ALIAS, target)]);
+        assert!(!report.valid && pack.is_none(), "{name}: taken");
+        assert!(
+            report.errors.iter().any(|e| e.code == "manifest_invalid"
+                && e.subject == format!("alias:{ALIAS}")
+                && e.message.contains(target)),
+            "{name}: {:?}",
+            report.errors
+        );
+    }
+}
+
+#[test]
+fn alias_key_that_is_a_block_is_refused() {
+    for (name, dir) in packs() {
+        let blocks = block_names(&dir);
+        let (key, target) = (blocks[0].as_str(), blocks[1].as_str());
+        let (report, pack) = load_with_aliases(&dir, &[(key, target)]);
+        assert!(!report.valid && pack.is_none(), "{name}: taken");
+        assert!(
+            report.errors.iter().any(|e| e.code == "manifest_invalid"
+                && e.subject == format!("alias:{key}")
+                && e.message.contains(key)),
+            "{name}: {:?}",
+            report.errors
         );
     }
 }

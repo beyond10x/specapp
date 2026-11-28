@@ -239,6 +239,27 @@ pub fn load_with(
     };
     let names: BTreeSet<&str> = blocks.iter().map(|b| b.name.as_str()).collect();
 
+    // The aliases of a part's block word: each stands for a block, and none is a block itself.
+    for (word, block) in &manifest.blocks.aliases {
+        let subject = format!("alias:{word}");
+        if names.contains(word.as_str()) {
+            errors.push(Issue::new(
+                "manifest_invalid",
+                &subject,
+                format!(
+                    "blocks.aliases names {word}, which is a block of the pack; an alias is no block"
+                ),
+            ));
+        }
+        if !names.contains(block.as_str()) {
+            errors.push(Issue::new(
+                "manifest_invalid",
+                &subject,
+                format!("blocks.aliases maps {word} to {block}, which the blocks do not have"),
+            ));
+        }
+    }
+
     // The KPI catalogue.
     let mut kpis = Vec::new();
     let mut planned = BTreeSet::new();

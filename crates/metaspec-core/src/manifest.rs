@@ -65,6 +65,10 @@ pub struct Blocks {
     pub path: String,
     #[serde(default)]
     pub strip_prefix: Option<String>,
+    /// A part's block word mapped to the block of the pack it stands for. Every target is a
+    /// block of the pack and no word is one; the pack's loader refuses the manifest otherwise.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub aliases: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
