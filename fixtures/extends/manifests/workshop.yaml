@@ -1,0 +1,14 @@
+format: metaspec-pack/1
+pack: workshop
+title: Workshop
+summary: An invented private pack that extends the invented base pack, for the tests of extends in metaspec. It names its documents and inherits the blocks, the KPI catalogue and the tool.
+visibility: private
+extends: lantern
+
+documents:
+  - class: lamp
+    title: Workshop lamps
+    paths: [lamps/*.yaml]
+    shape: parts-links/1
+    name: lamp
+    contain: { in: in }

@@ -2128,3 +2128,191 @@ fn alias_rendered_page_draws_the_aliased_part_in_its_block() {
         );
     }
 }
+
+/// The invented pair of `fixtures/extends/`: the base pack and the pack that extends it, each
+/// `(directory, manifest)`. The extending pack is the one whose manifest has `extends`.
+fn extends_pair() -> ((PathBuf, PathBuf), (PathBuf, PathBuf)) {
+    let root = repo().join("fixtures/extends");
+    let mut base = None;
+    let mut extending = None;
+    for entry in std::fs::read_dir(root.join("manifests")).unwrap().flatten() {
+        let path = entry.path();
+        let value: Value =
+            serde_yaml_ng::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let dir = root.join(value["pack"].as_str().unwrap());
+        if value.get("extends").is_some() {
+            extending = Some((dir, path));
+        } else {
+            base = Some((dir, path));
+        }
+    }
+    (base.unwrap(), extending.unwrap())
+}
+
+/// `<head> --manifest <extending> --pack <dir> --extends <base manifest> [--base-pack <base>]`.
+fn extending_args(head: &[&str], with_base: bool) -> Vec<OsString> {
+    let ((base_dir, base_manifest), (dir, manifest)) = extends_pair();
+    let mut args: Vec<OsString> = head.iter().map(OsString::from).collect();
+    args.extend([
+        "--manifest".into(),
+        manifest.into(),
+        "--pack".into(),
+        dir.into(),
+        "--extends".into(),
+        base_manifest.into(),
+    ]);
+    if with_base {
+        args.extend(["--base-pack".into(), base_dir.into()]);
+    }
+    args
+}
+
+#[test]
+fn inherit_without_base_pack_is_refused_on_the_command_line() {
+    let out = metaspec(&extending_args(&["pack", "check", "--json"], false));
+    assert_eq!(out.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(schema_errors(&report), Vec::<String>::new());
+    assert_eq!(report["errors"][0]["code"], "base_pack_missing", "{report}");
+    assert!(
+        report["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("--base-pack"),
+        "{report}"
+    );
+    let out = metaspec(&extending_args(&["pack", "check", "--json"], true));
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
+
+#[test]
+fn inherit_trust_digest_covers_base_tool_on_the_command_line() {
+    let ((base_dir, base_manifest), _) = extends_pair();
+    let state = scratch("inherit-trust");
+    let digest = |out: &Output| {
+        let text = String::from_utf8_lossy(&out.stdout).into_owned();
+        text.split("(sha256:")
+            .nth(1)
+            .and_then(|rest| rest.split(')').next())
+            .map(String::from)
+            .unwrap_or_else(|| panic!("no digest in {text:?}"))
+    };
+    let out = metaspec_with(&state, &extending_args(&["trust"], false));
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "an inherited tool needs the base"
+    );
+    let extending = metaspec_with(&state, &extending_args(&["trust"], true));
+    assert_eq!(
+        extending.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&extending.stderr)
+    );
+    let base = trust_with(&state, &base_dir, &base_manifest);
+    assert_eq!(base.status.code(), Some(0));
+    // The trust of the inherited tool covers the base directory it runs in (D66): another
+    // digest than the base's own, and the output names that directory.
+    assert_ne!(digest(&extending), digest(&base));
+    let printed = String::from_utf8_lossy(&extending.stdout).into_owned();
+    let canonical = base_dir.canonicalize().unwrap();
+    assert!(
+        printed.contains(canonical.to_string_lossy().as_ref()),
+        "{printed}"
+    );
+}
+
+#[test]
+fn inherit_tool_runs_in_base_dir_when_rendered() {
+    let ((base_dir, _), (dir, _)) = extends_pair();
+    let state = scratch("inherit-render-state");
+    let out = scratch("inherit-render");
+    assert_eq!(
+        metaspec_with(&state, &extending_args(&["trust"], true))
+            .status
+            .code(),
+        Some(0)
+    );
+    let mut args = extending_args(&["render"], true);
+    args.extend(["--out".into(), out.clone().into()]);
+    let run = metaspec_with(&state, &args);
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let page = files(&out)
+        .into_iter()
+        .find(|f| f.ends_with(".html") && f != "index.html")
+        .expect("a page of the extending pack's document");
+    let data = page_data(&std::fs::read_to_string(out.join(&page)).unwrap());
+    assert_eq!(data["check"]["state"], "ran", "{}", data["check"]);
+    let messages: Vec<&str> = data["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["message"].as_str().unwrap())
+        .collect();
+    let base = base_dir.canonicalize().unwrap();
+    assert_eq!(
+        messages.first().copied(),
+        Some(base.to_string_lossy().as_ref())
+    );
+    let document = Path::new(messages[1]);
+    assert!(document.is_absolute() && document.starts_with(dir.canonicalize().unwrap()));
+}
+
+#[test]
+fn inherit_trust_of_an_own_tool_needs_no_base_pack() {
+    let ((_, base_manifest), (dir, manifest)) = extends_pair();
+    let scratch_dir = scratch("inherit-own-tool");
+    let own = scratch_dir.join("own-tool.yaml");
+    let text = std::fs::read_to_string(&manifest).unwrap();
+    std::fs::write(&own, format!("{text}\ntool:\n  run: [sh]\n")).unwrap();
+    let state = scratch("inherit-own-tool-state");
+    let out = metaspec_with(
+        &state,
+        &[
+            "trust".into(),
+            "--manifest".into(),
+            own.into(),
+            "--pack".into(),
+            dir.into(),
+            "--extends".into(),
+            base_manifest.into(),
+        ],
+    );
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
+fn inherit_base_pack_without_extends_warns_base_pack_unused_on_the_command_line() {
+    let dir = &packs()[0];
+    let ((base_dir, _), _) = extends_pair();
+    let mut args: Vec<OsString> = vec!["pack".into(), "check".into(), "--json".into()];
+    args.extend(pack_args(dir));
+    args.extend(["--base-pack".into(), base_dir.into()]);
+    let out = metaspec(&args);
+    assert_eq!(out.status.code(), Some(0));
+    let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(schema_errors(&report), Vec::<String>::new());
+    let codes: Vec<&str> = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["code"].as_str().unwrap())
+        .collect();
+    assert_eq!(codes, vec!["base_pack_unused"], "{report}");
+}

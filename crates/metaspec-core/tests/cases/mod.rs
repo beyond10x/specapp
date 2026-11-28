@@ -5,6 +5,8 @@ mod containment;
 mod exclude_edges;
 mod fixtures;
 mod graph;
+mod inherit;
+mod inherit_adversary;
 mod manifest;
 mod quality;
 mod tools;

@@ -123,7 +123,7 @@ pub fn build(
                 let Some(value) = &document.value else {
                     continue;
                 };
-                let aliases = &pack.manifest.blocks.aliases;
+                let aliases = &pack.manifest.blocks().aliases;
                 let graph = graph::read_with_aliases(class, &document.path, value, aliases);
                 let check = tool::check(pack, &document.path, Some(&graph), state, deadline);
                 let findings = check.findings().to_vec();

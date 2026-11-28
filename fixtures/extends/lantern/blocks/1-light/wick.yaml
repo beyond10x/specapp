@@ -1,0 +1,10 @@
+domain: lantern.wick
+
+summary: A wick of the lantern.
+
+naming:
+  wire: wick
+  display: Wick
+
+types:
+  - {name: lantern.wick.Length, kind: newtype, of: Integer}

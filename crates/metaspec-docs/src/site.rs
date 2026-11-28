@@ -269,6 +269,14 @@ impl Ctx<'_> {
         }
     }
 
+    /// `source` for a file of a section read in `root`: none when the section is inherited
+    /// from a base pack, whose files the pack's `source_file_url` does not reach.
+    pub fn source_in(&self, page: &mut Page, root: &Path, path: &str) {
+        if root == self.pack.root {
+            self.source(page, path);
+        }
+    }
+
     pub fn source_url(&self, path: &str) -> Option<String> {
         self.pack
             .manifest

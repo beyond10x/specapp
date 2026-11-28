@@ -73,7 +73,9 @@ fn the_report_of_every_fixture_pack_follows_its_schema() {
 #[test]
 fn a_refused_report_follows_the_schema() {
     let (_, dir) = packs().remove(0);
-    let (report, pack) = load_changed(&dir, |m| m.blocks.path = String::from("../elsewhere"));
+    let (report, pack) = load_changed(&dir, |m| {
+        m.blocks.as_mut().unwrap().path = String::from("../elsewhere")
+    });
     assert!(!report.valid);
     assert!(pack.is_none());
     let value = serde_json::to_value(&report).unwrap();
