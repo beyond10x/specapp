@@ -5,22 +5,40 @@ them.
 
 ## What this repository is
 
-The user interface (docs site and studio) of every specification pack. A pack is another
-repository; it describes itself in `specapp.yaml`.
+The user interface (docs site and studio) of every specification pack, the top-level application
+over all of them. A pack is another repository. specapp knows the packs; a pack knows nothing of
+specapp. specapp describes a pack in a manifest of its own: `packs/<name>.yaml` for a public pack
+it knows (agenticspec, orgspec; cloudspec once it has blocks), a file given at run time for any
+other.
 
 ## Rules
 
+- **specapp knows the packs; a pack knows nothing of specapp.** No file, format, command or
+  word of specapp is asked of a pack. A pack's manifest and the adapters of its tool live in
+  specapp (`packs/`), or, for a private pack, outside this repository. specapp runs a pack's
+  tool as the pack ships it and maps its own answer with the manifest's adapter. Owner's order,
+  2026-11-28.
+- **No feature for one pack only.** Whatever specapp can do with one pack it must do with every
+  pack it knows: a feature that one pack's tool supports is offered for every pack through the
+  manifest's adapter, and what a pack lacks for it is listed per pack in "Gaps per pack" of
+  `design/specapp.md`. Owner's order, 2026-11-28.
+
 - **No pack vocabulary in the code.** No block name, link name, rule id, KPI id, layer name or
   colour of any pack under `crates/` or `web/`. What a pack calls its things comes from its
-  manifest and its tool at run time. A change that needs such a word in the code is a gap of the
+  manifest (`packs/`, `fixtures/manifests/`, or a file given at run time) and its tool at run
+  time; the manifests are not code. A change that needs such a word in the code is a gap of the
   manifest or of a neutral format: change the format in `design/specapp.md` and `schema/`.
 - **specapp implements no rule of a pack.** A finding, a KPI value and a refusal come from the
   pack's tool. specapp draws them.
 - **Two fixture packs.** Every test of the generator, the layout and the components runs on both
-  packs under `fixtures/packs/`. Both are invented.
-- **This repository is public.** No content of a real pack, no company, product, person or host
-  name, no path of a home directory. A private pack is loaded from its own checkout at run time
-  and nothing of it is written here: no fixture, no screenshot, no baseline, no test name.
+  packs under `fixtures/packs/`. Both are invented. Their manifests are
+  `fixtures/manifests/<name>.yaml`; a fixture pack directory holds nothing of specapp, and its
+  tool answers in a format of its own (`scripts/check-pack-dirs.sh`).
+- **This repository is public.** No content of a real pack (no block, document, finding or other
+  file of it), no company, product, person or host name, no path of a home directory. The one
+  exception: the manifests of public packs under `packs/`, and only there. A private pack is
+  loaded from its own checkout at run time with a manifest given by its path, and nothing of it
+  is written here: no manifest, no fixture, no screenshot, no baseline, no test name.
 - A session that has read a private pack sets `SPECAPP_DENYLIST` to that organization's deny
   list and runs `scripts/check-public.sh` before it reports. The deny list is a file outside
   this repository; it is never committed here and no digest of it is published.
@@ -42,23 +60,23 @@ repository; it describes itself in `specapp.yaml`.
 - `task check` is the gate: `check:public` (`scripts/check-public.sh`: home paths, e-mail
   addresses, IP addresses, and the terms of the deny list `SPECAPP_DENYLIST` names, in file
   contents and file names; without `SPECAPP_DENYLIST`, as in CI and on a build node, it skips
-  the deny check and says so), script tests, `ess specify validate` of the fixture packs' blocks,
-  `cargo fmt` and clippy with `-D warnings`, the tests under cargo-nextest (a test is killed at
-  60 s, the step fails over 120 s; `.config/nextest.toml`), and
-  `scripts/check-vocabulary.sh` on the fixture packs.
+  the deny check and says so), script tests, `ess specify validate` of the fixture packs' blocks
+  and `scripts/check-pack-dirs.sh` (no fixture pack holds anything of specapp), `cargo fmt` and
+  clippy with `-D warnings`, the tests under cargo-nextest (a test is killed at 60 s, the step
+  fails over 120 s; `.config/nextest.toml`), and `scripts/check-vocabulary.sh` on the fixture
+  packs (it searches `crates/` and `web/*/src`, not the manifests).
 - `.github/workflows/gate.yml` runs `task check` (job `gate`) with the toolchain
   `rust-toolchain.toml` names, `ess` 0.99.2 and cargo-nextest 0.9.143. A pull request that
   changes only planning or prose files passes it without `task check`; the path list is
   `scripts/planning-only.sh`, and `scripts/planning-only.test.sh` holds both sides of it.
-- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <agenticspec-manifest>` is the
-  acceptance of a wave: `specapp pack check` on both fixture packs and both real packs, with
-  the counts compared to what each pack's own tooling prints; `specapp render` of every pack
+- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>` is the acceptance of a wave: no pack
+  directory given holds a manifest of specapp (`scripts/check-pack-dirs.sh`); `specapp pack
+  check` on both fixture packs and both real packs (manifests from `packs/` by name), with the
+  counts compared to what each pack's own tooling prints; `specapp render` of every pack
   (pages = documents) with the tools trusted in a state directory of the run, and for every
   broken design and example of orgspec the rule ids of the page equal to
   `orgspec check --json` and every finding about a part or link marked; then the vocabulary
-  check with all four packs. It is not part of `task check` and not run in CI. A real pack's
-  manifest that lives outside this repository is passed with `--manifest`; it is never
-  committed here.
+  check with all four packs. It is not part of `task check` and not run in CI.
 - Tests read `fixtures/expected/<pack>.json` for what a fixture pack must count, so no test
   names a word of a pack. The compiled model of a fixture's blocks is made once per digest of
   its sources under the target directory (`tests/cases/common.rs`).

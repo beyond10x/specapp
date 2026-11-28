@@ -1,10 +1,12 @@
-//! specapp-core: the manifest of a specification pack (`specapp-pack/1`), loading a pack, and
+//! specapp-core: the manifest of a specification pack (`specapp-pack/2`), loading a pack, and
 //! the report of `specapp pack check` (`specapp-pack-check/1`).
 //!
-//! This crate knows no pack. What a pack calls its things comes from its manifest and its
-//! files at run time.
+//! Its code names no pack. What a pack calls its things comes from its manifest (specapp's
+//! `packs/`, or a path given at run time) and its files.
 
+pub mod adapter;
 pub mod graph;
+pub mod known;
 pub mod manifest;
 pub mod pack;
 pub mod paths;

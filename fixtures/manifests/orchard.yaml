@@ -1,4 +1,4 @@
-format: specapp-pack/1
+format: specapp-pack/2
 pack: orchard
 title: Orchard
 summary: An invented pack of an orchard, for the tests of specapp.
@@ -34,4 +34,14 @@ documents:
 
 tool:
   run: [sh, tool/orchard-tool]
-  verbs: [check]
+  verbs:
+    check:
+      args: [survey]
+      error: /problem
+      valid: { at: /verdict, equals: sound }
+      findings:
+        - at: /observations
+          rule: "{/concern}"
+          gate: { at: /severity, equals: blocking }
+          message: "{/detail}"
+          subject: { id: "{/name}", kind: "{/on}", kinds: { station: part, route: link } }

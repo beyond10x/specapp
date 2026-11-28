@@ -1,6 +1,6 @@
-//! Every path a manifest names stays inside the pack; a manifest may lie outside it.
+//! Every path a manifest names stays inside the pack; the manifest lies outside it.
 
-use super::common::{codes, compiled, copy_dir, load_changed, packs, scratch};
+use super::common::{codes, compiled, copy_dir, load_changed, manifest_of, packs, scratch};
 use specapp_core::paths::relative_inside;
 use specapp_core::{load, load_with};
 
@@ -27,8 +27,7 @@ fn every_kind_of_manifest_path_that_leaves_the_pack_is_refused_before_anything_i
         |m| m.tool.as_mut().unwrap().run[0] = String::from("../bin/program"),
     ];
     for change in cases {
-        let mut manifest =
-            specapp_core::pack::read_manifest(&dir.join("specapp.yaml")).expect("manifest");
+        let mut manifest = specapp_core::pack::read_manifest(&manifest_of(&dir)).expect("manifest");
         change(&mut manifest);
         let (report, pack) = load_with(&dir, manifest, &never);
         assert!(!report.valid);
@@ -39,11 +38,11 @@ fn every_kind_of_manifest_path_that_leaves_the_pack_is_refused_before_anything_i
 
 #[test]
 fn a_symbolic_link_out_of_the_pack_is_refused() {
-    let (_, fixture) = packs().remove(0);
-    let pack = scratch("symlink-out");
-    std::fs::copy(fixture.join("specapp.yaml"), pack.join("specapp.yaml")).unwrap();
+    let (name, fixture) = packs().remove(0);
+    let pack = scratch("symlink-out").join(&name);
+    std::fs::create_dir_all(&pack).unwrap();
     std::os::unix::fs::symlink(fixture.join("blocks"), pack.join("blocks")).unwrap();
-    let (report, _) = load(&pack, None, &compiled);
+    let (report, _) = load(&pack, &manifest_of(&pack), &compiled);
     assert!(!report.valid);
     assert!(
         codes(&report.errors).contains(&"path_leaves_pack"),
@@ -57,7 +56,7 @@ fn a_document_reached_through_a_link_out_of_the_pack_is_refused() {
     for (name, fixture) in packs() {
         let outside = scratch(&format!("outside-{name}"));
         std::fs::write(outside.join("stray.yaml"), "a: 1\n").unwrap();
-        let dir = scratch(&format!("linked-{name}"));
+        let dir = scratch(&format!("linked-{name}")).join(&name);
         copy_dir(&fixture, &dir);
         std::os::unix::fs::symlink(&outside, dir.join("linked")).unwrap();
         let (report, _) = load_changed(&dir, |m| {
@@ -69,21 +68,55 @@ fn a_document_reached_through_a_link_out_of_the_pack_is_refused() {
 }
 
 #[test]
-fn a_manifest_outside_the_pack_reads_the_pack() {
+fn any_manifest_file_reads_the_pack() {
     for (name, dir) in packs() {
-        let elsewhere = scratch(&format!("manifest-outside-{name}"));
+        let elsewhere = scratch(&format!("manifest-elsewhere-{name}"));
         let manifest = elsewhere.join("other.yaml");
-        std::fs::copy(dir.join("specapp.yaml"), &manifest).unwrap();
-        let (inside, _) = load(&dir, None, &compiled);
-        let (outside, _) = load(&dir, Some(&manifest), &compiled);
-        assert!(outside.valid, "{name}: {:?}", outside.errors);
-        assert_eq!(inside.counts, outside.counts, "{name}");
+        std::fs::copy(manifest_of(&dir), &manifest).unwrap();
+        let (fixture, _) = load(&dir, &manifest_of(&dir), &compiled);
+        let (other, _) = load(&dir, &manifest, &compiled);
+        assert!(other.valid, "{name}: {:?}", other.errors);
+        assert_eq!(fixture.counts, other.counts, "{name}");
     }
 }
 
 #[test]
 fn a_missing_pack_or_manifest_is_refused() {
+    let (_, dir) = packs().remove(0);
     let missing = scratch("missing").join("no-pack-here");
-    let (report, _) = load(&missing, None, &compiled);
+    let (report, _) = load(&missing, &missing.join("manifest.yaml"), &compiled);
     assert_eq!(codes(&report.errors), vec!["manifest_unreadable"]);
+    let (report, _) = load(&missing, &manifest_of(&dir), &compiled);
+    assert_eq!(codes(&report.errors), vec!["pack_missing"]);
+}
+
+#[test]
+fn no_fixture_pack_holds_anything_of_specapp() {
+    fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, out);
+            } else {
+                out.push(path);
+            }
+        }
+    }
+    for (name, dir) in packs() {
+        let mut files = Vec::new();
+        walk(&dir, &mut files);
+        assert!(!files.is_empty());
+        for file in files {
+            let text = std::fs::read_to_string(&file).unwrap_or_default();
+            let shown = file.strip_prefix(&dir).unwrap().display().to_string();
+            assert!(
+                !shown.to_lowercase().contains("specapp"),
+                "{name}: {shown} is named after specapp"
+            );
+            assert!(
+                !text.to_lowercase().contains("specapp"),
+                "{name}: {shown} names specapp"
+            );
+        }
+    }
 }

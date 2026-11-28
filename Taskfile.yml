@@ -31,13 +31,14 @@ tasks:
         echo "check:scripts: $n script test(s) passed"
 
   check:fixtures:
-    desc: Validate the blocks of every fixture pack (fixtures/packs/*/blocks) with ess.
+    desc: Validate the blocks of every fixture pack (fixtures/packs/*/blocks) with ess, and fail when a fixture pack holds anything of specapp, a manifest above all (scripts/check-pack-dirs.sh); its manifest is fixtures/manifests/<name>.yaml.
     cmds:
       - |
         set -eu
         for blocks in fixtures/packs/*/blocks; do
           ess specify validate --path "$blocks" --strict-requires
         done
+      - scripts/check-pack-dirs.sh
 
   check:rust:
     desc: Format and lint the Rust workspace.
@@ -46,7 +47,7 @@ tasks:
       - cargo clippy --locked --all-targets -- -D warnings
 
   test:
-    desc: Run the Rust tests under cargo-nextest, among them the schema validation of the manifests, of the report of `specapp pack check` and of the fixture tools' answers. A test is killed at 60 s and the step fails over 120 s (.config/nextest.toml). Prints the ten slowest tests.
+    desc: Run the Rust tests under cargo-nextest, among them the schema validation of the manifests (packs/, fixtures/manifests/), of the report of `specapp pack check` and of what the adapters read from the fixture tools' own answers. A test is killed at 60 s and the step fails over 120 s (.config/nextest.toml). Prints the ten slowest tests.
     cmds:
       - cargo nextest run --workspace --locked --no-run
       - silent: true
@@ -59,12 +60,12 @@ tasks:
           exit $status
 
   check:vocabulary:
-    desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/ or web/src/ (scripts/check-vocabulary.sh). scripts/acceptance.sh runs it with the real packs too.
+    desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/ or web/*/src (scripts/check-vocabulary.sh). The manifests under packs/ and fixtures/manifests/ are not searched. scripts/acceptance.sh runs it with the real packs too.
     cmds:
       - cargo build --quiet --locked -p specapp
       - scripts/check-vocabulary.sh
 
   acceptance:
-    desc: The acceptance of a wave, not part of check (it needs checkouts of the real packs). task acceptance -- <orgspec-dir> <agenticspec-dir> <agenticspec-manifest>
+    desc: The acceptance of a wave, not part of check (it needs checkouts of the real packs; their manifests are packs/orgspec.yaml and packs/agenticspec.yaml). task acceptance -- <orgspec-dir> <agenticspec-dir>
     cmds:
       - scripts/acceptance.sh {{.CLI_ARGS}}

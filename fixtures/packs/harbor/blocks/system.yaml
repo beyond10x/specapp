@@ -3,7 +3,7 @@ system: harbor
 version: v1
 
 summary: >-
-  An invented pack for the tests of specapp: the blocks of a small harbor. Quays hold berths,
+  An invented pack: the blocks of a small harbor. Quays hold berths,
   vessels moor at berths, tugs tow vessels in.
 
 domains:

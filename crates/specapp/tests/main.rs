@@ -1,8 +1,10 @@
 //! The one integration-test binary of the specapp command line. Each test runs the built
 //! binary on the fixture packs; `pack check` compiles a fixture's blocks with `ess` (a few
-//! milliseconds each).
+//! milliseconds each). A fixture pack's manifest is `fixtures/manifests/<name>.yaml`, given
+//! with `--manifest`; the pack directory is given with `--pack`.
 
 use serde_json::Value;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -24,11 +26,35 @@ fn packs() -> Vec<PathBuf> {
     packs
 }
 
-fn specapp(args: &[&std::ffi::OsStr]) -> Output {
+/// The manifest of a fixture pack, by the last component of its directory: a copy keeps it.
+fn manifest_of(dir: &Path) -> PathBuf {
+    let name = dir.file_name().unwrap().to_string_lossy();
+    repo().join(format!("fixtures/manifests/{name}.yaml"))
+}
+
+/// `--manifest <the fixture's manifest> --pack <dir>`.
+fn pack_args(dir: &Path) -> Vec<OsString> {
+    vec![
+        "--manifest".into(),
+        manifest_of(dir).into(),
+        "--pack".into(),
+        dir.into(),
+    ]
+}
+
+fn specapp<S: AsRef<OsStr>>(args: &[S]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_specapp"))
         .args(args)
         .output()
         .expect("specapp starts")
+}
+
+/// `specapp <head> --manifest … --pack <dir> <tail>`.
+fn on_pack(head: &[&str], dir: &Path, tail: &[&str]) -> Output {
+    let mut args: Vec<OsString> = head.iter().map(OsString::from).collect();
+    args.extend(pack_args(dir));
+    args.extend(tail.iter().map(OsString::from));
+    specapp(&args)
 }
 
 fn schema_errors(value: &Value) -> Vec<String> {
@@ -45,12 +71,7 @@ fn schema_errors(value: &Value) -> Vec<String> {
 #[test]
 fn pack_check_json_follows_the_schema_and_exits_0_for_every_fixture_pack() {
     for dir in packs() {
-        let out = specapp(&[
-            "pack".as_ref(),
-            "check".as_ref(),
-            dir.as_os_str(),
-            "--json".as_ref(),
-        ]);
+        let out = on_pack(&["pack", "check"], &dir, &["--json"]);
         assert_eq!(
             out.status.code(),
             Some(0),
@@ -66,13 +87,18 @@ fn pack_check_json_follows_the_schema_and_exits_0_for_every_fixture_pack() {
         )
         .unwrap();
         assert_eq!(report["counts"], want["counts"], "{name}");
+        assert_eq!(
+            report.pointer("/tool/verbs"),
+            Some(&serde_json::json!(["check"])),
+            "{name}"
+        );
     }
 }
 
 #[test]
 fn pack_check_text_names_the_counts() {
     let dir = &packs()[0];
-    let out = specapp(&["pack".as_ref(), "check".as_ref(), dir.as_os_str()]);
+    let out = on_pack(&["pack", "check"], dir, &[]);
     assert_eq!(out.status.code(), Some(0));
     let text = String::from_utf8(out.stdout).unwrap();
     assert!(text.lines().any(|l| l.starts_with("blocks: ")), "{text}");
@@ -83,22 +109,21 @@ fn pack_check_text_names_the_counts() {
 
 #[test]
 fn a_refused_pack_exits_1_with_a_report_that_follows_the_schema() {
-    let scratch = Path::new(env!("CARGO_TARGET_TMPDIR")).join("specapp-cli-refused");
-    let _ = std::fs::remove_dir_all(&scratch);
-    std::fs::create_dir_all(&scratch).unwrap();
+    let scratch = scratch("refused");
     let manifest = scratch.join("leaving.yaml");
     std::fs::write(
         &manifest,
-        "format: specapp-pack/1\npack: leaving\ntitle: Leaving\nvisibility: public\nblocks: { path: ../outside }\n",
+        "format: specapp-pack/2\npack: leaving\ntitle: Leaving\nvisibility: public\nblocks: { path: ../outside }\n",
     )
     .unwrap();
     let dir = &packs()[0];
     let out = specapp(&[
-        "pack".as_ref(),
+        OsStr::new("pack"),
         "check".as_ref(),
-        dir.as_os_str(),
         "--manifest".as_ref(),
         manifest.as_os_str(),
+        "--pack".as_ref(),
+        dir.as_os_str(),
         "--json".as_ref(),
     ]);
     assert_eq!(out.status.code(), Some(1));
@@ -109,14 +134,136 @@ fn a_refused_pack_exits_1_with_a_report_that_follows_the_schema() {
 
 #[test]
 fn bad_usage_exits_2() {
-    let out = specapp(&["pack".as_ref(), "check".as_ref()]);
+    let dir = &packs()[0];
+    let cases: Vec<Vec<OsString>> = vec![
+        vec!["pack".into(), "check".into()],
+        vec!["pack".into(), "check".into(), "--pack".into(), dir.into()],
+        vec![
+            "pack".into(),
+            "check".into(),
+            "--manifest".into(),
+            manifest_of(dir).into(),
+        ],
+    ];
+    for args in cases {
+        assert_eq!(specapp(&args).status.code(), Some(2), "{args:?}");
+    }
+    let mut both = pack_args(dir);
+    both.insert(0, "a-name".into());
+    both.insert(0, "check".into());
+    both.insert(0, "pack".into());
+    assert_eq!(
+        specapp(&both).status.code(),
+        Some(2),
+        "a name and a manifest"
+    );
+}
+
+#[test]
+fn a_pack_is_named_by_a_known_name_and_an_unknown_name_is_bad_usage() {
+    let out = specapp(&["pack", "known"]);
+    assert_eq!(out.status.code(), Some(0));
+    let known: Vec<String> = String::from_utf8(out.stdout)
+        .unwrap()
+        .lines()
+        .map(String::from)
+        .collect();
+    let mut files: Vec<String> = std::fs::read_dir(repo().join("packs"))
+        .unwrap()
+        .flatten()
+        .filter_map(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .strip_suffix(".yaml")
+                .map(String::from)
+        })
+        .collect();
+    files.sort();
+    assert_eq!(known, files);
+
+    let dir = &packs()[0];
+    let out = specapp(&[
+        OsStr::new("pack"),
+        "check".as_ref(),
+        "no-such-pack".as_ref(),
+        "--pack".as_ref(),
+        dir.as_os_str(),
+    ]);
     assert_eq!(out.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("knows no pack no-such-pack"), "{stderr}");
+    assert!(
+        known.iter().all(|k| stderr.contains(k.as_str())),
+        "{stderr}"
+    );
+
+    // A known name reads the manifest under packs/, here against a fixture's directory, which
+    // that manifest does not describe: specapp reports with that manifest and says so.
+    let out = specapp(&[
+        OsStr::new("pack"),
+        "check".as_ref(),
+        known[0].as_ref(),
+        "--pack".as_ref(),
+        dir.as_os_str(),
+        "--json".as_ref(),
+    ]);
+    let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(schema_errors(&report), Vec::<String>::new());
+    assert!(
+        report["pack"] == known[0].as_str() || report["valid"] == false,
+        "{report}"
+    );
+    assert!(
+        !report["errors"].as_array().unwrap().is_empty()
+            || !report["warnings"].as_array().unwrap().is_empty(),
+        "{report}"
+    );
+}
+
+#[test]
+fn extends_resolves_a_known_pack_or_a_given_manifest() {
+    let dirs = packs();
+    let (base, dir) = (&dirs[0], &dirs[1]);
+    let base_name = base.file_name().unwrap().to_string_lossy().into_owned();
+    let scratch = scratch("extends").join(dir.file_name().unwrap());
+    std::fs::create_dir_all(&scratch).unwrap();
+    let text = std::fs::read_to_string(manifest_of(dir)).unwrap();
+    let manifest = scratch.join("extending.yaml");
+    std::fs::write(&manifest, format!("{text}extends: {base_name}\n")).unwrap();
+    let check = |extends: Option<&Path>| {
+        let mut args: Vec<OsString> = vec![
+            "pack".into(),
+            "check".into(),
+            "--manifest".into(),
+            manifest.clone().into(),
+            "--pack".into(),
+            dir.into(),
+            "--json".into(),
+        ];
+        if let Some(path) = extends {
+            args.push("--extends".into());
+            args.push(path.into());
+        }
+        let out = specapp(&args);
+        assert_eq!(out.status.code(), Some(0));
+        let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(report["extends"], Value::from(base_name.as_str()));
+        report["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|w| w["code"].as_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(check(None), vec!["extends_not_found"]);
+    assert_eq!(check(Some(&manifest_of(base))), Vec::<String>::new());
+    assert_eq!(check(Some(&manifest_of(dir))), vec!["extends_other_pack"]);
 }
 
 #[test]
 fn pack_words_prints_every_kind() {
     for dir in packs() {
-        let out = specapp(&["pack".as_ref(), "words".as_ref(), dir.as_os_str()]);
+        let out = on_pack(&["pack", "words"], &dir, &[]);
         assert_eq!(out.status.code(), Some(0));
         let text = String::from_utf8(out.stdout).unwrap();
         for kind in ["block", "layer", "link", "kpi_id", "rule"] {
@@ -143,7 +290,7 @@ fn scratch(name: &str) -> PathBuf {
 }
 
 /// Runs specapp with `state` as XDG_STATE_HOME.
-fn specapp_with(state: &Path, args: &[&std::ffi::OsStr]) -> Output {
+fn specapp_with(state: &Path, args: &[OsString]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_specapp"))
         .env("XDG_STATE_HOME", state)
         .args(args)
@@ -151,20 +298,40 @@ fn specapp_with(state: &Path, args: &[&std::ffi::OsStr]) -> Output {
         .expect("specapp starts")
 }
 
-fn render(state: &Path, pack: &Path, out: &Path, extra: &[&str]) -> Output {
-    let mut args: Vec<&std::ffi::OsStr> = vec![
-        "render".as_ref(),
-        "--pack".as_ref(),
-        pack.as_os_str(),
-        "--out".as_ref(),
-        out.as_os_str(),
+/// `specapp render --manifest <manifest> --pack <pack> --out <out> <extra>`.
+fn render_with(state: &Path, pack: &Path, manifest: &Path, out: &Path, extra: &[&str]) -> Output {
+    let mut args: Vec<OsString> = vec![
+        "render".into(),
+        "--manifest".into(),
+        manifest.into(),
+        "--pack".into(),
+        pack.into(),
+        "--out".into(),
+        out.into(),
     ];
-    args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
+    args.extend(extra.iter().map(OsString::from));
     specapp_with(state, &args)
 }
 
+fn render(state: &Path, pack: &Path, out: &Path, extra: &[&str]) -> Output {
+    render_with(state, pack, &manifest_of(pack), out, extra)
+}
+
+fn trust_with(state: &Path, pack: &Path, manifest: &Path) -> Output {
+    specapp_with(
+        state,
+        &[
+            "trust".into(),
+            "--manifest".into(),
+            manifest.into(),
+            "--pack".into(),
+            pack.into(),
+        ],
+    )
+}
+
 fn trust(state: &Path, pack: &Path) -> Output {
-    specapp_with(state, &["trust".as_ref(), pack.as_os_str()])
+    trust_with(state, pack, &manifest_of(pack))
 }
 
 /// The JSON a page carries in its data element.
@@ -337,26 +504,37 @@ fn an_untrusted_pack_is_drawn_without_running_its_tool() {
     }
 }
 
-#[test]
-fn a_check_over_the_deadline_is_killed_and_the_page_says_so() {
+/// A copy of the first fixture pack, under its own name, and a manifest beside it (outside
+/// the pack) whose `tool` section is `tool`.
+fn with_tool(name: &str, tool: &str) -> (PathBuf, PathBuf) {
     let fixture = &packs()[0];
-    let dir = scratch("slow-pack");
+    let root = scratch(name);
+    let dir = root.join(fixture.file_name().unwrap());
     copy(fixture, &dir);
-    let text = std::fs::read_to_string(dir.join("specapp.yaml")).unwrap();
+    let text = std::fs::read_to_string(manifest_of(fixture)).unwrap();
     let start = text.find("tool:").unwrap();
     let end = start + text[start..].find("\n\n").unwrap_or(text.len() - start);
-    let text = format!(
-        "{}tool:\n  run: [sh, slow.sh]\n  verbs: [check]{}",
-        &text[..start],
-        &text[end..]
+    let manifest = root.join("manifest.yaml");
+    std::fs::write(
+        &manifest,
+        format!("{}{tool}{}", &text[..start], &text[end..]),
+    )
+    .unwrap();
+    (dir, manifest)
+}
+
+#[test]
+fn a_check_over_the_deadline_is_killed_and_the_page_says_so() {
+    let (dir, manifest) = with_tool(
+        "slow-pack",
+        "tool:\n  run: [sh, slow.sh]\n  verbs:\n    check: {}",
     );
-    std::fs::write(dir.join("specapp.yaml"), text).unwrap();
     std::fs::write(dir.join("slow.sh"), "#!/bin/sh\nsleep 30\n").unwrap();
     let state = scratch("slow-state");
     let out = scratch("slow-pages");
-    assert_eq!(trust(&state, &dir).status.code(), Some(0));
+    assert_eq!(trust_with(&state, &dir, &manifest).status.code(), Some(0));
     let begin = std::time::Instant::now();
-    let run = render(&state, &dir, &out, &["--deadline", "0.2"]);
+    let run = render_with(&state, &dir, &manifest, &out, &["--deadline", "0.2"]);
     assert_eq!(
         run.status.code(),
         Some(0),
@@ -378,29 +556,30 @@ fn a_check_over_the_deadline_is_killed_and_the_page_says_so() {
 
 #[test]
 fn trust_refuses_a_manifest_without_a_tool_and_render_refuses_bad_usage() {
-    let fixture = &packs()[0];
-    let dir = scratch("toolless-pack");
-    copy(fixture, &dir);
-    let text = std::fs::read_to_string(dir.join("specapp.yaml")).unwrap();
-    let start = text.find("tool:").unwrap();
-    let end = start + text[start..].find("\n\n").unwrap_or(text.len() - start);
-    std::fs::write(
-        dir.join("specapp.yaml"),
-        format!("{}{}", &text[..start], &text[end..]),
-    )
-    .unwrap();
+    let (dir, manifest) = with_tool("toolless-pack", "");
     let state = scratch("toolless-state");
-    assert_eq!(trust(&state, &dir).status.code(), Some(1));
+    assert_eq!(trust_with(&state, &dir, &manifest).status.code(), Some(1));
     let out = scratch("toolless-pages");
     assert_eq!(
-        render(&state, &dir, &out, &["--deadline", "0"])
+        render_with(&state, &dir, &manifest, &out, &["--deadline", "0"])
             .status
             .code(),
         Some(2)
     );
-    let run = render(&state, &dir, &out, &[]);
+    let run = render_with(&state, &dir, &manifest, &out, &[]);
     assert_eq!(run.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&run.stdout).contains("check no_tool"));
+}
+
+#[test]
+fn a_tool_without_the_verb_check_is_drawn_without_a_check() {
+    let (dir, manifest) = with_tool("verbless-pack", "tool:\n  run: [sh, absent.sh]");
+    let state = scratch("verbless-state");
+    assert_eq!(trust_with(&state, &dir, &manifest).status.code(), Some(0));
+    let out = scratch("verbless-pages");
+    let run = render_with(&state, &dir, &manifest, &out, &[]);
+    assert_eq!(run.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&run.stdout).contains("check no_check"));
 }
 
 fn copy(from: &Path, to: &Path) {

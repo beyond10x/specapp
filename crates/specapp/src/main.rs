@@ -4,7 +4,7 @@ mod page;
 mod render;
 
 use clap::{Args, Parser, Subcommand};
-use specapp_core::{ess_compile, load, pack, tool, words};
+use specapp_core::{Issue, Manifest, Report, ess_compile, known, load_with, pack, tool, words};
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
@@ -32,7 +32,7 @@ enum Command {
     /// Records the digest of the manifest's `tool` section for the pack directory in
     /// `$XDG_STATE_HOME/specapp/trust.json` (default `~/.local/state/specapp`). A changed `tool`
     /// section is not trusted until it is trusted again. Exits 0 when recorded, 1 when the
-    /// manifest names no tool or cannot be read.
+    /// manifest names no tool or cannot be read, 2 on bad usage.
     Trust {
         #[command(flatten)]
         pack: PackArgs,
@@ -40,16 +40,12 @@ enum Command {
     /// Write one self-contained HTML page per document that is drawn (`parts-links/1`), with
     /// each view of its class and the findings of the pack's tool, and an index page.
     ///
-    /// The tool's `check` runs only for a trusted pack (`specapp trust`); a run over the
+    /// The tool's check runs only for a trusted pack (`specapp trust`); a run over the
     /// deadline is killed and the page says so. Exits 0 when the pages are written, 1 when the
     /// pack is refused or a page cannot be written, 2 on bad usage.
     Render {
-        /// The pack directory.
-        #[arg(long = "pack", value_name = "DIR")]
-        dir: PathBuf,
-        /// The manifest to read instead of DIR/specapp.yaml. It may lie outside the pack.
-        #[arg(long, value_name = "FILE")]
-        manifest: Option<PathBuf>,
+        #[command(flatten)]
+        pack: PackArgs,
         /// The directory the pages are written to.
         #[arg(long, value_name = "DIR")]
         out: PathBuf,
@@ -75,21 +71,89 @@ enum PackCommand {
     /// Print the words of a pack, one `<kind> <word>` per line: its block, layer, link, KPI and
     /// rule names.
     ///
-    /// Exits 0 when the pack loads, 1 when it is refused.
+    /// Exits 0 when the pack loads, 1 when it is refused, 2 on bad usage.
     Words {
         #[command(flatten)]
         pack: PackArgs,
     },
+    /// Print the names of the packs specapp knows, one per line: the manifests under its
+    /// `packs/`.
+    Known,
 }
 
+/// Which pack: its manifest (specapp's, by the name of a pack specapp knows or by a path) and
+/// its directory. A pack directory holds nothing of specapp.
 #[derive(Args)]
 struct PackArgs {
-    /// The pack directory. Every path of the manifest is relative to it.
-    #[arg(value_name = "DIR")]
-    dir: PathBuf,
-    /// The manifest to read instead of DIR/specapp.yaml. It may lie outside the pack.
+    /// The name of a pack specapp knows; its manifest is specapp's `packs/<NAME>.yaml`.
+    #[arg(
+        value_name = "NAME",
+        conflicts_with = "manifest",
+        required_unless_present = "manifest"
+    )]
+    name: Option<String>,
+    /// The manifest of a pack specapp does not know, such as a private pack. It lies outside
+    /// the pack.
     #[arg(long, value_name = "FILE")]
     manifest: Option<PathBuf>,
+    /// The pack directory. Every path of the manifest is relative to it.
+    #[arg(long = "pack", value_name = "DIR")]
+    dir: PathBuf,
+    /// The manifest of the pack this pack's manifest `extends`, when specapp does not know it.
+    #[arg(long, value_name = "FILE")]
+    extends: Option<PathBuf>,
+}
+
+/// Why a pack was not read.
+enum NotRead {
+    /// Bad usage: a name specapp does not know.
+    Usage(String),
+    /// The manifest is refused.
+    Refused(Vec<Issue>),
+}
+
+impl PackArgs {
+    /// The manifest the arguments name.
+    fn manifest(&self) -> Result<Manifest, NotRead> {
+        let read = match (&self.name, &self.manifest) {
+            (_, Some(path)) => pack::read_manifest(path),
+            (Some(name), None) => match pack::known_manifest(name) {
+                Some(read) => read,
+                None => {
+                    return Err(NotRead::Usage(format!(
+                        "specapp knows no pack {name}; it knows: {}. A pack it does not know is read with --manifest <file>",
+                        known::names().join(", ")
+                    )));
+                }
+            },
+            (None, None) => return Err(NotRead::Usage(String::from("a pack name or --manifest"))),
+        };
+        read.map_err(NotRead::Refused)
+    }
+
+    /// Loads the pack: the report, with what specapp says about `extends`, and the pack when it
+    /// loads.
+    fn load(&self) -> Result<(Report, Option<pack::Pack>), NotRead> {
+        let manifest = match self.manifest() {
+            Ok(manifest) => manifest,
+            Err(NotRead::Refused(errors)) => {
+                return Ok((Report::refused(errors, Vec::new()), None));
+            }
+            Err(usage) => return Err(usage),
+        };
+        let extends = pack::extends_issues(&manifest, self.extends.as_deref());
+        let (mut report, loaded) = load_with(&self.dir, manifest, &ess_compile);
+        report.warnings.extend(extends);
+        Ok((report, loaded))
+    }
+}
+
+fn usage(why: NotRead) -> ExitCode {
+    match why {
+        NotRead::Usage(message) => eprintln!("specapp: {message}"),
+        NotRead::Refused(errors) => eprint!("{}", Report::refused(errors, Vec::new()).text()),
+    }
+    ExitCode::from(2)
 }
 
 fn main() -> ExitCode {
@@ -97,7 +161,10 @@ fn main() -> ExitCode {
         Command::Pack {
             command: PackCommand::Check { pack, json },
         } => {
-            let (report, _) = load(&pack.dir, pack.manifest.as_deref(), &ess_compile);
+            let (report, _) = match pack.load() {
+                Ok(loaded) => loaded,
+                Err(why) => return usage(why),
+            };
             if json {
                 match serde_json::to_string_pretty(&report) {
                     Ok(text) => println!("{text}"),
@@ -118,7 +185,10 @@ fn main() -> ExitCode {
         Command::Pack {
             command: PackCommand::Words { pack },
         } => {
-            let (report, loaded) = load(&pack.dir, pack.manifest.as_deref(), &ess_compile);
+            let (report, loaded) = match pack.load() {
+                Ok(loaded) => loaded,
+                Err(why) => return usage(why),
+            };
             let Some(loaded) = loaded else {
                 eprint!("{}", report.text());
                 return ExitCode::from(1);
@@ -128,10 +198,17 @@ fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
+        Command::Pack {
+            command: PackCommand::Known,
+        } => {
+            for name in known::names() {
+                println!("{name}");
+            }
+            ExitCode::SUCCESS
+        }
         Command::Trust { pack } => trust(&pack),
         Command::Render {
-            dir,
-            manifest,
+            pack,
             out,
             deadline,
         } => {
@@ -139,7 +216,10 @@ fn main() -> ExitCode {
                 eprintln!("specapp: --deadline takes a number of seconds above 0");
                 return ExitCode::from(2);
             }
-            let (report, loaded) = load(&dir, manifest.as_deref(), &ess_compile);
+            let (report, loaded) = match pack.load() {
+                Ok(loaded) => loaded,
+                Err(why) => return usage(why),
+            };
             let Some(loaded) = loaded else {
                 eprint!("{}", report.text());
                 return ExitCode::from(1);
@@ -174,15 +254,15 @@ fn main() -> ExitCode {
 }
 
 fn trust(args: &PackArgs) -> ExitCode {
-    let path = pack::manifest_path(&args.dir, args.manifest.as_deref());
-    let manifest = match pack::read_manifest(&path) {
+    let manifest = match args.manifest() {
         Ok(manifest) => manifest,
-        Err(errors) => {
+        Err(NotRead::Refused(errors)) => {
             for e in errors {
                 eprintln!("specapp: {} {}: {}", e.code, e.subject, e.message);
             }
             return ExitCode::from(1);
         }
+        Err(usage_error) => return usage(usage_error),
     };
     let Some(spec) = &manifest.tool else {
         eprintln!("specapp: the manifest names no tool; there is nothing to trust");

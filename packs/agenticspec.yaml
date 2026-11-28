@@ -1,0 +1,26 @@
+format: specapp-pack/2
+pack: agenticspec
+title: agenticspec
+summary: Building blocks of agentic development, architectures that compose them, and their simulation.
+visibility: public
+source_url: https://github.com/beyond10x/agenticspec
+
+blocks:
+  path: blocks
+  strip_prefix: agentic.
+
+kpis:
+  path: kpis/catalogue.yaml
+  fields: { measure: kind, modes: modes }
+
+documents:
+  - class: architecture
+    title: Architectures
+    paths: [architectures/*.yaml]
+    shape: parts-links/1
+    name: architecture
+    contain: { per: per }
+    views:
+      - id: architecture
+        title: Architecture
+        layout: rows

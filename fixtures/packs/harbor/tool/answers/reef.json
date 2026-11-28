@@ -1,0 +1,32 @@
+[
+  {
+    "plan": "reef",
+    "passes": false,
+    "breaches": [
+      {
+        "bylaw": "mooring_without_berth",
+        "blocking": true,
+        "where": "ketch->berth_x:moors_at",
+        "says": "The mooring names berth_x, which the plan does not have."
+      },
+      {
+        "bylaw": "vessel_without_berth",
+        "blocking": true,
+        "where": "ketch",
+        "says": "The vessel is on the border and moors at no berth of the plan."
+      }
+    ],
+    "notices": [
+      {
+        "bylaw": "border_names_nothing",
+        "says": "The border names sandbar, which is no part of the plan."
+      }
+    ],
+    "tally": {
+      "berth_without_quay": 0,
+      "vessel_without_berth": 1,
+      "mooring_without_berth": 1,
+      "border_names_nothing": 1
+    }
+  }
+]

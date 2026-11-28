@@ -153,7 +153,7 @@ fn a_tool_that_cannot_be_started_is_named_and_nothing_is_run() {
         assert_eq!(codes(&report.warnings), vec!["tool_not_started"], "{name}");
 
         let (report, _) = load_changed(&dir, |m| {
-            m.tool.as_mut().unwrap().run = vec![String::from("./specapp.yaml")];
+            m.tool.as_mut().unwrap().run = vec![String::from("./blocks/system.yaml")];
         });
         assert_eq!(
             report.tool.as_ref().unwrap().state,

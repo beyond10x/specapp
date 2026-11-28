@@ -1,0 +1,15 @@
+[
+  {
+    "plan": "inlet",
+    "passes": false,
+    "breaches": [
+      {
+        "bylaw": "berth_without_quay",
+        "blocking": true,
+        "where": "lone_berth",
+        "says": "The berth lies within no quay."
+      }
+    ],
+    "notices": []
+  }
+]
