@@ -15,4 +15,5 @@ mod ratchet;
 mod refusal;
 mod rules;
 mod spec;
+mod spec_adversary;
 mod values;

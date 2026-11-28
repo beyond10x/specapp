@@ -1,0 +1,10 @@
+{
+  "measure": "adoption_level",
+  "unit": "level",
+  "direction": "higher_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 3
+  },
+  "behind": []
+}

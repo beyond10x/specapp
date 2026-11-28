@@ -1004,13 +1004,140 @@ fn layout_render_with_a_quality_report_reaches_the_stub_page_and_exits_2() {
     );
 }
 
+/// `metaspec quality spec` with the stub `fixtures/ess/ess` (METASPEC_ESS) and a cache of the
+/// test (XDG_CACHE_HOME): exit 0, the report follows the schema, holds every measure of the
+/// question `specification` in the order of the catalogue, and the measures of
+/// story:spec-quality-static equal their goldens (honesty: the committed fixture packs hold no
+/// marker, so only its kind is checked here). A manifest without a tool lists `check` as a gap
+/// of kind `verb` that needs L3.
 #[test]
-fn layout_quality_spec_and_ratchet_reach_their_stubs_and_exit_2() {
+fn quality_spec_json_follows_the_schema_with_the_stub_ess_and_lists_each_verb_not_declared() {
+    let text = std::fs::read_to_string(repo().join("kpis/catalogue.yaml")).unwrap();
+    let catalogue: Value = serde_yaml_ng::from_str(&text).unwrap();
+    let measures: Vec<String> = catalogue["kpis"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["measure"] == "specification")
+        .map(|row| row["id"].as_str().unwrap().to_string())
+        .collect();
+    let cache = scratch("quality-spec-cache");
+    let spec = |manifest: &Path, dir: &Path| -> Output {
+        Command::new(env!("CARGO_BIN_EXE_metaspec"))
+            .env("METASPEC_ESS", repo().join("fixtures/ess/ess"))
+            .env("XDG_CACHE_HOME", &cache)
+            .args([
+                OsStr::new("quality"),
+                "spec".as_ref(),
+                "--manifest".as_ref(),
+            ])
+            .arg(manifest)
+            .arg("--pack")
+            .arg(dir)
+            .arg("--json")
+            .output()
+            .expect("metaspec starts")
+    };
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let out = spec(&manifest_of(&dir), &dir);
+        assert_eq!(
+            out.status.code(),
+            Some(0),
+            "{name}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(
+            schema("metaspec-quality-1.schema.json", &report),
+            Vec::<String>::new(),
+            "{name}"
+        );
+        assert_eq!(report["question"], "specification");
+        let got: Vec<&str> = report["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["measure"].as_str().unwrap())
+            .collect();
+        assert_eq!(got, measures, "{name}");
+        for measure in [
+            "validity.refusals",
+            "validity.warnings",
+            "ess_completeness.unscenarioed",
+            "ess_completeness.unanswered",
+            "ess_completeness.outside",
+            "adoption_level",
+        ] {
+            let want: Value = serde_json::from_str(
+                &std::fs::read_to_string(
+                    repo().join(format!("fixtures/expected/{name}/quality/{measure}.json")),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let m = report["measurements"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|m| m["measure"] == measure)
+                .unwrap();
+            assert_eq!(m, &want, "{name} {measure}");
+        }
+        let honesty = report["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["measure"] == "honesty")
+            .unwrap();
+        assert_eq!(honesty["reading"]["kind"], "value", "{name}");
+        let verbs = report["gaps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|g| g["kind"] == "verb")
+            .count();
+        assert_eq!(verbs, 0, "{name}: the fixture manifests declare check");
+    }
+    assert!(
+        cache.join("metaspec/ess").is_dir(),
+        "the answers are cached under XDG_CACHE_HOME"
+    );
+
+    // A manifest without its tool: check is a verb gap that needs L3, and the level is 2.
     let dir = &packs()[0];
-    let spec = on_pack(&["quality", "spec"], dir, &["--json"]);
-    assert_eq!(spec.status.code(), Some(2));
-    let stderr = String::from_utf8_lossy(&spec.stderr);
-    assert!(stderr.contains("not built yet"), "{stderr}");
+    let manifest = std::fs::read_to_string(manifest_of(dir)).unwrap();
+    let mut manifest: serde_yaml_ng::Value = serde_yaml_ng::from_str(&manifest).unwrap();
+    manifest.as_mapping_mut().unwrap().remove("tool");
+    let file = scratch("quality-spec-no-tool").join("manifest.yaml");
+    std::fs::write(&file, serde_yaml_ng::to_string(&manifest).unwrap()).unwrap();
+    let out = spec(&file, dir);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+    let verbs: Vec<(&str, &str)> = report["gaps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|g| g["kind"] == "verb")
+        .map(|g| (g["feature"].as_str().unwrap(), g["needs"].as_str().unwrap()))
+        .collect();
+    assert_eq!(verbs, [("check", "L3")]);
+    let level = report["measurements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["measure"] == "adoption_level")
+        .unwrap();
+    assert_eq!(level["reading"]["value"], 2);
+}
+
+#[test]
+fn layout_quality_ratchet_reaches_its_stub_and_exits_2() {
     let state = scratch("quality-ratchet");
     let report = state.join("kpis.json");
     std::fs::write(&report, "{}").unwrap();

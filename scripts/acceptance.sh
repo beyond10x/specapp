@@ -135,7 +135,7 @@ for manifest in "$root"/fixtures/manifests/*.yaml; do
   name=$(basename "$manifest" .yaml)
   dir=$root/fixtures/packs/$name
   check "$name" "$dir" "$manifest"
-  own=$(ess specify compile --path "$dir/blocks" --format json | jq '.domains | length')
+  own=$(cd "$dir/blocks" && ess specify compile --path . --format json | jq '.domains | length')
   row "$name" blocks "$(of "$name" .counts.blocks)" "$own" "ess specify compile"
   own=$(find "$dir/blocks" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*-*' | wc -l | tr -d ' ')
   row "$name" layers "$(of "$name" .counts.layers)" "$own" "numbered directories"
