@@ -9,6 +9,7 @@ relations:
 - decomposes: epic:shared-search
 - informed_by: architecture-decision-record:shared-search
 - depends_on: story:cloudspec-manifest
+- depends_on: story:extends-inherits
 scope:
 - confidence: cited
   path: CHANGELOG.md
@@ -28,6 +29,8 @@ scope:
   path: crates/metaspec/src/main.rs
 - confidence: inferred
   path: crates/metaspec/src/score.rs
+- confidence: inferred
+  path: design/metaspec.md
 - confidence: cited
   path: fixtures/answers/agenticspec/architecture
 - confidence: cited
@@ -46,7 +49,7 @@ scope:
   path: scripts/replay-answers.sh
 - confidence: inferred
   path: scripts/replay-answers.test.sh
-revision: 25
+revision: 26
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T15:48:10Z", actor: "human:operator", revision: 24}
 - {from: "proposed", to: "active", at: "2026-11-28T15:48:10Z", actor: "human:operator", revision: 25}

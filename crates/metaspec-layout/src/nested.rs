@@ -6,9 +6,12 @@
 //! the borders of its two boxes; an edge between a part and a part that contains it runs from
 //! the inner box up to the head of the outer one. A label that would overlap an earlier one
 //! moves down until it is free.
+//!
+//! The hubs of a view that no shown part contains start a row of their own after the other
+//! parts; a box grows by the rows of the badges of its links to a hub.
 
 use crate::scene::{self, Edge, Rect, Scene, SceneBox, SceneView};
-use crate::{Card, Selection, Style, card, ghost_card, label_width, scene_box};
+use crate::{Card, Elision, Selection, Style, card, ghost_card, grow, label_width, scene_box};
 use metaspec_core::graph::Graph;
 use std::collections::BTreeMap;
 
@@ -54,6 +57,7 @@ pub fn layout(
     style: &Style,
     sel: &Selection,
     marked: &BTreeMap<&str, Vec<usize>>,
+    elision: &Elision,
 ) -> Scene {
     let parts = &graph.parts;
     let index = |name: &str| sel.parts.iter().position(|&i| parts[i].id == name);
@@ -64,7 +68,11 @@ pub fn layout(
         nodes.push(Node {
             part: Some(i),
             id: parts[i].id.clone(),
-            card: card(&parts[i], style, &[]),
+            card: {
+                let mut c = card(&parts[i], style, &[]);
+                grow(&mut c, &elision.widths(&parts[i].id));
+                c
+            },
             children: Vec::new(),
             w: 0.0,
             h: 0.0,
@@ -76,7 +84,11 @@ pub fn layout(
         nodes.push(Node {
             part: None,
             id: name.clone(),
-            card: ghost_card(name),
+            card: {
+                let mut c = ghost_card(name);
+                grow(&mut c, &elision.widths(name));
+                c
+            },
             children: Vec::new(),
             w: 0.0,
             h: 0.0,
@@ -123,6 +135,7 @@ pub fn layout(
             noted.push(format!("per {per}"));
         }
         nodes[k].card = card(p, style, &noted);
+        grow(&mut nodes[k].card, &elision.widths(&p.id));
     }
     for (k, holder) in parent.iter().enumerate() {
         if let Some(p) = *holder {
@@ -185,18 +198,23 @@ pub fn layout(
     for &r in &roots {
         size(&mut nodes, r);
     }
-    let widths: Vec<f64> = roots.iter().map(|&r| nodes[r].w).collect();
+    // The hubs no shown part contains start a row of their own after the other parts.
+    let is_hub = |k: usize| nodes[k].part.is_some_and(|i| elision.hubs.contains(&i));
+    let (hubs, others): (Vec<usize>, Vec<usize>) = roots.iter().partition(|&&r| is_hub(r));
     let mut y = MARGIN;
-    for row in flow(&widths, TOP_GAP, TOP_MAX) {
-        let mut x = MARGIN;
-        let mut tallest: f64 = 0.0;
-        for &i in &row {
-            let r = roots[i];
-            place(&mut nodes, r, x, y);
-            x += nodes[r].w + TOP_GAP;
-            tallest = tallest.max(nodes[r].h);
+    for group in [others, hubs] {
+        let widths: Vec<f64> = group.iter().map(|&r| nodes[r].w).collect();
+        for row in flow(&widths, TOP_GAP, TOP_MAX) {
+            let mut x = MARGIN;
+            let mut tallest: f64 = 0.0;
+            for &i in &row {
+                let r = group[i];
+                place(&mut nodes, r, x, y);
+                x += nodes[r].w + TOP_GAP;
+                tallest = tallest.max(nodes[r].h);
+            }
+            y += tallest + TOP_GAP;
         }
-        y += tallest + TOP_GAP;
     }
 
     // Boxes, a container before its parts.
@@ -389,6 +407,7 @@ pub fn layout(
         rows: Vec::new(),
         boxes,
         edges,
+        badges: Vec::new(),
         marks: Vec::new(),
         legend: Vec::new(),
     }

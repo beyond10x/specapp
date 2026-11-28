@@ -59,6 +59,7 @@
           "container": { "type": "boolean" },
           "on_border": { "type": "boolean" },
           "ghost": { "type": "boolean" },
+          "hub": { "description": "A hub of the view: drawn once, apart, and each link to it from a part that is no hub is a badge on its caller. Absent when false.", "type": "boolean" },
           "findings": { "$ref": "#/$defs/numbers" },
           "title": { "description": "The text shown on hover.", "type": "string" }
         }
@@ -89,8 +90,28 @@
         }
       }
     },
+    "badges": {
+      "description": "The links to a hub of the view from a part that is no hub, each drawn as a badge inside its caller's box instead of an edge. Absent when the view has none.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "to", "label", "at", "findings", "title"],
+        "properties": {
+          "id": { "description": "The link's id.", "type": "string" },
+          "from": { "description": "The id of the box the badge is drawn on, the link's caller.", "type": "string" },
+          "to": { "description": "The id of the hub's box.", "type": "string" },
+          "carries": { "type": "string" },
+          "label": { "description": "The hub and the link's name in the pack's words.", "type": "string" },
+          "at": { "$ref": "#/$defs/rect" },
+          "added_by": { "type": "string" },
+          "findings": { "$ref": "#/$defs/numbers" },
+          "title": { "type": "string" }
+        }
+      }
+    },
     "marks": {
-      "description": "One mark per finding attached to a box or an edge of this scene, readable without colour: it shows the finding's number.",
+      "description": "One mark per finding attached to a box, an edge or a badge of this scene, readable without colour: it shows the finding's number.",
       "type": "array",
       "items": {
         "type": "object",

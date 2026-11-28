@@ -8,11 +8,17 @@
 //! barycentre sweeps (the order with the fewest crossings is kept) and placed by isotonic
 //! regression (pool adjacent violators), so no two items of a row overlap.
 //!
+//! The hubs of a view get the bottom row, `hubs`, and are never drawn inside a host; a link to a
+//! hub is a badge inside its caller's box, which grows by the rows of its badges.
+//!
 //! The idea and the placement are lifted from agenticspec's renderer and made generic: rows come
 //! from the layers of the pack, not from a table of block names.
 
 use crate::scene::{self, Band, Edge, Rect, Scene, SceneBox, SceneView};
-use crate::{Card, PAD, Selection, Style, ViewSpec, card, ghost_card, label_width, scene_box};
+use crate::{
+    Card, Elision, PAD, Selection, Style, ViewSpec, badges_h, card, ghost_card, grow, label_width,
+    scene_box,
+};
 use metaspec_core::graph::Graph;
 use metaspec_core::manifest::RowsBy;
 use std::collections::BTreeMap;
@@ -22,7 +28,8 @@ const TITLE_H: f64 = 20.0;
 const LAYER_GAP: f64 = 8.0;
 const LABEL_H: f64 = 18.0;
 const DUMMY_W: f64 = 8.0;
-const CHILD_H: f64 = 24.0;
+/// Height of a part drawn inside its host, without badges.
+pub const CHILD_H: f64 = 24.0;
 const CHILD_GAP: f64 = 4.0;
 const PORT_GAP: f64 = 18.0;
 
@@ -91,13 +98,15 @@ pub fn layout(
     style: &Style,
     sel: &Selection,
     marked: &BTreeMap<&str, Vec<usize>>,
+    elision: &Elision,
 ) -> Scene {
     let parts = &graph.parts;
     let index = |name: &str| sel.parts.iter().copied().find(|&i| parts[i].id == name);
 
-    // A part that exists once per instance of another shown part is drawn inside it.
+    // A part that exists once per instance of another shown part is drawn inside it; a hub is
+    // drawn apart, in the band of hubs.
     let mut host: BTreeMap<usize, usize> = BTreeMap::new();
-    for &i in &sel.parts {
+    for &i in sel.parts.iter().filter(|i| !elision.hubs.contains(i)) {
         let mut cur = i;
         for _ in 0..8 {
             match parts[cur].per.as_deref().and_then(index) {
@@ -141,6 +150,7 @@ pub fn layout(
             noted.push(format!("per {per}"));
         }
         let mut c = card(part, style, &noted);
+        grow(&mut c, &elision.widths(&part.id));
         let children: Vec<usize> = sel
             .parts
             .iter()
@@ -152,8 +162,11 @@ pub fn layout(
             let w = crate::text::width(&child_label(graph, style, k, &part.id), 11.0, false)
                 + 16.0
                 + 2.0 * PAD;
-            c.w = c.w.max(w.ceil());
-            c.h += CHILD_H + CHILD_GAP;
+            let widest = elision.widths(&parts[k].id).into_iter().fold(0.0, f64::max);
+            c.w = c.w.max(w.ceil()).max((widest + 4.0 * PAD).ceil());
+        }
+        for &k in &children {
+            c.h += child_h(elision, &parts[k].id, c.w) + CHILD_GAP;
         }
         if !children.is_empty() {
             c.h += 2.0;
@@ -167,7 +180,8 @@ pub fn layout(
         });
     }
     for name in &sel.ghosts {
-        let c = ghost_card(name);
+        let mut c = ghost_card(name);
+        grow(&mut c, &elision.widths(name));
         let head_h = c.h;
         nodes.push(Node {
             part: None,
@@ -189,6 +203,9 @@ pub fn layout(
         let Some(i) = n.part else {
             return (-2, String::from("names no part has"));
         };
+        if elision.hubs.contains(&i) {
+            return (-3, String::from("hubs"));
+        }
         let s = style.block(parts[i].block.as_deref());
         if view.rows == RowsBy::Family
             && let Some(family) = &s.family
@@ -528,25 +545,27 @@ pub fn layout(
         let mut b = scene_box(part, &n.id, &n.card, style, (x, y, n.card.w, n.card.h));
         b.container = !n.children.is_empty();
         boxes.push(b);
-        for (k, &c) in n.children.iter().enumerate() {
+        let mut cy = y + n.head_h - 2.0;
+        for &c in &n.children {
             let child = &parts[c];
+            let h = child_h(elision, &child.id, n.card.w);
             let text = Card {
                 label: child_label(graph, style, c, &n.id),
                 lines: Vec::new(),
                 title: card(child, style, &[format!("per {}", n.id)]).title,
                 w: n.card.w - 2.0 * PAD,
-                h: CHILD_H,
+                h,
             };
-            let cy = y + n.head_h - 2.0 + k as f64 * (CHILD_H + CHILD_GAP);
             let mut b = scene_box(
                 Some(child),
                 &child.id,
                 &text,
                 style,
-                (x + PAD, cy, text.w, CHILD_H),
+                (x + PAD, cy, text.w, h),
             );
             b.parent = Some(n.id.clone());
             boxes.push(b);
+            cy += h + CHILD_GAP;
         }
     }
 
@@ -632,9 +651,19 @@ pub fn layout(
         rows,
         boxes,
         edges,
+        badges: Vec::new(),
         marks: Vec::new(),
         legend: Vec::new(),
     }
+}
+
+/// The height of a part drawn inside a host of width `host_w`: its line, and its badges below.
+fn child_h(elision: &Elision, id: &str, host_w: f64) -> f64 {
+    let widths = elision.widths(id);
+    if widths.is_empty() {
+        return CHILD_H;
+    }
+    CHILD_H + badges_h(&widths, host_w - 2.0 * PAD)
 }
 
 /// The one line of a part drawn inside its host: its id and block, and the part it sits in when

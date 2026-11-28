@@ -165,6 +165,23 @@ pub struct View {
     pub blocks: Vec<String>,
     #[serde(default)]
     pub carries: Vec<String>,
+    /// The parts the view draws apart, each link to them a badge on its caller.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hubs: Option<Hubs>,
+}
+
+/// The hubs of a view: the parts with at least `in_degree` incoming links shown in the view,
+/// the parts `parts` names and the parts of the blocks `blocks` names. The schema holds that at
+/// least one is given.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Hubs {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub in_degree: Option<usize>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parts: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub blocks: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]

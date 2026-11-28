@@ -185,6 +185,32 @@ fn an_empty_class_and_a_view_of_an_unknown_block_are_named() {
 }
 
 #[test]
+fn hub_block_the_blocks_do_not_have_is_named_like_a_view_block() {
+    for (name, dir) in packs() {
+        let (report, _) = load_changed(&dir, |m| {
+            let view = m.documents[0].views.first_mut().expect("a view");
+            view.hubs = Some(metaspec_core::manifest::Hubs {
+                blocks: vec![String::from("no_such_block_anywhere")],
+                ..Default::default()
+            });
+        });
+        assert!(report.valid, "{name}");
+        assert_eq!(
+            codes(&report.warnings),
+            vec!["view_unknown_block"],
+            "{name}"
+        );
+        assert!(
+            report.warnings[0]
+                .message
+                .contains("no_such_block_anywhere"),
+            "{name}: {:?}",
+            report.warnings
+        );
+    }
+}
+
+#[test]
 fn a_kpi_without_the_measure_field_is_named() {
     for (name, dir) in packs() {
         let (report, _) = load_changed(&dir, |m| {

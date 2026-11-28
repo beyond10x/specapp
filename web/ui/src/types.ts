@@ -149,6 +149,8 @@ export interface SceneBox extends Rect {
   container: boolean;
   on_border: boolean;
   ghost: boolean;
+  /** A hub of the view: drawn once, apart; each link to it is a badge on its caller. */
+  hub?: boolean;
   findings: number[];
   title: string;
 }
@@ -161,6 +163,19 @@ export interface SceneEdge {
   label: string;
   points: [number, number][];
   label_at: Rect;
+  added_by?: string;
+  findings: number[];
+  title: string;
+}
+
+/** A link to a hub drawn as a badge inside its caller's box. */
+export interface SceneBadge {
+  id: string;
+  from: string;
+  to: string;
+  carries?: string;
+  label: string;
+  at: Rect;
   added_by?: string;
   findings: number[];
   title: string;
@@ -193,8 +208,14 @@ export interface Scene {
   rows: {title: string; y: number; h: number}[];
   boxes: SceneBox[];
   edges: SceneEdge[];
+  badges?: SceneBadge[];
   marks: SceneMark[];
   legend: LegendEntry[];
+}
+
+/** A view with hubs and its view `<id>/edges`, drawn as one view with a switch. */
+export interface GraphSwitchData {
+  views: [Scene, Scene];
 }
 
 export interface FindingRow {

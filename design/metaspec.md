@@ -281,7 +281,8 @@ metaspec's own formats. A pack's formats stay the pack's.
   metaspec only: the adapter of the manifest maps the tool's own answer to it.
 - `metaspec-scene/1`: a laid-out view of a graph: boxes, groups, edge paths, labels, in
   coordinates. Produced by metaspec's layout, deterministic for the same input. The docs site
-  and the studio draw the same scene.
+  and the studio draw the same scene. The badges of a view with hubs (`badges`, each a link
+  drawn on its caller's box) and a box's `hub` are written only when the view has them.
 - `metaspec-result/1`: a run. Baseline and best, KPI values per document and per part, the
   marked places, variants, a trace. agenticspec's `agenticspec-sim-result/1` is the model for
   it; an adapter of the manifest maps the tool's own result to it.
@@ -382,7 +383,8 @@ in agenticspec.
   `metaspec pack check`. No block is ever "other".
 - A view of a document class says which blocks and which link names it shows and how it is laid
   out: `rows` (a part's row is its block's layer or its family's row) or `nested` (a part is
-  drawn inside the part that contains it).
+  drawn inside the part that contains it). A view may draw hubs apart (`hubs`): each hub once,
+  each link to it a badge on its caller.
 - Words: a pack may rename a block or a link name for display (`vocabulary`). The identifier
   stays visible on hover and in every link.
 
@@ -572,7 +574,9 @@ tool, its own documents) or in a neutral format, never by code for one pack.
   so a contract (`cloudspec-contract/1`) is neither drawn nor checked. A view selects blocks and
   exact `carries` names only, and cloudspec's `carries` are protocol names and contract
   operations: views by a field of the part and by link name patterns, and a region (`in:`)
-  drawn collapsed, are the next stories of `epic:cloudspec-pack`. Not compared: its own page,
+  drawn collapsed, are the next stories of `epic:cloudspec-pack`. A large architecture with a few
+  targets of many links reads with `hubs` (story:hub-badges); `packs/cloudspec.yaml` declares no
+  view with hubs, so its pages are as before. Not compared: its own page,
   `cloudspec render html` (no parity script as for agenticspec). Its runs wait for `simulate`
   (wave 7) and for a verb of cloudspec that reads an architecture and answers in JSON.
 
@@ -717,6 +721,18 @@ defaults.
   an edge is a straight segment between box borders, and its label takes the first place along
   or beside it that covers no box text. Labels can still cross a line in a dense design; `rows`
   is the layout that guarantees no overlap.
+- Hubs (`hubs: {in_degree: N}`, `{parts: [id]}`, `{blocks: [block]}`, one key or more, no empty
+  list): a hub is a shown part with at least N incoming links the view shows, or one the manifest
+  names. It is drawn once: `rows` puts it in the bottom band `hubs` and never inside a `per` host;
+  `nested` starts a row of the hubs no shown part contains after the other parts, and a contained
+  hub stays in its container. A link to a hub from a part that is no hub, or from a name no part
+  has, is a badge `→ <hub> · <link>` inside its caller's box, below the box's text, wrapped to the
+  box's width, and not an edge; a part drawn inside its `per` host carries its badges in its own
+  box. Links between hubs and out of a hub stay edges. A finding on an elided link is a mark at the
+  left of its badge. A view with hubs that elides a link of the document is followed by the view
+  `<id>/edges` (title `<title>, every link an edge`), the same view with every link an edge: the
+  static page has no script, so it shows two views; the docs site shows one view with a switch
+  (`GraphSwitch`).
 - Lifted from agenticspec's renderer and made generic: rows with label rows between them,
   barycentre sweeps keeping the order with the fewest crossings, placement by isotonic
   regression, text widths by character class. Not lifted: the table of block names, channel
@@ -812,8 +828,10 @@ every other command.
   that holds files and no `site.json` of a docs build, and removes the files it no longer owns.
 - A page's MDX imports its own JSON, `site.json` and the components from
   `@beyond10x/metaspec-ui`, and writes a tag per drawing:
-  `<GraphView data={page.data["scene-1"]} presentation={site.presentation} />`. No MDX
-  component table is swizzled, and a page is readable as Markdown without the components.
+  `<GraphView data={page.data["scene-1"]} presentation={site.presentation} />`. A view with hubs
+  and its view `<id>/edges` are one tag, `<GraphSwitch data={page.data["scene-1"]} ... />` with
+  `{views: [<scene>, <scene>]}`. No MDX component table is swizzled, and a page is readable as
+  Markdown without the components.
 - Page ids: `index` (the pack: what it holds and its counts), `blocks/index` (layer map),
   `blocks/<N>-<layer>/<block>` (or `blocks/no-layer/<block>`), `blocks/planned`, `kpis`,
   `rules`, and per class `<class>/index` plus `<class>/<file stem>`. A class whose name is one

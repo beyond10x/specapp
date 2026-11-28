@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- A view may draw hubs apart: `hubs: { in_degree: <N> }` (each shown part with at least N incoming
+  links the view shows), `hubs: { parts: [<id>] }` and `hubs: { blocks: [<block>] }`, one key or
+  more, a list with one entry or more (`metaspec-pack/1`). A hub is drawn once: `rows` puts it in a
+  band of its own, `hubs`, at the bottom; `nested` starts a row of the hubs no part contains after
+  the other parts and leaves a contained hub in its container. Each link to a hub from a part that
+  is no hub (or a name no part has) is a badge `→ <hub> · <link>` inside its caller's box, below
+  its text, and not an edge; a caller drawn inside its `per` host carries its badges in its own
+  box. Links between hubs and links out of a hub stay edges. A finding on such a link is a mark on
+  the badge and drawn in that view. A view with hubs that elides a link of a document is followed,
+  for that document, by the view `<id>/edges` (SVG ids `v-<id>.edges-…`, apart from any declared
+  view), the same view with every link an edge: two views on the static page (no script), one view
+  with a switch on the docs site (`GraphSwitch` of `@beyond10x/metaspec-ui`, data `{views:
+  [<scene>, <scene>]}`, `metaspec-page/1`). `metaspec-scene/1` takes `badges` (`id`, `from`, `to`,
+  `carries`, `label`, `at`, `added_by`, `findings`, `title`) and a box's `hub`, both written only
+  when there is one, so a scene, a page and a site of a pack without hubs are the same bytes as
+  before (held for the three real packs). A block of `hubs.blocks` the blocks do not have is a
+  `view_unknown_block` warning. In `spec/`, `View` has the field `hubs`
+  (`metaspec.documents.Hubs`). The fixture view of orchard says `hubs: { in_degree: 3 }`; its
+  document has a part with three incoming links, two of them from one caller, and a finding on one
+  of them.
 - `packs/cloudspec.yaml`: metaspec knows cloudspec, at levels L0, L2 and L3. Blocks from
   `blocks` (prefix `cloud.`), two classes of `parts-links/1` documents contained by `in` and
   `per`, `architecture` (`architectures/*.yaml`) and `broken-architecture`

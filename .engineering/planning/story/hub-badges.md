@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:hub-badges
 kind: story
-status: active
+status: implemented
 title: Hubs drawn as badges on their callers
 summary: 'A view elides parts with many incoming links: drawn once, each link to them a badge on its caller.'
 relations:
@@ -47,10 +47,11 @@ scope:
   path: schema/metaspec-pack-1.schema.json
 - confidence: cited
   path: schema/metaspec-scene-1.schema.json
-revision: 22
+revision: 23
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 3}
+- {from: "active", to: "implemented", at: "2026-11-28T18:19:56Z", actor: "human:operator", revision: 23, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # Hubs drawn as badges on their callers
 

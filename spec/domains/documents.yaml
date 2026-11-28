@@ -54,6 +54,24 @@ types:
         type: Optional<String>
         summary: The field that names the part a part exists once per instance of.
 
+  - name: metaspec.documents.Hubs
+    kind: struct
+    naming:
+      summary: >-
+        The view's `hubs`: the parts it draws once, apart, each link to them from a part that
+        is no hub a badge on its caller. The schema metaspec-pack-1 refuses one with no key
+        (`minProperties: 1`) and an empty `parts` or `blocks` (`minItems: 1`).
+    fields:
+      - name: in_degree
+        type: Optional<Integer>
+        summary: A shown part with at least this many incoming links the view shows is a hub.
+      - name: parts
+        type: List<String>
+        summary: The ids of parts that are hubs; when given, one or more.
+      - name: blocks
+        type: List<String>
+        summary: The blocks whose parts are hubs; when given, one or more.
+
   - name: metaspec.documents.Table
     kind: struct
     naming:
@@ -150,9 +168,10 @@ entities:
   - name: metaspec.documents.View
     naming:
       summary: >-
-        A view of a parts-links/1 class: which blocks and link names it shows and how it is laid
-        out. A view without `blocks` shows every part, without `carries` every link; metaspec
-        adds the implicit view "All parts and links" when the declared ones leave something out.
+        A view of a parts-links/1 class: which blocks and link names it shows, how it is laid
+        out and which parts it draws apart as hubs. A view without `blocks` shows every part,
+        without `carries` every link; metaspec adds the implicit view "All parts and links" when
+        the declared ones leave something out.
     provided: true
     identity:
       name: view_id
@@ -165,6 +184,12 @@ entities:
       - {name: rows, type: metaspec.documents.RowsBy}
       - {name: blocks, type: List<String>}
       - {name: carries, type: List<String>}
+      - name: hubs
+        type: Optional<metaspec.documents.Hubs>
+        summary: >-
+          Absent for a view that draws every link as an edge. A view with hubs that elides a
+          link of a document is followed, for that document, by the view `<id>/edges`, the
+          same view with every link an edge.
       - {name: implicit, type: Boolean}
     lifecycle:
       initial: Loaded

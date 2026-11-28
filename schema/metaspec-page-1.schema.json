@@ -42,11 +42,11 @@
       "type": "array",
       "uniqueItems": true,
       "items": {
-        "enum": ["LayerMap", "BlockHeader", "Lifecycle", "KpiCatalogue", "GraphView", "FindingsList", "RecordTable", "ResultSections"]
+        "enum": ["LayerMap", "BlockHeader", "Lifecycle", "KpiCatalogue", "GraphView", "GraphSwitch", "FindingsList", "RecordTable", "ResultSections"]
       }
     },
     "data": {
-      "description": "The data of the components by key. A GraphView's data is a metaspec-scene/1; a KpiCatalogue's holds metaspec-kpis/1 rows.",
+      "description": "The data of the components by key. A GraphView's data is a metaspec-scene/1; a GraphSwitch's is `{views: [scene, scene]}`, a view with hubs and its view `<id>/edges`, drawn as one view with a switch; a KpiCatalogue's holds metaspec-kpis/1 rows.",
       "type": "object"
     }
   }

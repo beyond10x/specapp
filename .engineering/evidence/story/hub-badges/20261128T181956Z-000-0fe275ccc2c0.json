@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T18:19:56Z",
+  "actor": "human:operator",
+  "artifact": "story:hub-badges",
+  "kind": "story",
+  "revision": 22,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "slot --here task check (integration/2026-11-28-9 at 48da462): 178 tests, 135 scenarios, exit 0; task acceptance with orgspec, agenticspec and cloudspec: 149 rows equal, exit 0"
+  }
+}
