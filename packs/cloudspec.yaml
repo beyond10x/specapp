@@ -50,3 +50,8 @@ tool:
           gate: { at: /gate }
           message: "{/message}"
           subject: { id: "{/subject}", link_when_contains: "->", unknown: document }
+        - at: /warnings
+          rule: "{/rule}"
+          gate: false
+          message: "{/message}"
+          subject: { id: "{/subject}", link_when_contains: "->", unknown: document }
