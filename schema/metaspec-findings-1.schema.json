@@ -27,6 +27,11 @@
       "description": "Findings per rule.",
       "type": "object",
       "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "kpis": {
+      "description": "KPI values of the document as the pack's tool measured it, by KPI id.",
+      "type": "object",
+      "additionalProperties": { "type": "number" }
     }
   }
 }

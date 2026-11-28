@@ -252,6 +252,9 @@ pub struct CheckAdapter {
     /// A JSON pointer to the findings per rule, a mapping from a rule to a count.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub counts: Option<String>,
+    /// A JSON pointer to KPI values of the document, a mapping from a KPI id to a number.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kpis: Option<String>,
     /// The lists of findings in the result, in the order the findings are shown.
     #[serde(default)]
     pub findings: Vec<FindingList>,

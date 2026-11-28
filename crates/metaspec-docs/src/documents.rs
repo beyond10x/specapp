@@ -187,6 +187,67 @@ fn marked_rows(prefix: &str, markers: &[Marker], out: &mut Vec<(String, String, 
     }
 }
 
+/// The section of the KPI values the pack's tool measured on a document: one row per KPI, in
+/// the order of the KPI catalogue, then the KPIs the catalogue does not hold, by id.
+fn kpi_values(ctx: &Ctx, id: &str, kpis: &BTreeMap<String, serde_json::Number>, s: &mut String) {
+    s.push_str("## KPIs\n\n");
+    if kpis.is_empty() {
+        s.push_str("The pack's tool measured no KPI of this document.\n\n");
+        return;
+    }
+    let _ = write!(
+        s,
+        "{} the pack's tool measured on the document as written",
+        plural(kpis.len(), "KPI", "KPIs")
+    );
+    if ctx.pack.manifest.kpis.is_some() {
+        let _ = write!(
+            s,
+            ", with what the [KPI catalogue]({}) says of each",
+            rel(id, "kpis")
+        );
+    }
+    s.push_str(".\n\n");
+    s.push_str("| KPI | value | unit | what it measures |\n|---|---|---|---|\n");
+    let known = ctx.kpis.iter().filter(|k| kpis.contains_key(&k.id));
+    for k in known {
+        let name = match ctx.block_target(&k.block) {
+            Some((target, anchor)) => format!(
+                "[{}]({}#{})",
+                code(&k.id),
+                rel(id, &target),
+                anchor.unwrap_or_else(|| String::from("kpis"))
+            ),
+            None => code(&k.id),
+        };
+        let _ = writeln!(
+            s,
+            "| {name} | {} | {} | {} |",
+            kpis[&k.id],
+            if k.unit.is_empty() {
+                String::from("–")
+            } else {
+                text(&k.unit)
+            },
+            if k.summary.is_empty() {
+                String::from("–")
+            } else {
+                text(&k.summary)
+            }
+        );
+    }
+    for (kpi, value) in kpis {
+        if !ctx.kpis.iter().any(|k| &k.id == kpi) {
+            let _ = writeln!(
+                s,
+                "| {} | {value} | – | not in the KPI catalogue |",
+                code(kpi)
+            );
+        }
+    }
+    s.push('\n');
+}
+
 fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
     let id = d.page.clone();
     let mut p = Page::new(id.clone(), "document");
@@ -257,6 +318,10 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
             "findings",
             json!({"findings": d.findings, "views": views}),
         ));
+    }
+
+    if let Some(kpis) = d.check.result.as_ref().and_then(|r| r.kpis.as_ref()) {
+        kpi_values(ctx, &id, kpis, &mut s);
     }
 
     s.push_str("## Parts\n\n");

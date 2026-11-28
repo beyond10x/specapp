@@ -16,7 +16,8 @@
 #   KPI catalogue     docs/kpis-catalogue.md against kpis.mdx; the rows of kpis/catalogue.yaml
 #                     against the rows of the generated catalogue
 #   sections          every ## and ### heading of each page agenticspec writes, on the generated
-#                     page of the same name (a "Graph" section is a drawn view, GraphView)
+#                     page of the same name (a "Graph" section is a drawn view, GraphView;
+#                     "The architecture as a whole" is the section "KPIs")
 #   components        every component agenticspec's pages draw, by its counterpart in
 #                     @beyond10x/metaspec-ui
 #
@@ -122,6 +123,8 @@ check_sections() {
     case "$h" in
       Graph)
         grep -q '<GraphView ' "$our" && echo ok || echo "$name: $h" >> "$work/sections-missing" ;;
+      'The architecture as a whole')
+        grep -qxF KPIs "$work/our-h" && echo ok || echo "$name: $h" >> "$work/sections-missing" ;;
       'What the optimization changed' | Result | Download | 'Run it' | Deploy | Optimization | 'Search result' | 'KPIs that moved')
         echo "$name: $h" >> "$work/sections-expected" ;;
       *)

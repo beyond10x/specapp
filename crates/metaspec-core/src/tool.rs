@@ -227,6 +227,9 @@ pub struct Findings {
     pub findings: Vec<Finding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub counts: Option<BTreeMap<String, u64>>,
+    /// KPI values of the document as the tool measured it, by KPI id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kpis: Option<BTreeMap<String, serde_json::Number>>,
 }
 
 /// Validates a check result against `metaspec-findings/1` and decodes it.

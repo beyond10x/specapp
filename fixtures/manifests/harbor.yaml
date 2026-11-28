@@ -48,6 +48,7 @@ tool:
       error: /error
       valid: { at: /passes }
       counts: /tally
+      kpis: /gauges
       findings:
         - at: /breaches
           rule: "{/bylaw}"

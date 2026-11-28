@@ -16,7 +16,22 @@
     "trigger_source_not_trigger": 0,
     "trigger_target_not_agent": 0,
     "trigger_without_source": 0,
+    "unknown_blocks": 0,
+    "unknown_carries": 0,
     "unknown_link_parts": 0,
     "unreachable_parts": 0
+  },
+  "kpis": {
+    "agents_total": 1,
+    "autonomy_depth": 0,
+    "border_parts": 0,
+    "capacity_ratio": 0,
+    "egress_targets": 0,
+    "human_touchpoints": 1,
+    "model_call_paths": 1,
+    "principals_total": 1,
+    "shared_workspaces": 0,
+    "single_points": 1,
+    "ungated_model_calls": 1
   }
 }

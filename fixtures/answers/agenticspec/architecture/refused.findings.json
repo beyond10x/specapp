@@ -29,6 +29,8 @@
     "trigger_source_not_trigger": 0,
     "trigger_target_not_agent": 0,
     "trigger_without_source": 0,
+    "unknown_blocks": 0,
+    "unknown_carries": 0,
     "unknown_link_parts": 1,
     "unreachable_parts": 0
   }

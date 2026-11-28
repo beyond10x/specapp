@@ -34,6 +34,7 @@ tool:
       exit: [0, 1]
       valid: { at: /valid }
       counts: /counts
+      kpis: /kpis
       findings:
         - at: /violations
           rule: "{/rule}"

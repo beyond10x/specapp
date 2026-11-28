@@ -251,7 +251,8 @@ metaspec's own formats. A pack's formats stay the pack's.
   write. Produced by metaspec's reader for `parts-links/1`, or by an adapter of the tool's
   `graph`.
 - `metaspec-findings/1`: a check result. `valid`, and `findings[{rule, gate, subject, message}]`
-  where `subject` is `part:<id>`, `link:<id>` or `document`. Counts per rule. Produced by
+  where `subject` is `part:<id>`, `link:<id>` or `document`. Counts per rule, and `kpis`, the
+  KPI values of the document by KPI id, when the adapter declares them. Produced by
   metaspec only: the adapter of the manifest maps the tool's own answer to it.
 - `metaspec-scene/1`: a laid-out view of a graph: boxes, groups, edge paths, labels, in
   coordinates. Produced by metaspec's layout, deterministic for the same input. The docs site
@@ -290,6 +291,12 @@ directory with stdin closed and reads stdout as JSON:
 - `valid`: a test, `{ at: <pointer> }` for a boolean or `{ at: <pointer>, equals: <value> }`;
   without it, a document is valid when no finding is gated.
 - `counts`: a pointer to a mapping from a rule to a count.
+- `kpis`: a pointer to the KPI values of the document, a mapping from a KPI id to a number (an
+  answer without it: no values; a value that is no number: a failed check). The document's page
+  has a section "KPIs" with one row per value, in the order of the pack's KPI catalogue and
+  with its unit and summary, then the ids the catalogue does not hold. These are values the
+  tool reads from the document as written, before any run; a simulation's values wait for
+  `simulate`.
 - `findings`: lists of findings, each `{at, rule, gate, message, subject}`, in the order the
   findings are shown. `rule` and `message` are templates: `{<pointer>}` stands for the text at
   that pointer in one entry. `gate` is `true`, `false` or a test of the entry. `subject` is
@@ -500,7 +507,17 @@ tool, its own documents) or in a neutral format, never by code for one pack.
   (`agenticspec-check/1`). A file the tool cannot read is answered on stderr with no JSON, so
   it is shown as a failed check, not a refusal: the adapter's `error` has nothing to point at.
   The pack has no broken architectures, so its rules page lists no rule; the acceptance proves
-  the mapping on the invented cases of `fixtures/answers/agenticspec/`. Its simulator's result
+  the mapping on the invented cases of `fixtures/answers/agenticspec/`. The KPIs of an
+  architecture as a whole (its catalogue's block `architecture`, read from the document before
+  any simulation) come with an accepted architecture's answer at `/kpis` and are read by the
+  adapter's `kpis`; a refused architecture's answer has none, so its page has no section
+  "KPIs". Not shown: the answer's `single_points` (the parts the architecture cannot lose: a
+  list of part ids with no neutral field; a mark per part would need findings that are not
+  violations), `nested` and `ingresses`; and the comparison of every architecture on these KPIs
+  in one sortable table that agenticspec's catalog index has (the class index of metaspec lists
+  checks, not values). Sections of its own pages at its main with no counterpart yet (parity):
+  "Policies", "Contract" (the contract `agenticspec sim contract` derives), "Nested
+  architectures" and "Packs and fields". Its simulator's result
   waits for `simulate`
   (wave 7). The gaps of its architectures listed in "Decided in wave 2" stand: two blocks the
   documents use are no block of `blocks/`, a link `over` a part has no neutral field, part
