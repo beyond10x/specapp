@@ -18,10 +18,15 @@
 #   - a word of letters only (a block name such as a common noun) is found as a whole string
 #     literal, "word", which is how a table of block names in the code is written.
 #
+# A pack word that is also a word of one of metaspec's own formats is metaspec's word, not a
+# leak, and is not searched: every property name and every string enum or const value of the
+# schemas schema/metaspec-*.schema.json (read with jq). The last line says how many pack words
+# were left out that way.
+#
 # Exit 0: no word found. Exit 1: at least one, listed as `<file>:<line>: <kind> <word>`.
 # Exit 2: bad usage, or a pack that metaspec refuses.
 #
-# Needs the metaspec binary: $METASPEC, or target/debug/metaspec.
+# Needs jq and the metaspec binary: $METASPEC, or target/debug/metaspec.
 
 set -eu
 
@@ -74,6 +79,22 @@ while IFS="$(printf '\t')" read -r dir how value; do
 done < "$work/packs"
 
 sort -u "$work/words" -o "$work/words"
+nwords=$(wc -l < "$work/words" | tr -d ' ')
+
+# metaspec's own words: the property names and the string enum and const values of its schemas
+: > "$work/own"
+for schema in "$root"/schema/metaspec-*.schema.json; do
+  [ -f "$schema" ] || continue
+  jq -r '[.. | objects
+    | ((.properties? // {}) | if type == "object" then keys[] else empty end),
+      ((.enum? // []) | if type == "array" then .[] | strings else empty end),
+      (.const? | strings)] | .[]' "$schema" >> "$work/own" \
+    || { echo "check-vocabulary: $schema cannot be read" >&2; exit 2; }
+done
+sort -u "$work/own" -o "$work/own"
+awk 'NR == FNR { own[$0] = 1; next } !($2 in own)' "$work/own" "$work/words" > "$work/searched"
+nown=$((nwords - $(wc -l < "$work/searched" | tr -d ' ')))
+mv "$work/searched" "$work/words"
 # kind word -> the patterns of each form
 awk '$2 ~ /^[A-Za-z]+$/ { print "\"" $2 "\"" }' "$work/words" | sort -u > "$work/literal"
 awk '$2 !~ /^[A-Za-z]+$/ { print $2 }' "$work/words" | sort -u > "$work/whole"
@@ -93,7 +114,6 @@ if [ -s "$work/literal" ]; then
   grep -r -n -o -F -f "$work/literal" "$@" | sed 's/:"\([^"]*\)"$/:\1/' >> "$work/found" || true
 fi
 
-nwords=$(wc -l < "$work/words" | tr -d ' ')
 if [ -s "$work/found" ]; then
   sed "s|^$root/||" "$work/found" | sort -u | awk -F: '
     NR == FNR { split($0, p, " "); kinds[p[1]] = p[2]; next }
@@ -102,4 +122,4 @@ if [ -s "$work/found" ]; then
   ' "$work/kinds" -
   exit 1
 fi
-echo "check-vocabulary: $nwords word(s) of $npacks pack(s), none in the code"
+echo "check-vocabulary: $nwords word(s) of $npacks pack(s), $nown of them metaspec's own, none in the code"

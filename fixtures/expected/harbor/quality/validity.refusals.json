@@ -1,0 +1,15 @@
+{
+  "measure": "validity.refusals",
+  "unit": "count",
+  "direction": "lower_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 1
+  },
+  "behind": [
+    {
+      "kind": "finding",
+      "name": "ESS-SCENARIO-007 harbor.vessel.RetireVessel/retire-twice"
+    }
+  ]
+}

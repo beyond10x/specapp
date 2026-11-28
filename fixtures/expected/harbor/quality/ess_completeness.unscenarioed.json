@@ -1,0 +1,19 @@
+{
+  "measure": "ess_completeness.unscenarioed",
+  "unit": "count",
+  "direction": "lower_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 2
+  },
+  "behind": [
+    {
+      "kind": "finding",
+      "name": "ESS-SYNTH-003 outcome harbor.vessel.RetireVessel/no-such-vessel"
+    },
+    {
+      "kind": "finding",
+      "name": "ESS-SYNTH-003 outcome harbor.berth.RetireBerth/no-such-berth"
+    }
+  ]
+}

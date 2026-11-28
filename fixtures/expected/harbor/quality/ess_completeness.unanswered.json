@@ -1,0 +1,15 @@
+{
+  "measure": "ess_completeness.unanswered",
+  "unit": "count",
+  "direction": "lower_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 1
+  },
+  "behind": [
+    {
+      "kind": "finding",
+      "name": "`harbor.tug.RetireTug` declares no `wrong_state` outcome, so what it answers for a retired tug is undeclared and not checked"
+    }
+  ]
+}

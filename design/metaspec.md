@@ -1075,6 +1075,74 @@ metaspec", "or navigation". One site holds every pack; this replaces the site pe
 - A name behind a value is never blank: a KPI row without an id, or with an empty or blank one,
   is named `#<index>` by its place; a block with a blank name (a `strip_prefix` that takes the
   whole domain) by its domain.
+- The quality page (`story:kpi-quality-page`): `render --quality` writes `quality.html` from the
+  reports given, one section per report in the order of the questions (`kpi_catalogue`, then
+  `specification`), one row per measurement the report holds, so a later measure needs no change
+  of the page. The page carries each report as it is, format `metaspec-quality/1`, in its own
+  data element `metaspec-quality-<question>`; no new format. The index links the page only when
+  a report is given (one `<nav aria-label="Pages">` line after `<main>`), so the index goldens
+  stay as they are. A report that is unreadable, not of the format, of another pack, or a second
+  report of one question is refused with exit 1 and no page; every render first removes a
+  `quality.html` an earlier render left. The goldens read recorded reports
+  `fixtures/quality-reports/<pack>/kpis.json`, never the live output of `quality kpis`; they are
+  written again only when the page is meant to change.
+- `validity.refusals` counts what `ess specify validate --format json` refuses: each entry of
+  `problems` of a refusal (`compiled: false`, exit 1), written `[<code>] <subject>: <message>` and
+  named `<code> <subject>`, and each entry of `scenario_refusals` of a report (`valid: false`,
+  exit 1), named `<code> <scenario>` (its origin where it names no scenario). The `diagnostics` of
+  a refusal are counted only when it lists no problem (named `<code> <span.path>`), so a refusal
+  that names anything never counts 0. `validity.warnings` counts `warnings`, named `<code>
+  <span.path>`. A name behind a value is never blank (`#<index>`).
+- ESS completeness reads `completeness.counts`; a report without `completeness` owes nothing (ess
+  leaves it out then), so the counts are 0. A refusal, and a report whose `completeness` lists
+  `unsynthesizable`, make the three rows gaps (`needs: L0`) naming the refusal: nothing was
+  synthesized, so a zero would be silent. Behind: `<code> <subject>` of each unscenarioed
+  construct and each unanswered question (kind `finding`), each scenario held outside (kind
+  `scenario`).
+- `honesty` counts lines, as `grep -ra 'UNMAPPED:'` does: two markers on one line are one, and
+  every regular file under `blocks.path` is read, hidden ones and files that are no YAML included;
+  symbolic links are not followed. Behind: `<file>:<line>` relative to the pack (kind `marker`).
+- `adoption_level` is `Manifest::level` as a number. The verbs metaspec offers are the fields of
+  `manifest::Verbs`, each with the level that needs it (`OFFERED_VERBS`: `check`, L3); a verb the
+  manifest does not declare is a gap of kind `verb` of the report, added by
+  `static_measures::report` after the registry's run (the registry adds gaps of kind `measure`
+  only). Found while building: `packs/agenticspec.yaml` declares `check` since 2026-11-28
+  (b788cc3), so agenticspec has no verb gap; the acceptance shows the gap on a manifest of the run
+  made from it without `tool`.
+- The answer of `ess` (`quality/spec/static_measures/ess_answer.rs`): `ess <words> --path .
+  <options>` run with the blocks directory as working directory, as ess asks: ess 0.99.11, the
+  release `spec/ess-inputs.yaml` pins, refuses a run from the pack directory whose
+  `blocks/ess-inputs.yaml` pins another release (exit 1, nothing on stdout), and from the blocks
+  directory hands the run to the pinned release; `ess --version` runs in the same directory, so
+  the cache key names the release that answers. Stdin is closed; after 600 s, or the seconds of
+  `METASPEC_ESS_DEADLINE` (raised to 1 ms when below), the process group gets SIGTERM and 2 s
+  later SIGKILL; the pipes are read on threads that keep what they read, and are read 200 ms more
+  after SIGKILL, so a process that left the group (as a conformance target does) and holds a pipe
+  does not keep the run: it lasts at most the deadline + 2.2 s. When ess exits and a process it
+  left in its group keeps a pipe open, the pipes are read until the deadline, 2 s after the exit
+  at most, and the group is then stopped the same way. The 600 s: a synthesis of agenticspec's
+  blocks took 67 s, orgspec's 43 s, over the 30 s `--deadline` of the pack's tool, which does not
+  apply to ess. A run that gives no answer is a gap naming the first five lines of ess's stderr,
+  `note:` lines left out when it said more; within one `scoped` run the same request is not run
+  again after a failure. Cached by the SHA-256 of `ess --version`, the words and options, and the
+  path and content of every file under `blocks.path`, in `$XDG_CACHE_HOME/metaspec/ess` (an
+  absolute path only), else `$HOME/.cache/metaspec/ess`, never in the checkout; nothing is cached
+  without either, and a failed run is never cached. `METASPEC_ESS` names the program (default
+  `ess` on PATH); `ess_answer::scoped` gives the program and cache for one run on the thread and
+  asks each answer once in it. Later stories call `ess_answer::answer` with their own words and do
+  not change the file.
+- The stub `fixtures/ess/ess` (POSIX sh) answers `--version` with `ess stub` and `ess <words>
+  <verb> [--options]` with `fixtures/ess/<pack>/<verb>.json`, the pack being the name of the
+  directory above its working directory (the blocks directory); exit 2 naming the pack and verb
+  when no answer is recorded, and exit 2 for a `--path` other than `.`, so a run that names
+  another path fails the tests as it fails with the real ess. The recorded validate answers of
+  harbor and orchard are invented in ess 0.99.2's shape (a report with one scenario refusal, one
+  warning and completeness counts); the fixture packs' own blocks answer nothing owed.
+- A pack word that is also a word of one of metaspec's own formats is metaspec's word, not a leak:
+  `scripts/check-vocabulary.sh` leaves out every property name and every string enum or const
+  value of `schema/metaspec-*.schema.json` (read with jq) before it searches, and its last line
+  says how many it left out (`37 word(s) of 2 pack(s), 0 of them metaspec's own, none in the
+  code`); `scripts/check-vocabulary.test.sh` holds both sides.
 
 ## Open questions
 

@@ -37,6 +37,55 @@
   entry, and a registry measure without a row. `scripts/acceptance.sh` sources every
   `scripts/acceptance.d/*.sh` in name order after its wave rows; `Taskfile.yml` includes
   `taskfiles/slow.yml` and `taskfiles/quality.yml` when they exist.
+- `metaspec render ... --quality <REPORT>` (repeatable) writes `quality.html` beside
+  `index.html` from reports `metaspec quality kpis --json` or `metaspec quality spec --json`
+  wrote; render measures nothing itself. One section per report, in the order of the questions
+  (`kpi_catalogue`, then `specification`) whatever the order of the flags: one row per
+  measurement the report holds (`id="measure-<id>"`), with its value or gap (and the level a gap
+  needs), unit, direction and the names behind it grouped by kind, then the report's gaps. A
+  measure the page has not seen before is shown like every other. The page follows the rules of
+  render's pages (one file, CSS inline, no script that runs, no request) and carries each report
+  in `<script type="application/json" id="metaspec-quality-<question>">`. With the page written,
+  `index.html` gets one line more that links it; without `--quality` the index is unchanged. A
+  report that cannot be read, is not JSON, does not follow `metaspec-quality/1`, is the report of
+  another pack, or repeats the question of another report given is refused with exit 1 after the
+  other pages are written; no quality page is written and the index links none. Recorded reports
+  `fixtures/quality-reports/{harbor,orchard}/kpis.json` (what `quality kpis --json` printed for
+  the fixture packs; the test names the command that writes them again) and the goldens
+  `fixtures/expected/{harbor,orchard}/pages/quality.html` rendered from them, so a later measure
+  changes neither. Acceptance rows `quality:page`, `quality:page-measures` and
+  `quality:page-link` for the four packs (`scripts/acceptance.d/kpi-quality-page.sh`). Every
+  render removes a `quality.html` an earlier render left in `--out` before it writes its pages,
+  so a refused report or a render without `--quality` leaves no page with old numbers.
+- `metaspec quality spec <NAME | --manifest FILE> --pack <DIR> [--json] [--deadline SECONDS]`
+  measures a pack's specification on the shared format `metaspec-quality/1` (question
+  `specification`). Seven measures are built (`story:spec-quality-static`): `validity.refusals`
+  (the `problems` of a refusal and the `scenario_refusals` of a report of `ess specify validate
+  --format json`, named `<code> <subject>`), `validity.warnings` (its `warnings`, named `<code>
+  <span.path>`), `ess_completeness.unscenarioed`, `.unanswered` and `.outside` (its
+  `completeness.counts`, 0 when ess leaves `completeness` out, the constructs, questions and
+  scenarios named behind), `honesty` (lines with an `UNMAPPED:` marker in the files under
+  `blocks.path`, named `<file>:<line>`) and `adoption_level` (the level `metaspec pack check`
+  derives, 0 to 5). Each verb metaspec offers that the manifest does not declare is a gap of kind
+  `verb` of the report with the level that needs it (today `check`, L3). Blocks that ess refuses,
+  and a model synthesis does not admit (`unsynthesizable`), make the three completeness rows gaps
+  naming the refusal; an `ess` that gives no answer makes its five measures gaps naming why. The
+  answer of `ess` runs synthesis, so it is cached by the digest of `ess --version`, the command
+  and every file under `blocks.path`, in the user's cache directory
+  (`$XDG_CACHE_HOME/metaspec/ess`, else `~/.cache/metaspec/ess`), never in the checkout; ess runs
+  in the pack's blocks directory with `--path .`, so a dispatching ess hands the run to the
+  release the blocks pin, and is stopped after 600 s (`METASPEC_ESS_DEADLINE` names other seconds,
+  at least 1 ms): SIGTERM to its process group, SIGKILL 2 s later, and the run ends without
+  waiting for a process that left the group and holds a pipe; a run that gives no answer is a gap
+  naming what ess said on stderr. `METASPEC_ESS` names another `ess` program; the tests name the
+  stub `fixtures/ess/ess`, which prints `fixtures/ess/<pack>/<verb>.json` for the pack above its
+  working directory and refuses a `--path` other than `.`. Goldens:
+  `fixtures/expected/{harbor,orchard}/quality/<measure>.json` for the seven measures. The
+  acceptance rows are `scripts/acceptance.d/spec-quality-static.sh`.
+- metaspec now runs ess in the blocks directory with `--path .` everywhere: the compile when a
+  pack is loaded, the version probe that keys the cached compile in the tests, `task
+  check:fixtures` and the acceptance's own count of domains. A dispatching ess (0.99.11) therefore
+  follows the release a pack's `ess-inputs.yaml` pins, where it refused the pack before.
 
 ## 0.1.0 (2026-11-28)
 

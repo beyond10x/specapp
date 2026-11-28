@@ -51,7 +51,7 @@ tasks:
       - |
         set -eu
         for blocks in fixtures/packs/*/blocks; do
-          ess specify validate --path "$blocks" --strict-requires
+          (cd "$blocks" && ess specify validate --path . --strict-requires)
         done
       - scripts/check-pack-dirs.sh
 

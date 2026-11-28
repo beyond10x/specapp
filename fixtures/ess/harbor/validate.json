@@ -1,0 +1,65 @@
+{
+  "valid": false,
+  "system": "harbor",
+  "version": "v1",
+  "files_read": 6,
+  "scenarios": 1,
+  "domains": 5,
+  "commands": 8,
+  "events": 8,
+  "components": 0,
+  "unresolved_references": [],
+  "scenario_refusals": [
+    {
+      "code": "ESS-SCENARIO-007",
+      "origin": "scenarios/retire-twice.yaml",
+      "scenario": "harbor.vessel.RetireVessel/retire-twice",
+      "message": "the scenario retires a vessel twice, and the second step names no outcome of harbor.vessel.RetireVessel"
+    }
+  ],
+  "completeness": {
+    "unscenarioed": [
+      {
+        "code": "ESS-SYNTH-003",
+        "subject": "outcome harbor.vessel.RetireVessel/no-such-vessel",
+        "scenario": "harbor.vessel.RetireVessel/outcome/no-such-vessel"
+      },
+      {
+        "code": "ESS-SYNTH-003",
+        "subject": "outcome harbor.berth.RetireBerth/no-such-berth",
+        "scenario": "harbor.berth.RetireBerth/outcome/no-such-berth"
+      }
+    ],
+    "outside": [],
+    "unanswered": [
+      "`harbor.tug.RetireTug` declares no `wrong_state` outcome, so what it answers for a retired tug is undeclared and not checked"
+    ],
+    "counts": {
+      "unscenarioed": 2,
+      "outside": 0,
+      "unanswered": 1
+    }
+  },
+  "warnings": [
+    {
+      "code": "ESS-ENTITY-019",
+      "severity": "warning",
+      "message": "`harbor.berth.Berth` stores `quay_id`, typed `harbor.ledger.QuayId`, which identifies `harbor.quay.Quay`, and no relation declares that it names a `harbor.quay.Quay`",
+      "details": [
+        {
+          "kind": "note",
+          "text": "`ess-domain` warns of this as `implied_relation`; it is legal and compiles as written"
+        }
+      ],
+      "hint": "declare a `references` relation on `harbor.berth.Berth`",
+      "span": {
+        "source": "1-shore/berth.yaml",
+        "path": "entity harbor.berth.Berth.fields.quay_id",
+        "located": {
+          "line": 14,
+          "column": 9
+        }
+      }
+    }
+  ]
+}
