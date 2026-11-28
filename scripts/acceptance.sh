@@ -49,6 +49,9 @@
 # pages, and the site has its page /. The parity of the generated agenticspec site with its own
 # pages is printed as a summary (scripts/parity.sh).
 #
+# Then the rows of every story of the quality initiative: each scripts/acceptance.d/*.sh, in name
+# order, sourced after the rows above; reports land under target/acceptance/quality/.
+#
 # Then runs scripts/check-vocabulary.sh with all four packs.
 #
 # Not part of `task check` and not run in CI: it needs local checkouts of the real packs.
@@ -336,6 +339,15 @@ fi
 # agenticspec parity: scripts/parity.sh, its summary line
 "$root/scripts/parity.sh" "$agentic" > "$work/parity.log" 2>&1 || true
 grep -E '^(green|missing|expected-missing) ' "$work/parity.log" > "$work/parity.items" || true
+
+# --- row files ---
+# Every scripts/acceptance.d/*.sh, in name order, sourced here: one file per story of the quality
+# initiative, named after it. A row file may use row, of, check, documents, $metaspec, $work,
+# $root, $org and $agentic, and writes its reports under $work/quality/.
+for rows_file in "$root"/scripts/acceptance.d/*.sh; do
+  [ -f "$rows_file" ] || continue
+  . "$rows_file"
+done
 
 # --- the table ---
 printf '%-12s %-24s %8s %8s  %-5s %s\n' pack count metaspec own equal source

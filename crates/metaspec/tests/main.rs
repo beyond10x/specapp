@@ -907,6 +907,159 @@ fn docs_build_refuses_a_directory_it_did_not_write_and_removes_its_stale_files()
     assert!(!own.join("gone").exists());
 }
 
+// --- quality ---
+
+/// The measures of the KPI question, in the order of metaspec's catalogue.
+fn kpi_measures() -> Vec<String> {
+    let text = std::fs::read_to_string(repo().join("kpis/catalogue.yaml")).unwrap();
+    let catalogue: Value = serde_yaml_ng::from_str(&text).unwrap();
+    catalogue["kpis"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["measure"] == "kpi_catalogue")
+        .map(|row| row["id"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn quality_kpis_json_follows_the_schema_and_holds_every_measure_of_the_question() {
+    let measures = kpi_measures();
+    assert_eq!(measures.len(), 10);
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let out = on_pack(&["quality", "kpis"], &dir, &["--json"]);
+        assert_eq!(
+            out.status.code(),
+            Some(0),
+            "{name}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(
+            schema("metaspec-quality-1.schema.json", &report),
+            Vec::<String>::new(),
+            "{name}"
+        );
+        let got: Vec<&str> = report["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["measure"].as_str().unwrap())
+            .collect();
+        assert_eq!(got, measures, "{name}");
+        for measure in ["coverage.blocks", "completeness.fields", "planned"] {
+            let want: Value = serde_json::from_str(
+                &std::fs::read_to_string(
+                    repo().join(format!("fixtures/expected/{name}/quality/{measure}.json")),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let m = report["measurements"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|m| m["measure"] == measure)
+                .unwrap();
+            assert_eq!(m, &want, "{name} {measure}");
+        }
+    }
+}
+
+#[test]
+fn quality_kpis_prints_one_line_per_measure_and_refuses_bad_usage_with_2() {
+    let dir = &packs()[0];
+    let out = on_pack(&["quality", "kpis"], dir, &[]);
+    assert_eq!(out.status.code(), Some(0));
+    let text = String::from_utf8(out.stdout).unwrap();
+    for measure in kpi_measures() {
+        assert!(
+            text.lines().any(|l| l.starts_with(&format!("{measure}: "))),
+            "{measure}: {text}"
+        );
+    }
+    let bad = metaspec(&["quality", "kpis", "--pack", "."]);
+    assert_eq!(bad.status.code(), Some(2));
+    let unknown = metaspec(&["quality", "kpis", "no-such-pack", "--pack", "."]);
+    assert_eq!(unknown.status.code(), Some(2));
+}
+
+#[test]
+fn layout_render_with_a_quality_report_reaches_the_stub_page_and_exits_2() {
+    let dir = &packs()[0];
+    let state = scratch("quality-page-state");
+    let out = scratch("quality-page");
+    let report = state.join("kpis.json");
+    let run = on_pack(&["quality", "kpis"], dir, &["--json"]);
+    assert_eq!(run.status.code(), Some(0));
+    std::fs::write(&report, &run.stdout).unwrap();
+    let run = render(&state, dir, &out, &["--quality", report.to_str().unwrap()]);
+    assert_eq!(run.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&run.stderr);
+    assert!(stderr.contains("not built yet"), "{stderr}");
+    assert!(
+        out.join("index.html").is_file(),
+        "render writes its pages before the quality page"
+    );
+}
+
+#[test]
+fn layout_quality_spec_and_ratchet_reach_their_stubs_and_exit_2() {
+    let dir = &packs()[0];
+    let spec = on_pack(&["quality", "spec"], dir, &["--json"]);
+    assert_eq!(spec.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&spec.stderr);
+    assert!(stderr.contains("not built yet"), "{stderr}");
+    let state = scratch("quality-ratchet");
+    let report = state.join("kpis.json");
+    std::fs::write(&report, "{}").unwrap();
+    let ratchet = metaspec(&[
+        OsStr::new("quality"),
+        "ratchet".as_ref(),
+        report.as_os_str(),
+    ]);
+    assert_eq!(ratchet.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&ratchet.stderr);
+    assert!(stderr.contains("not built yet"), "{stderr}");
+}
+
+/// Adversarial pass: a KPI row whose id is the empty string. `pack check` loads the pack;
+/// `quality kpis` must print its report (exit 0), not refuse it because the row's name behind
+/// `completeness.fields` breaks the report's own schema.
+#[test]
+fn adversary_quality_kpis_prints_the_report_of_a_pack_with_a_kpi_row_whose_id_is_empty() {
+    let from = &packs()[0];
+    let name = from.file_name().unwrap();
+    let dir = scratch("quality-empty-id").join(name);
+    copy(from, &dir);
+    let manifest: Value =
+        serde_yaml_ng::from_str(&std::fs::read_to_string(manifest_of(&dir)).unwrap()).unwrap();
+    let path = dir.join(manifest["kpis"]["path"].as_str().unwrap());
+    let mut catalogue: Value =
+        serde_yaml_ng::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    catalogue["kpis"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"id": ""}));
+    std::fs::write(&path, serde_yaml_ng::to_string(&catalogue).unwrap()).unwrap();
+
+    let check = on_pack(&["pack", "check"], &dir, &[]);
+    assert_eq!(
+        check.status.code(),
+        Some(0),
+        "pack check loads the pack: {}",
+        String::from_utf8_lossy(&check.stderr)
+    );
+    let out = on_pack(&["quality", "kpis"], &dir, &["--json"]);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "quality kpis on a pack that loads: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
 fn copy(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
     for entry in std::fs::read_dir(from).unwrap().flatten() {
