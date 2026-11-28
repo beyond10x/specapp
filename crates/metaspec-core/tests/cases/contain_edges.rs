@@ -26,30 +26,30 @@ fn s(v: &str) -> String {
 #[test]
 fn contain_both_fields_named_in_and_per_read_one_holder_each_and_groups_in_document_order() {
     let g = graph_of(json!({
-        "ws": { "block": "scope" },
-        "pool": { "block": "scope" },
-        "daemon": { "block": "work", "in": "ws" },
-        "refresh": { "block": "work", "in": "ws", "per": "pool" },
-        "data": { "block": "vol", "per": "daemon" },
-        "same": { "block": "work", "in": "pool", "per": "pool" },
-        "lost": { "block": "work", "in": "nowhere", "per": "ws" },
+        "echo": { "block": "alpha" },
+        "foxtrot": { "block": "alpha" },
+        "golf": { "block": "bravo", "in": "echo" },
+        "hotel": { "block": "bravo", "in": "echo", "per": "foxtrot" },
+        "india": { "block": "gamma", "per": "golf" },
+        "juliet": { "block": "bravo", "in": "foxtrot", "per": "foxtrot" },
+        "kilo": { "block": "bravo", "in": "lima", "per": "echo" },
     }));
     let pair = |id: &str| {
         let p = g.part(id).unwrap();
         (p.inside.clone(), p.per.clone())
     };
-    assert_eq!(pair("refresh"), (Some(s("ws")), Some(s("pool"))));
-    assert_eq!(pair("daemon"), (Some(s("ws")), None));
-    assert_eq!(pair("data"), (None, Some(s("daemon"))));
-    assert_eq!(pair("lost"), (Some(s("nowhere")), Some(s("ws"))));
+    assert_eq!(pair("hotel"), (Some(s("echo")), Some(s("foxtrot"))));
+    assert_eq!(pair("golf"), (Some(s("echo")), None));
+    assert_eq!(pair("india"), (None, Some(s("golf"))));
+    assert_eq!(pair("kilo"), (Some(s("lima")), Some(s("echo"))));
     assert_eq!(
         groups(&g),
         [
-            (s("ws"), s("in"), vec![s("daemon"), s("refresh")]),
-            (s("ws"), s("per"), vec![s("lost")]),
-            (s("pool"), s("in"), vec![s("same")]),
-            (s("pool"), s("per"), vec![s("refresh"), s("same")]),
-            (s("daemon"), s("per"), vec![s("data")]),
+            (s("echo"), s("in"), vec![s("golf"), s("hotel")]),
+            (s("echo"), s("per"), vec![s("kilo")]),
+            (s("foxtrot"), s("in"), vec![s("juliet")]),
+            (s("foxtrot"), s("per"), vec![s("hotel"), s("juliet")]),
+            (s("golf"), s("per"), vec![s("india")]),
         ]
     );
 }
