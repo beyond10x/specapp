@@ -279,7 +279,9 @@ entities:
         summary: The adapter of `tool.verbs.check`; present exactly when `check` is a verb of the tool.
       - name: tool_digest
         type: Optional<metaspec.packs.ToolDigest>
-        summary: The digest of the manifest's `tool` section, or of the base pack's it inherits; absent without a tool.
+        summary: >-
+          The digest of the manifest's `tool` section, or of the base pack's it inherits together
+          with the canonical base directory the tool runs in; absent without a tool.
       - name: presentation
         type: Optional<metaspec.packs.Presentation>
       - name: level

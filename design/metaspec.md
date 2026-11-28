@@ -1316,20 +1316,33 @@ the private pack's directory, where the base's tool is not.
   stay inside it; the extending pack's paths stay inside its own. With a base in play a refused
   path names its pack: `(a path of the pack <name>)` or `(a path of the base pack <name>, read in
   --base-pack)`.
-- A manifest that inherits a section and is run without `--base-pack` is refused
-  (`base_pack_missing`, saying what to give). Metaspec searches no directory for the base and
-  downloads nothing.
-- A base that itself extends a pack is refused (`extends_chain`; the coordinator's D44): metaspec
-  reads one base pack, not a chain.
+- A manifest that leaves out `blocks` and is run without `--base-pack` is refused
+  (`base_pack_missing`, saying what to give). A manifest with `extends` that writes its own
+  `blocks` and is run without `--base-pack` loads as before: it inherits nothing, its omitted
+  `kpis` and `tool` stay absent, and nothing refuses it; with `--base-pack` its omitted `kpis`
+  and `tool` are the base's (the coordinator's D67). Metaspec searches no directory for the base
+  and downloads nothing. `--base-pack` given to a manifest without `extends` is a warning
+  (`base_pack_unused`).
+- A base that itself extends a pack refuses a manifest that inherits a section (`extends_chain`;
+  the coordinator's D44): metaspec reads one base pack, not a chain. A manifest that writes all
+  three sections inherits nothing and loads as before.
 - A base that cannot be read (`extends_not_found`, `extends_other_pack`, `extends_unreadable`)
   stays a warning for a manifest with its own `blocks`; one that leaves out `blocks` is refused
   with it.
 - The schema no longer requires `blocks`; the loader holds the rule: a manifest without `extends`
   that leaves out `blocks` is refused (`manifest_invalid`) as before.
 - An inherited tool runs with the base pack's directory as its root and working directory; the
-  extending pack's document is handed to it by its whole path. `metaspec trust` records, for the
-  extending pack's directory, the digest of the tool section that runs, the base's: a changed base
-  tool is untrusted until it is trusted again.
+  extending pack's document is handed to it by its whole path. Its trust covers the canonical base
+  directory (the coordinator's D66): the inherited tool carries that directory (`base_dir`, not
+  written in a manifest), and the digest is that of the base's `tool` section with it. `metaspec
+  trust` records the digest for the extending pack's directory and prints the base directory it
+  trusted; a changed base tool, or a run with another `--base-pack`, is `not_trusted` until
+  trusted again. `metaspec trust` needs `--base-pack` only when the tool is inherited. The digest
+  of a tool a manifest writes is the same as before.
+- A tool program inside a pack (a first element of `tool.run` with a slash) is run only where it
+  resolves, links followed, inside its tool root, the pack's own directory or the base's for an
+  inherited tool; else the check is `failed` with a message that names the pack. This held for
+  `pack check` (`tool_not_started`) and not for the run, also for a pack without `extends`.
 - A docs page of an inherited section (the blocks, a block, the KPI catalogue, planned blocks)
   names no source file: the extending pack's `source_file_url` does not reach the base's files.
 - `spec/`: the fields of `Pack` that a section gives (`blocks_path`, `declares_kpis`, `tool_run`,

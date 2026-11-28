@@ -274,6 +274,11 @@ pub struct Tool {
     pub run: Vec<String>,
     #[serde(default)]
     pub verbs: Verbs,
+    /// Not written in a manifest: the canonical directory of the base pack a tool inherited
+    /// through `extends` is read in and runs in, set by [`crate::pack::inherit`]. It is part of
+    /// the tool's digest, so the trust of an inherited tool covers that directory.
+    #[serde(skip_deserializing, default, skip_serializing_if = "Option::is_none")]
+    pub base_dir: Option<String>,
 }
 
 /// The verbs a pack's tool is used for, each with its adapter.

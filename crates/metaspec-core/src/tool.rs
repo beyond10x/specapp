@@ -4,8 +4,9 @@
 //! metaspec runs a pack's tool only for a pack the user trusted: `metaspec trust <dir>` records
 //! the digest of the manifest's `tool` section in the user's state directory. A changed `tool`
 //! section is not trusted until it is trusted again. A tool a manifest inherits from its base pack
-//! is the base's `tool` section: its digest is recorded for the extending pack's directory, and the
-//! tool runs in the base pack's directory. The tool answers in the pack's own format;
+//! is the base's `tool` section with the canonical base directory it runs in: its digest, recorded
+//! for the extending pack's directory, covers both. A program inside a pack is run only where it
+//! resolves inside its tool root. The tool answers in the pack's own format;
 //! the manifest's adapter maps that answer (`crate::adapter`).
 
 use crate::adapter::{self, Exit, Mapped};
@@ -327,10 +328,26 @@ pub fn check(
             "the pack's tool is not trusted; metaspec trust trusts it",
         );
     }
+    let root = pack.tool_root();
+    // A program inside the pack (its path has a slash) is run only where it resolves inside its
+    // tool root, links followed: the pack's own directory, or the base pack's for an inherited
+    // tool.
+    if let Some(program) = tool.run.first().filter(|p| p.contains('/'))
+        && let Ok(resolved) = root.join(program).canonicalize()
+        && !resolved.starts_with(root)
+    {
+        let which = match &pack.base {
+            Some(base) if base.inherited.tool => format!("the base pack {}", base.pack),
+            _ => format!("the pack {}", pack.manifest.pack),
+        };
+        return Check::without(
+            CheckState::Failed,
+            format!("{program} resolves to a place outside {which}; it is not run"),
+        );
+    }
     let mut args: Vec<&str> = spec.args.iter().map(String::as_str).collect();
     // An inherited tool runs in the base pack's directory; the document is the extending
     // pack's, so it is named by its whole path.
-    let root = pack.tool_root();
     let whole =
         (root != pack.root).then(|| pack.root.join(document).to_string_lossy().into_owned());
     args.push(whole.as_deref().unwrap_or(document));

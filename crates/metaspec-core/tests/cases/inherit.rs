@@ -183,7 +183,17 @@ fn inherit_tool_runs_in_base_dir() {
     let (report, pack) = loads(load_extending_pack(&pair));
     let tool = pack.manifest.tool.clone().expect("the inherited tool");
     let base_tool = base.manifest.tool.clone().unwrap();
-    assert_eq!(tool::digest(&tool), tool::digest(&base_tool));
+    // The base's tool section, with the base directory it runs in (D66).
+    assert_eq!(
+        serde_json::to_value((&tool.run, &tool.verbs)).unwrap(),
+        serde_json::to_value((&base_tool.run, &base_tool.verbs)).unwrap()
+    );
+    assert!(base_tool.base_dir.is_none());
+    assert_eq!(
+        tool.base_dir.as_deref(),
+        Some(base.root.to_string_lossy().as_ref())
+    );
+    assert_ne!(tool::digest(&tool), tool::digest(&base_tool));
     assert_eq!(pack.tool_root(), base.root.as_path());
     let program = tool.run.iter().find(|a| a.contains('/')).unwrap();
     assert!(
@@ -436,4 +446,95 @@ fn inherit_trust_digest_covers_base_tool() {
     assert_eq!(check.state, CheckState::NotTrusted);
     tool::trust(&state, &again.root, &new_tool).unwrap();
     assert!(tool::trusted(&state, &again.root, &new_tool));
+}
+
+/// A copy of the pair whose extending pack holds a copy of the base's blocks, and the extending
+/// manifest that writes them as its own `blocks` section.
+fn pair_with_own_blocks(name: &str) -> (Pair, Manifest) {
+    let pair = pair_copy(name);
+    let base = read_manifest(&pair.base_manifest).unwrap();
+    let blocks = base.blocks.clone().unwrap();
+    copy_dir(
+        &pair.base_dir.join(&blocks.path),
+        &pair.dir.join(&blocks.path),
+    );
+    let mut manifest = read_manifest(&pair.manifest).unwrap();
+    manifest.blocks = Some(blocks);
+    (pair, manifest)
+}
+
+#[test]
+fn inherit_own_blocks_without_base_pack_loads_as_before() {
+    let (pair, manifest) = pair_with_own_blocks("inherit-own-blocks");
+    let base = load_base(&pair);
+    let args = BaseArgs {
+        manifest: Some(&pair.base_manifest),
+        dir: None,
+    };
+    let (report, pack) = loads(load_with(&pair, manifest.clone(), args));
+    assert!(report.valid);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    assert!(pack.base.is_none());
+    assert!(pack.manifest.tool.is_none() && pack.kpis.is_empty());
+    assert_eq!(pack.blocks_root(), pack.root.as_path());
+
+    // With the base's directory, the omitted kpis and tool are the base's; the blocks stay own.
+    let (_, pack) = loads(load_with(&pair, manifest, base_args(&pair)));
+    let inherited = pack.base.as_ref().unwrap().inherited;
+    assert!(!inherited.blocks && inherited.kpis && inherited.tool);
+    assert_eq!(pack.blocks_root(), pack.root.as_path());
+    assert_eq!(pack.kpis, base.kpis);
+    assert_eq!(pack.tool_root(), base.root.as_path());
+}
+
+#[test]
+fn inherit_base_that_extends_refuses_only_an_inheriting_manifest() {
+    let (pair, mut manifest) = pair_with_own_blocks("inherit-chain-own");
+    let base = read_manifest(&pair.base_manifest).unwrap();
+    let chained = base_variant(&pair, "inherit-chain-own-base", |v| {
+        v["extends"] = Value::from("another-base");
+    });
+    let args = BaseArgs {
+        manifest: Some(&chained),
+        dir: Some(&pair.base_dir),
+    };
+    // It omits kpis and tool, so it inherits them: refused.
+    let (report, pack) = load_with(&pair, manifest.clone(), args);
+    assert!(pack.is_none());
+    assert_eq!(codes(&report.errors), vec!["extends_chain"]);
+
+    // It writes all three sections: it inherits nothing and loads as before.
+    let own_kpis = std::fs::read_dir(pair.dir.join("kpis"))
+        .unwrap()
+        .flatten()
+        .next()
+        .unwrap()
+        .file_name();
+    manifest.kpis = Some(Kpis {
+        path: format!("kpis/{}", own_kpis.to_string_lossy()),
+        fields: Default::default(),
+    });
+    manifest.tool = base.tool.clone();
+    let (report, pack) = loads(load_with(&pair, manifest, args));
+    assert!(report.valid);
+    assert!(pack.base.is_none());
+    assert!(
+        report.warnings.iter().all(|w| w.code != "extends_chain"),
+        "{:?}",
+        report.warnings
+    );
+}
+
+#[test]
+fn inherit_base_pack_without_extends_warns_base_pack_unused() {
+    let pair = pair();
+    let args = BaseArgs {
+        manifest: None,
+        dir: Some(&pair.dir),
+    };
+    let manifest = read_manifest(&pair.base_manifest).unwrap();
+    let (report, pack) = load_extending(&pair.base_dir, manifest, args, &compiled);
+    let pack = pack.unwrap_or_else(|| panic!("refused: {:?}", report.errors));
+    assert!(pack.base.is_none());
+    assert_eq!(codes(&report.warnings), vec!["base_pack_unused"]);
 }

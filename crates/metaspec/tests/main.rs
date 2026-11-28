@@ -2217,7 +2217,15 @@ fn inherit_trust_digest_covers_base_tool_on_the_command_line() {
     );
     let base = trust_with(&state, &base_dir, &base_manifest);
     assert_eq!(base.status.code(), Some(0));
-    assert_eq!(digest(&extending), digest(&base));
+    // The trust of the inherited tool covers the base directory it runs in (D66): another
+    // digest than the base's own, and the output names that directory.
+    assert_ne!(digest(&extending), digest(&base));
+    let printed = String::from_utf8_lossy(&extending.stdout).into_owned();
+    let canonical = base_dir.canonicalize().unwrap();
+    assert!(
+        printed.contains(canonical.to_string_lossy().as_ref()),
+        "{printed}"
+    );
 }
 
 #[test]
@@ -2259,4 +2267,52 @@ fn inherit_tool_runs_in_base_dir_when_rendered() {
     );
     let document = Path::new(messages[1]);
     assert!(document.is_absolute() && document.starts_with(dir.canonicalize().unwrap()));
+}
+
+#[test]
+fn inherit_trust_of_an_own_tool_needs_no_base_pack() {
+    let ((_, base_manifest), (dir, manifest)) = extends_pair();
+    let scratch_dir = scratch("inherit-own-tool");
+    let own = scratch_dir.join("own-tool.yaml");
+    let text = std::fs::read_to_string(&manifest).unwrap();
+    std::fs::write(&own, format!("{text}\ntool:\n  run: [sh]\n")).unwrap();
+    let state = scratch("inherit-own-tool-state");
+    let out = metaspec_with(
+        &state,
+        &[
+            "trust".into(),
+            "--manifest".into(),
+            own.into(),
+            "--pack".into(),
+            dir.into(),
+            "--extends".into(),
+            base_manifest.into(),
+        ],
+    );
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
+fn inherit_base_pack_without_extends_warns_base_pack_unused_on_the_command_line() {
+    let dir = &packs()[0];
+    let ((base_dir, _), _) = extends_pair();
+    let mut args: Vec<OsString> = vec!["pack".into(), "check".into(), "--json".into()];
+    args.extend(pack_args(dir));
+    args.extend(["--base-pack".into(), base_dir.into()]);
+    let out = metaspec(&args);
+    assert_eq!(out.status.code(), Some(0));
+    let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(schema_errors(&report), Vec::<String>::new());
+    let codes: Vec<&str> = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["code"].as_str().unwrap())
+        .collect();
+    assert_eq!(codes, vec!["base_pack_unused"], "{report}");
 }

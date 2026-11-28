@@ -78,7 +78,7 @@
       "items": { "$ref": "#/$defs/issue" }
     },
     "warnings": {
-      "description": "What does not refuse the pack. Among the codes about a view: view_unknown_block (a block of blocks, hubs.blocks or collapse.blocks the blocks do not have), view_unknown_collapse (an id of collapse that is a region of no document of the class) and view_region_edges (a region named edges that the view would collapse; it stays expanded).",
+      "description": "What does not refuse the pack. Among the codes about a view: view_unknown_block (a block of blocks, hubs.blocks or collapse.blocks the blocks do not have), view_unknown_collapse (an id of collapse that is a region of no document of the class) and view_region_edges (a region named edges that the view would collapse; it stays expanded). Among the codes about extends: base_pack_unused (--base-pack given to a manifest without extends), and extends_not_found, extends_other_pack or extends_unreadable for a manifest with its own blocks.",
       "type": "array",
       "items": { "$ref": "#/$defs/issue" }
     }

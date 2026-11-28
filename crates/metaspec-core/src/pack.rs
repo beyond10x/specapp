@@ -182,30 +182,17 @@ pub struct Inheritance {
     pub warnings: Vec<Issue>,
 }
 
-/// Fills in the sections a manifest with `extends` leaves out (`blocks`, `kpis`, `tool`) from
-/// the manifest of its base pack, whose paths are read in the base's directory `base.dir`.
-///
-/// The name resolves to the manifest given at run time, which must be the manifest of that
-/// pack, or to a pack metaspec knows. A base that cannot be read is a warning when the manifest
-/// has its own `blocks`, and refuses it when it leaves them out. A base that itself extends a
-/// pack refuses the manifest, and so does an inherited section without the base's directory.
-pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Issue>> {
-    let alone = |manifest, warnings| {
-        Ok(Inheritance {
-            manifest,
-            base: None,
-            warnings,
-        })
-    };
-    let Some(name) = manifest.extends.clone() else {
-        return alone(manifest, Vec::new());
-    };
+/// The manifest of the pack a manifest `extends`: the file given at run time, which must be the
+/// manifest of that pack, or else the pack metaspec knows by that name. `None` for a manifest
+/// without `extends`.
+pub fn base_manifest(manifest: &Manifest, given: Option<&Path>) -> Option<Result<Manifest, Issue>> {
+    let name = manifest.extends.as_ref()?;
     let subject = format!("extends:{name}");
-    let read = match base.manifest {
+    let read = match given {
         Some(path) => Some(read_manifest(path)),
-        None => known_manifest(&name),
+        None => known_manifest(name),
     };
-    let found = match read {
+    Some(match read {
         None => Err(Issue::new(
             "extends_not_found",
             &subject,
@@ -213,7 +200,7 @@ pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Is
                 "metaspec knows no pack {name} (packs/) and no manifest of it is given (--extends)"
             ),
         )),
-        Some(Ok(other)) if other.pack != name => Err(Issue::new(
+        Some(Ok(other)) if other.pack != *name => Err(Issue::new(
             "extends_other_pack",
             &subject,
             format!(
@@ -234,20 +221,56 @@ pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Is
                     .join("; ")
             ),
         )),
+    })
+}
+
+/// Fills in the sections a manifest with `extends` leaves out (`blocks`, `kpis`, `tool`) from
+/// the manifest of its base pack (see [`base_manifest`]), whose paths are read in the base's
+/// directory `base.dir`.
+///
+/// - A manifest that writes its own `blocks` and is given no base directory inherits nothing
+///   and loads as before; with a base directory its omitted `kpis` and `tool` are the base's.
+/// - A manifest that leaves out `blocks` needs the base directory (`base_pack_missing`).
+/// - A base that cannot be read is a warning when the manifest has its own `blocks`, and
+///   refuses it when it leaves them out.
+/// - A base that itself extends a pack refuses a manifest that inherits a section
+///   (`extends_chain`).
+/// - A base directory given to a manifest without `extends` is a warning (`base_pack_unused`).
+///
+/// An inherited tool carries the canonical base directory ([`crate::manifest::Tool::base_dir`]),
+/// so its digest, and the trust of it, covers the directory the tool runs in.
+pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Issue>> {
+    let alone = |manifest, warnings| {
+        Ok(Inheritance {
+            manifest,
+            base: None,
+            warnings,
+        })
     };
+    let Some(found) = base_manifest(&manifest, base.manifest) else {
+        let warnings = match base.dir {
+            Some(dir) => vec![Issue::new(
+                "base_pack_unused",
+                "manifest",
+                format!(
+                    "--base-pack {} is given, but the manifest extends no pack; nothing is read there",
+                    dir.display()
+                ),
+            )],
+            None => Vec::new(),
+        };
+        return alone(manifest, warnings);
+    };
+    let name = manifest.extends.clone().unwrap_or_default();
+    let subject = format!("extends:{name}");
     let found = match found {
         Ok(found) => found,
         Err(issue) if manifest.blocks.is_some() => return alone(manifest, vec![issue]),
         Err(issue) => return Err(vec![issue]),
     };
-    if let Some(other) = &found.extends {
-        return Err(vec![Issue::new(
-            "extends_chain",
-            &subject,
-            format!(
-                "the pack {name} extends {other} itself; metaspec reads one base pack, not a chain"
-            ),
-        )]);
+    // Own blocks and no base directory: nothing is inherited, as before inheritance.
+    if manifest.blocks.is_some() && base.dir.is_none() {
+        return alone(manifest, Vec::new());
     }
     let inherited = Inherited {
         blocks: manifest.blocks.is_none(),
@@ -256,6 +279,15 @@ pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Is
     };
     if !inherited.any() {
         return alone(manifest, Vec::new());
+    }
+    if let Some(other) = &found.extends {
+        return Err(vec![Issue::new(
+            "extends_chain",
+            &subject,
+            format!(
+                "the pack {name} extends {other} itself; metaspec reads one base pack, not a chain"
+            ),
+        )]);
     }
     let sections = inherited.names().join(", ");
     let Some(dir) = base.dir else {
@@ -287,7 +319,10 @@ pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Is
         manifest.kpis = found.kpis;
     }
     if inherited.tool {
-        manifest.tool = found.tool;
+        manifest.tool = found.tool.map(|mut tool| {
+            tool.base_dir = Some(root.to_string_lossy().into_owned());
+            tool
+        });
     }
     Ok(Inheritance {
         manifest,

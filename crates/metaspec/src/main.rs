@@ -456,16 +456,34 @@ fn trust(args: &PackArgs) -> ExitCode {
         }
         Err(usage_error) => return usage(usage_error),
     };
-    // An inherited tool is the base's: its digest is the digest of the base's `tool` section.
-    let manifest = match pack::inherit(manifest, args.base()) {
-        Ok(inheritance) => inheritance.manifest,
-        Err(errors) => {
-            for e in errors {
+    // An inherited tool is the base's `tool` section with the base directory it runs in; only
+    // then is the base, and its directory (--base-pack), needed.
+    let inherits_tool = manifest.tool.is_none()
+        && match pack::base_manifest(&manifest, args.extends.as_deref()) {
+            None => false,
+            Some(Ok(base)) => base.tool.is_some(),
+            Some(Err(e)) => {
                 eprintln!("metaspec: {} {}: {}", e.code, e.subject, e.message);
+                return ExitCode::from(1);
             }
-            return ExitCode::from(1);
+        };
+    let mut manifest = manifest;
+    if inherits_tool || manifest.extends.is_none() {
+        match pack::inherit(manifest.clone(), args.base()) {
+            Ok(inheritance) => {
+                for w in &inheritance.warnings {
+                    eprintln!("metaspec: {} {}: {}", w.code, w.subject, w.message);
+                }
+                manifest.tool = inheritance.manifest.tool;
+            }
+            Err(errors) => {
+                for e in errors {
+                    eprintln!("metaspec: {} {}: {}", e.code, e.subject, e.message);
+                }
+                return ExitCode::from(1);
+            }
         }
-    };
+    }
     let Some(spec) = &manifest.tool else {
         eprintln!("metaspec: the manifest names no tool; there is nothing to trust");
         return ExitCode::from(1);
@@ -480,11 +498,18 @@ fn trust(args: &PackArgs) -> ExitCode {
     };
     match tool::trust(&state, &root, spec) {
         Ok(digest) => {
-            println!(
-                "trusted: {} runs `{}` ({digest})",
-                manifest.pack,
-                spec.run.join(" ")
-            );
+            match (&spec.base_dir, &manifest.extends) {
+                (Some(base_dir), Some(base)) => println!(
+                    "trusted: {} runs `{}` ({digest}), the tool of the base pack {base} in {base_dir}",
+                    manifest.pack,
+                    spec.run.join(" ")
+                ),
+                _ => println!(
+                    "trusted: {} runs `{}` ({digest})",
+                    manifest.pack,
+                    spec.run.join(" ")
+                ),
+            }
             ExitCode::SUCCESS
         }
         Err(why) => {
