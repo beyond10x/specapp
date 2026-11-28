@@ -15,6 +15,13 @@
       "on": "route",
       "name": "picker->basket:fills",
       "detail": "Two hands fill one basket faster than it is hauled away."
+    },
+    {
+      "concern": "harvest_unhauled",
+      "severity": "advisory",
+      "on": "route",
+      "name": "basket->crop:hauls_to",
+      "detail": "The basket reaches the crop only when its picker has filled it."
     }
   ]
 }

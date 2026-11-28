@@ -36,6 +36,10 @@ svg.scene .mark.note rect{fill:var(--bg);stroke:var(--finding);stroke-width:1.5}
 svg.scene .mark.note text{fill:var(--fg)}
 ";
 
+/// The CSS of hubs and badges, inside the SVG of a scene that has them, so a page without hubs
+/// stays as it was.
+pub const HUB_CSS: &str = "svg.scene .box.hub>rect.body{stroke-width:3}svg.scene .hublink.marked .pill{stroke:var(--finding);stroke-width:1.6}";
+
 fn curve(points: &[[f64; 2]]) -> String {
     let mut d = String::new();
     for (i, p) in points.iter().enumerate() {
@@ -87,9 +91,17 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
         "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"scene\" viewBox=\"0 0 {w} {h}\" width=\"{w}\" height=\"{h}\" role=\"img\" aria-labelledby=\"{p}-t {p}-d\">",
         p = esc(prefix)
     );
+    let badges = if scene.badges.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "; {} links to a hub, each a badge on its caller's box",
+            scene.badges.len()
+        )
+    };
     let _ = write!(
         out,
-        "<title id=\"{p}-t\">{} of {}</title><desc id=\"{p}-d\">{} boxes and {} edges, each edge labelled by what it carries; {} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.</desc>",
+        "<title id=\"{p}-t\">{} of {}</title><desc id=\"{p}-d\">{} boxes and {} edges, each edge labelled by what it carries{badges}; {} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.</desc>",
         esc(&scene.view.title),
         esc(&scene.document),
         scene.boxes.len(),
@@ -102,6 +114,11 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
         "<defs><marker id=\"{}-arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0 0L10 5L0 10z\" class=\"arrowhead\"/></marker></defs>",
         esc(prefix)
     );
+    if !scene.badges.is_empty() || scene.boxes.iter().any(|b| b.hub) {
+        out.push_str("<style>");
+        out.push_str(HUB_CSS);
+        out.push_str("</style>");
+    }
 
     if !scene.rows.is_empty() {
         out.push_str("<g class=\"bands\">");
@@ -127,6 +144,7 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
             (b.container, "container"),
             (b.parent.is_some() && b.lines.is_empty(), "child"),
             (!b.findings.is_empty(), "marked"),
+            (b.hub, "hub"),
         ] {
             if on {
                 class.push(' ');
@@ -218,6 +236,30 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
         out.push_str("</g>");
     }
     out.push_str("</g>");
+
+    if !scene.badges.is_empty() {
+        out.push_str("<g class=\"hublinks\">");
+        for (i, b) in scene.badges.iter().enumerate() {
+            let marks: f64 = b.findings.iter().map(|&n| mark_width(n) + 3.0).sum();
+            let r = &b.at;
+            let _ = write!(
+                out,
+                "<g class=\"hublink{}\" id=\"{}-h{i}\" data-id=\"{}\"><title>{}</title><rect class=\"pill\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"9\"/><text class=\"edge-label\" x=\"{}\" y=\"{}\" text-anchor=\"middle\">{}</text></g>",
+                if b.findings.is_empty() { "" } else { " marked" },
+                esc(prefix),
+                esc(&b.id),
+                esc(&b.title),
+                px(r.x),
+                px(r.y),
+                px(r.w),
+                px(r.h),
+                px(r.x + marks + (r.w - marks) / 2.0),
+                px(r.y + 13.0),
+                esc(&b.label)
+            );
+        }
+        out.push_str("</g>");
+    }
 
     let curved = scene.view.layout == "rows";
     out.push_str("<g class=\"edges\">");

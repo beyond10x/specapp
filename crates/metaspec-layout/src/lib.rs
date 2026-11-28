@@ -9,6 +9,10 @@
 //!   part (`per`) is drawn inside that part.
 //! - `nested`: a part is drawn inside the part that contains it (`in` or `per`).
 //!
+//! A view with `hubs` draws each hub once, apart, and each link to a hub from a part that is no
+//! hub as a badge on its caller's box ([`Elision`]); [`views_of`] follows it with the view
+//! `<id>/edges`, the same view with every link an edge.
+//!
 //! The same input gives the same bytes: no hash order, no clock, coordinates rounded to one
 //! decimal. This crate knows no pack: names, colours and icons come from the manifest.
 
@@ -21,7 +25,7 @@ pub mod svg;
 pub mod text;
 
 use metaspec_core::graph::{Graph, Part};
-use metaspec_core::manifest::{DocumentClass, Layout, RowsBy, View};
+use metaspec_core::manifest::{DocumentClass, Hubs, Layout, RowsBy, View};
 use metaspec_core::pack::Pack;
 use metaspec_core::tool::{Finding, Subject};
 use scene::{LegendEntry, Mark, Scene, SceneBox, SceneView};
@@ -165,6 +169,9 @@ pub struct ViewSpec {
     pub blocks: Vec<String>,
     /// The link names the view shows; empty shows every link.
     pub carries: Vec<String>,
+    /// The parts drawn apart, each link to them a badge on its caller; none draws every link as
+    /// an edge.
+    pub hubs: Option<Hubs>,
     pub implicit: bool,
 }
 
@@ -177,6 +184,7 @@ impl From<&View> for ViewSpec {
             rows: view.rows,
             blocks: view.blocks.clone(),
             carries: view.carries.clone(),
+            hubs: view.hubs.clone(),
             implicit: false,
         }
     }
@@ -185,8 +193,23 @@ impl From<&View> for ViewSpec {
 /// The views a document of `class` is drawn in: the declared views, then a view of every part
 /// and link when the declared views leave one out (or declare none). Nothing of a document is
 /// hidden.
+///
+/// A view with `hubs` is followed by its view `<id>/edges`: the same parts and links with every
+/// link an edge. A static page has no switch, so the two are two views; the docs site shows them
+/// as one view with a switch.
 pub fn views_of(class: &DocumentClass, graph: &Graph) -> Vec<ViewSpec> {
-    let mut views: Vec<ViewSpec> = class.views.iter().map(ViewSpec::from).collect();
+    let mut views: Vec<ViewSpec> = Vec::new();
+    for view in &class.views {
+        let spec = ViewSpec::from(view);
+        let edges = spec.hubs.is_some().then(|| ViewSpec {
+            id: format!("{}/edges", spec.id),
+            title: format!("{}, every link an edge", spec.title),
+            hubs: None,
+            ..spec.clone()
+        });
+        views.push(spec);
+        views.extend(edges);
+    }
     let mut parts = BTreeSet::new();
     let mut links = BTreeSet::new();
     for view in &views {
@@ -208,6 +231,7 @@ pub fn views_of(class: &DocumentClass, graph: &Graph) -> Vec<ViewSpec> {
             rows: RowsBy::Layer,
             blocks: Vec::new(),
             carries: Vec::new(),
+            hubs: None,
             implicit: true,
         });
     }
@@ -277,10 +301,12 @@ pub fn select(graph: &Graph, view: &ViewSpec) -> Selection {
 pub fn layout(graph: &Graph, view: &ViewSpec, style: &Style, findings: &[Finding]) -> Scene {
     let selection = select(graph, view);
     let (_, marked) = numbers(findings);
+    let (kept, elision) = elide(graph, view, &selection, style, &marked);
     let mut scene = match view.layout {
-        Layout::Rows => rows::layout(graph, view, style, &selection, &marked),
-        Layout::Nested => nested::layout(graph, style, &selection, &marked),
+        Layout::Rows => rows::layout(graph, view, style, &kept, &marked, &elision),
+        Layout::Nested => nested::layout(graph, style, &kept, &marked, &elision),
     };
+    place_badges(&mut scene, graph, style, &elision);
     scene.format = scene::FORMAT.to_string();
     scene.document = graph.document.clone();
     scene.view = SceneView {
@@ -292,6 +318,191 @@ pub fn layout(graph: &Graph, view: &ViewSpec, style: &Style, findings: &[Finding
     attach(&mut scene, findings);
     scene.legend = legend(&scene, style);
     scene
+}
+
+/// What a view's hubs change in its drawing: the hubs, drawn once and apart, and per caller the
+/// links to a hub drawn as badges on the caller's box.
+#[derive(Debug, Clone, Default)]
+pub struct Elision {
+    /// The hubs, indices of the graph's parts.
+    pub hubs: BTreeSet<usize>,
+    /// By the id of the caller's box (a part, or a name no part has): its badges, in the order
+    /// of the links, each the link's index and the badge's width.
+    pub badges: BTreeMap<String, Vec<(usize, f64)>>,
+}
+
+impl Elision {
+    /// The widths of the badges on the box `id`.
+    pub fn widths(&self, id: &str) -> Vec<f64> {
+        self.badges
+            .get(id)
+            .map(|b| b.iter().map(|&(_, w)| w).collect())
+            .unwrap_or_default()
+    }
+}
+
+/// Height of a badge, as of an edge label.
+pub const BADGE_H: f64 = 18.0;
+/// Space between two badges, across and down.
+pub const BADGE_GAP: f64 = 4.0;
+
+/// The hubs of a view in what it shows: each shown part with at least `in_degree` incoming
+/// links the view shows, each part `parts` names and each part of a block `blocks` names.
+pub fn hubs_of(graph: &Graph, view: &ViewSpec, sel: &Selection) -> BTreeSet<usize> {
+    let Some(hubs) = &view.hubs else {
+        return BTreeSet::new();
+    };
+    let mut degree: BTreeMap<&str, usize> = BTreeMap::new();
+    for &li in &sel.links {
+        if let Some(to) = graph.links[li].to.as_deref() {
+            *degree.entry(to).or_default() += 1;
+        }
+    }
+    sel.parts
+        .iter()
+        .copied()
+        .filter(|&i| {
+            let part = &graph.parts[i];
+            hubs.in_degree
+                .is_some_and(|n| degree.get(part.id.as_str()).copied().unwrap_or(0) >= n)
+                || hubs.parts.contains(&part.id)
+                || part.block.as_ref().is_some_and(|b| hubs.blocks.contains(b))
+        })
+        .collect()
+}
+
+/// The text of the badge of a link: the hub it goes to and its name in the pack's words.
+pub fn badge_label(link: &metaspec_core::graph::Link, style: &Style) -> String {
+    format!(
+        "→ {} · {}",
+        link.to.as_deref().unwrap_or("?"),
+        link_label(link, style)
+    )
+}
+
+/// Splits what a view shows into the links drawn as edges and the elision: every link to a hub
+/// from a part that is no hub (or from a name no part has) is a badge on its caller. Without
+/// hubs every link is an edge.
+fn elide(
+    graph: &Graph,
+    view: &ViewSpec,
+    sel: &Selection,
+    style: &Style,
+    marked: &BySubject<'_>,
+) -> (Selection, Elision) {
+    let hubs = hubs_of(graph, view, sel);
+    if hubs.is_empty() {
+        return (sel.clone(), Elision::default());
+    }
+    let is_hub =
+        |name: Option<&str>| name.is_some_and(|n| hubs.iter().any(|&i| graph.parts[i].id == n));
+    let mut kept = sel.clone();
+    kept.links.clear();
+    let mut badges: BTreeMap<String, Vec<(usize, f64)>> = BTreeMap::new();
+    for &li in &sel.links {
+        let link = &graph.links[li];
+        if is_hub(link.to.as_deref()) && !is_hub(link.from.as_deref()) {
+            let empty = Vec::new();
+            let marks = marked.get(link.id.as_str()).unwrap_or(&empty);
+            let w = label_width(&badge_label(link, style), marks).ceil();
+            badges
+                .entry(link.from.clone().unwrap_or_else(|| String::from("?")))
+                .or_default()
+                .push((li, w));
+        } else {
+            kept.links.push(li);
+        }
+    }
+    (kept, Elision { hubs, badges })
+}
+
+/// Rows of badges of `widths` left to right in `room`, wrapped before it is full.
+pub fn badge_rows(widths: &[f64], room: f64) -> Vec<Vec<usize>> {
+    let mut rows: Vec<Vec<usize>> = Vec::new();
+    let mut used = 0.0;
+    for (i, &w) in widths.iter().enumerate() {
+        match rows.last_mut() {
+            Some(row) if used + BADGE_GAP + w <= room => {
+                row.push(i);
+                used += BADGE_GAP + w;
+            }
+            _ => {
+                rows.push(vec![i]);
+                used = w;
+            }
+        }
+    }
+    rows
+}
+
+/// The height the badges of `widths` take in a box of width `w`.
+pub fn badges_h(widths: &[f64], w: f64) -> f64 {
+    badge_rows(widths, w - 2.0 * PAD).len() as f64 * (BADGE_H + BADGE_GAP)
+}
+
+/// Makes room in a box's text for its badges: wide enough for the widest, and one row of
+/// badges more per row they take below the text.
+pub fn grow(card: &mut Card, widths: &[f64]) {
+    if widths.is_empty() {
+        return;
+    }
+    let widest = widths.iter().copied().fold(0.0, f64::max);
+    card.w = card.w.max((widest + 2.0 * PAD).ceil());
+    card.h += badges_h(widths, card.w);
+}
+
+/// Height of a box's text without its badges: the label and its lines, or the one line of a
+/// part drawn inside its host by the layout `rows`.
+fn text_h(b: &scene::SceneBox) -> f64 {
+    if b.parent.is_some() && b.lines.is_empty() {
+        rows::CHILD_H
+    } else {
+        PAD + LABEL_H + LINE_H * b.lines.len() as f64 + PAD - 4.0
+    }
+}
+
+/// Puts each badge into its caller's box, below the box's text, and marks the hubs' boxes.
+fn place_badges(scene: &mut Scene, graph: &Graph, style: &Style, elision: &Elision) {
+    let mut placed: Vec<(usize, scene::Badge)> = Vec::new();
+    for (caller, links) in &elision.badges {
+        let Some(b) = scene.boxes.iter().find(|b| &b.id == caller) else {
+            continue;
+        };
+        let widths: Vec<f64> = links.iter().map(|&(_, w)| w).collect();
+        let top = b.y + text_h(b) - 2.0;
+        for (r, row) in badge_rows(&widths, b.w - 2.0 * PAD).iter().enumerate() {
+            let mut x = b.x + PAD;
+            for &k in row {
+                let (li, w) = links[k];
+                let link = &graph.links[li];
+                placed.push((
+                    li,
+                    scene::Badge {
+                        id: link.id.clone(),
+                        from: caller.clone(),
+                        to: link.to.clone().unwrap_or_else(|| String::from("?")),
+                        carries: link.carries.clone(),
+                        label: badge_label(link, style),
+                        at: scene::Rect {
+                            x: scene::round(x),
+                            y: scene::round(top + r as f64 * (BADGE_H + BADGE_GAP)),
+                            w: scene::round(w),
+                            h: BADGE_H,
+                        },
+                        added_by: link.added_by.clone(),
+                        findings: Vec::new(),
+                        title: link_title(link),
+                    },
+                ));
+                x += w + BADGE_GAP;
+            }
+        }
+    }
+    placed.sort_by_key(|(li, _)| *li);
+    scene.badges = placed.into_iter().map(|(_, b)| b).collect();
+    for b in &mut scene.boxes {
+        b.hub = !b.ghost && elision.hubs.iter().any(|&i| graph.parts[i].id == b.id);
+    }
 }
 
 /// Width of the mark of finding `n`.
@@ -316,9 +527,9 @@ pub fn numbers(findings: &[Finding]) -> (BySubject<'_>, BySubject<'_>) {
     (parts, links)
 }
 
-/// Puts the numbers of the findings on the boxes and edges they are about, and one mark per
-/// finding on each: at the top right corner of a box, at the left of an edge's label. An edge
-/// label has room for its marks (the layouts measure it with [`label_width`]).
+/// Puts the numbers of the findings on the boxes, edges and badges they are about, and one mark
+/// per finding on each: at the top right corner of a box, at the left of an edge's label or a
+/// badge. An edge label and a badge have room for their marks ([`label_width`]).
 fn attach(scene: &mut Scene, findings: &[Finding]) {
     let (parts, links) = numbers(findings);
     let mut marks = Vec::new();
@@ -357,6 +568,26 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
                 subject: findings[n - 1].subject.clone(),
                 x: scene::round(left + w / 2.0),
                 y: scene::round(e.label_at.y + e.label_at.h / 2.0),
+                w: scene::round(w),
+            });
+            left += w + 3.0;
+        }
+    }
+    for badge in &mut scene.badges {
+        let Some(ns) = links.get(badge.id.as_str()) else {
+            continue;
+        };
+        badge.findings = ns.clone();
+        let mut left = badge.at.x + 3.0;
+        for &n in ns {
+            let w = mark_width(n);
+            marks.push(Mark {
+                finding: n,
+                rule: findings[n - 1].rule.clone(),
+                gate: findings[n - 1].gate,
+                subject: findings[n - 1].subject.clone(),
+                x: scene::round(left + w / 2.0),
+                y: scene::round(badge.at.y + badge.at.h / 2.0),
                 w: scene::round(w),
             });
             left += w + 3.0;
@@ -523,6 +754,7 @@ pub fn scene_box(
         container: false,
         on_border: part.is_some_and(|p| p.on_border),
         ghost,
+        hub: false,
         findings: Vec::new(),
         title: card.title.clone(),
     }

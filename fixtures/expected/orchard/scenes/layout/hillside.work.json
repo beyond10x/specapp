@@ -7,23 +7,23 @@
     "layout": "rows",
     "implicit": false
   },
-  "width": 437.0,
-  "height": 375.0,
+  "width": 460.0,
+  "height": 459.0,
   "rows": [
     {
-      "title": "3 yield",
-      "y": 12.0,
-      "h": 92.0
-    },
-    {
       "title": "2 hands",
-      "y": 130.0,
-      "h": 122.0
+      "y": 38.0,
+      "h": 188.0
     },
     {
       "title": "1 soil",
-      "y": 278.0,
+      "y": 252.0,
       "h": 77.0
+    },
+    {
+      "title": "hubs",
+      "y": 347.0,
+      "h": 92.0
     }
   ],
   "boxes": [
@@ -37,10 +37,10 @@
       ],
       "colour": "green",
       "group": "2 hands",
-      "x": 16.0,
-      "y": 154.0,
-      "w": 122.0,
-      "h": 94.0,
+      "x": 16.5,
+      "y": 62.0,
+      "w": 169.0,
+      "h": 160.0,
       "container": true,
       "on_border": false,
       "ghost": false,
@@ -54,10 +54,10 @@
       "lines": [],
       "colour": "green",
       "group": "2 hands",
-      "x": 26.0,
-      "y": 216.0,
-      "w": 102.0,
-      "h": 24.0,
+      "x": 26.5,
+      "y": 168.0,
+      "w": 149.0,
+      "h": 46.0,
       "parent": "picker",
       "container": false,
       "on_border": false,
@@ -74,8 +74,8 @@
       ],
       "colour": "violet",
       "group": "1 soil",
-      "x": 21.0,
-      "y": 302.0,
+      "x": 44.0,
+      "y": 276.0,
       "w": 112.0,
       "h": 49.0,
       "container": false,
@@ -83,28 +83,6 @@
       "ghost": false,
       "findings": [],
       "title": "apple (block tree), 1 soil\ngrove: upper"
-    },
-    {
-      "id": "crop",
-      "block": "harvest",
-      "label": "crop",
-      "lines": [
-        "harvest",
-        "on the border"
-      ],
-      "colour": "teal",
-      "group": "3 yield",
-      "x": 67.0,
-      "y": 36.0,
-      "w": 112.0,
-      "h": 64.0,
-      "container": false,
-      "on_border": true,
-      "ghost": false,
-      "findings": [
-        1
-      ],
-      "title": "crop (block harvest), 3 yield"
     },
     {
       "id": "upper",
@@ -115,8 +93,8 @@
       ],
       "colour": "violet",
       "group": "1 soil",
-      "x": 165.0,
-      "y": 302.0,
+      "x": 188.0,
+      "y": 276.0,
       "w": 112.0,
       "h": 49.0,
       "container": false,
@@ -134,8 +112,8 @@
       ],
       "colour": "violet",
       "group": "1 soil",
-      "x": 309.0,
-      "y": 302.0,
+      "x": 332.0,
+      "y": 276.0,
       "w": 112.0,
       "h": 49.0,
       "container": false,
@@ -143,6 +121,29 @@
       "ghost": false,
       "findings": [],
       "title": "plum (block tree), 1 soil\ngrove: upper"
+    },
+    {
+      "id": "crop",
+      "block": "harvest",
+      "label": "crop",
+      "lines": [
+        "harvest",
+        "on the border"
+      ],
+      "colour": "teal",
+      "group": "3 yield",
+      "x": 32.0,
+      "y": 371.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "hub": true,
+      "findings": [
+        1
+      ],
+      "title": "crop (block harvest), 3 yield"
     }
   ],
   "edges": [
@@ -154,21 +155,21 @@
       "label": "tends",
       "points": [
         [
-          77.0,
-          248.0
+          101.0,
+          222.0
         ],
         [
-          77.0,
-          265.0
+          100.0,
+          239.0
         ],
         [
-          77.0,
-          302.0
+          100.0,
+          276.0
         ]
       ],
       "label_at": {
-        "x": 55.0,
-        "y": 256.0,
+        "x": 78.0,
+        "y": 230.0,
         "w": 43.9,
         "h": 18.0
       },
@@ -183,21 +184,21 @@
       "label": "fills",
       "points": [
         [
-          59.0,
-          154.0
+          92.0,
+          62.0
         ],
         [
-          54.0,
-          117.0
+          101.0,
+          25.0
         ],
         [
-          77.0,
-          154.0
+          110.0,
+          62.0
         ]
       ],
       "label_at": {
-        "x": 25.3,
-        "y": 108.0,
+        "x": 72.3,
+        "y": 16.0,
         "w": 57.3,
         "h": 18.0
       },
@@ -205,35 +206,55 @@
         2
       ],
       "title": "picker->basket:fills"
-    },
+    }
+  ],
+  "badges": [
     {
       "id": "basket->crop:hauls_to",
       "from": "basket",
       "to": "crop",
       "carries": "hauls_to",
-      "label": "hauls_to",
-      "points": [
-        [
-          95.0,
-          154.0
-        ],
-        [
-          123.0,
-          117.0
-        ],
-        [
-          123.0,
-          100.0
-        ]
+      "label": "→ crop · hauls_to",
+      "at": {
+        "x": 36.5,
+        "y": 190.0,
+        "w": 129.0,
+        "h": 18.0
+      },
+      "findings": [
+        3
       ],
-      "label_at": {
-        "x": 93.2,
-        "y": 108.0,
-        "w": 59.6,
+      "title": "basket->crop:hauls_to"
+    },
+    {
+      "id": "picker->crop:hauls_to",
+      "from": "picker",
+      "to": "crop",
+      "carries": "hauls_to",
+      "label": "→ crop · hauls_to",
+      "at": {
+        "x": 26.5,
+        "y": 124.0,
+        "w": 106.0,
         "h": 18.0
       },
       "findings": [],
-      "title": "basket->crop:hauls_to"
+      "title": "picker->crop:hauls_to"
+    },
+    {
+      "id": "picker->crop:tends",
+      "from": "picker",
+      "to": "crop",
+      "carries": "tends",
+      "label": "→ crop · tends",
+      "at": {
+        "x": 26.5,
+        "y": 146.0,
+        "w": 91.0,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "picker->crop:tends"
     }
   ],
   "marks": [
@@ -242,8 +263,8 @@
       "rule": "harvest_unhauled",
       "gate": false,
       "subject": "part:crop",
-      "x": 163.2,
-      "y": 36.0,
+      "x": 128.2,
+      "y": 371.0,
       "w": 19.6
     },
     {
@@ -251,8 +272,17 @@
       "rule": "fill_over_capacity",
       "gate": false,
       "subject": "link:picker->basket:fills",
-      "x": 38.1,
-      "y": 117.0,
+      "x": 85.1,
+      "y": 25.0,
+      "w": 19.6
+    },
+    {
+      "finding": 3,
+      "rule": "harvest_unhauled",
+      "gate": false,
+      "subject": "link:basket->crop:hauls_to",
+      "x": 49.3,
+      "y": 199.0,
       "w": 19.6
     }
   ],

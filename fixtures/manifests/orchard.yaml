@@ -23,6 +23,7 @@ documents:
       - id: work
         title: Work
         layout: rows
+        hubs: { in_degree: 3 }
   - class: variety
     title: Varieties
     paths: [varieties/*.yaml]

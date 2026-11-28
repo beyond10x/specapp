@@ -47,6 +47,7 @@ const marker: Record<string, string> = {
   Lifecycle: '.sa-life',
   KpiCatalogue: '.sa-kpis',
   GraphView: '.sa-graph svg.sa-scene',
+  GraphSwitch: '.sa-switch .sa-graph svg.sa-scene',
   FindingsList: '.sa-findings, .sa-findings__none',
   RecordTable: '.sa-record',
   ResultSections: '.sa-result, .sa-result__none',

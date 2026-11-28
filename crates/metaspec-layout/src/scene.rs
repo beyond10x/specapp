@@ -22,6 +22,10 @@ pub struct Scene {
     /// Boxes in drawing order: a container before what it contains.
     pub boxes: Vec<SceneBox>,
     pub edges: Vec<Edge>,
+    /// The links drawn as a badge on their caller instead of an edge: each link to a hub of the
+    /// view (its `hubs`) from a part that is no hub.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub badges: Vec<Badge>,
     /// One mark per finding attached to a box or an edge of this scene.
     pub marks: Vec<Mark>,
     /// What each colour and icon of the scene stands for.
@@ -74,6 +78,9 @@ pub struct SceneBox {
     pub on_border: bool,
     /// A name a link gives that no part of the document has.
     pub ghost: bool,
+    /// A hub of the view: drawn once, apart, and each link to it is a badge on its caller.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hub: bool,
     /// The numbers of the findings about this part.
     pub findings: Vec<usize>,
     /// The text shown on hover: the identifiers and the fields.
@@ -97,6 +104,29 @@ pub struct Edge {
     pub points: Vec<[f64; 2]>,
     /// Where the label is drawn, its marks included.
     pub label_at: Rect,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub added_by: Option<String>,
+    /// The numbers of the findings about this link.
+    pub findings: Vec<usize>,
+    /// The text shown on hover.
+    pub title: String,
+}
+
+/// A link to a hub drawn on its caller's box: the hub's name and the link's name in a pill.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Badge {
+    /// The link's id.
+    pub id: String,
+    /// The id of the box the badge is drawn on, the link's caller.
+    pub from: String,
+    /// The id of the hub's box.
+    pub to: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carries: Option<String>,
+    /// What the badge shows: the hub and the link's name in the pack's words.
+    pub label: String,
+    /// Where the badge is drawn, its marks included; inside the caller's box.
+    pub at: Rect,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub added_by: Option<String>,
     /// The numbers of the findings about this link.

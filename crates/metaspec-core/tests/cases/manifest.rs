@@ -263,3 +263,44 @@ fn exclude_takes_globs_inside_the_pack() {
     assert!(parse(&class(", exclude: d/*.yaml")).is_err());
     assert!(parse(&class(", exclude: ['']")).is_err());
 }
+
+#[test]
+fn hub_view_takes_an_in_degree_named_parts_or_blocks() {
+    let view = |hubs: &str| {
+        format!(
+            "{}documents:\n  - {{ class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, views: [{{ id: v, title: V, layout: rows{hubs} }}] }}\n",
+            minimal()
+        )
+    };
+    let hubs_of = |hubs: &str| {
+        let m = parse(&view(hubs)).unwrap_or_else(|e| panic!("{hubs}: {e:?}"));
+        m.documents[0].views[0].hubs.clone()
+    };
+    assert_eq!(hubs_of(""), None, "no hubs by default");
+    let h = hubs_of(", hubs: { in_degree: 3 }").unwrap();
+    assert_eq!(h.in_degree, Some(3));
+    assert!(h.parts.is_empty() && h.blocks.is_empty());
+    let h = hubs_of(", hubs: { parts: [p1, 'p-2'], blocks: [b1] }").unwrap();
+    assert_eq!(h.in_degree, None);
+    assert_eq!(h.parts, vec!["p1", "p-2"]);
+    assert_eq!(h.blocks, vec!["b1"]);
+    let h = hubs_of(", hubs: { in_degree: 2, parts: [p1] }").unwrap();
+    assert_eq!((h.in_degree, h.parts.len()), (Some(2), 1));
+    for bad in [
+        ", hubs: {}",
+        ", hubs: { in_degree: 0 }",
+        ", hubs: { in_degree: -1 }",
+        ", hubs: { in_degree: two }",
+        ", hubs: { parts: [''] }",
+        ", hubs: { blocks: ['../b'] }",
+        ", hubs: { degree: 3 }",
+        ", hubs: 3",
+    ] {
+        assert!(parse(&view(bad)).is_err(), "{bad} is refused");
+    }
+    let m = parse(&view("")).unwrap();
+    assert!(
+        !serde_json::to_string(&m).unwrap().contains("hubs"),
+        "a view without hubs writes none, so a manifest's digest stays"
+    );
+}
