@@ -1875,3 +1875,119 @@ fn adversary_the_quality_page_escapes_what_a_report_carries() {
     );
     assert_eq!(quality_data(&html, "kpi_catalogue"), report);
 }
+
+/// story:part-block-aliases: the alias is applied where the docs read a
+/// document (`document.rs`), and only the core tests call `graph::read_with_aliases` directly.
+/// A rendered page of a fixture pack copy, whose manifest is built here with `blocks.aliases`
+/// and whose new document writes the alias word, must carry the target block in its graph and
+/// draw that part in the block's group, not in the group of a block the pack does not have.
+#[test]
+fn alias_rendered_page_draws_the_aliased_part_in_its_block() {
+    const ALIAS_WORD: &str = "zz_alias_word";
+    const NO_BLOCK: &str = "zz_no_block_word";
+    const UNKNOWN: &str = "block the pack does not have";
+    for fixture in packs() {
+        let name = fixture.file_name().unwrap().to_string_lossy().into_owned();
+        let check = on_pack(&["pack", "check", "--json"], &fixture, &[]);
+        let report: Value = serde_json::from_slice(&check.stdout).unwrap();
+        let target = report["layers"][0]["blocks"][0]
+            .as_str()
+            .expect("a block of the first layer")
+            .to_string();
+
+        let root = scratch(&format!("adversary-alias-{name}"));
+        let dir = root.join(&name);
+        copy(&fixture, &dir);
+        let text = std::fs::read_to_string(manifest_of(&fixture)).unwrap();
+        let mut value: Value = serde_yaml_ng::from_str(&text).unwrap();
+        value["blocks"]["aliases"] = serde_json::json!({ ALIAS_WORD: target });
+        let class = value["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["shape"] == "parts-links/1")
+            .expect("a parts-links/1 class")
+            .clone();
+        let glob = class["paths"][0].as_str().unwrap();
+        let sub = glob.rsplit_once('/').map_or("", |(d, _)| d);
+        let manifest = root.join("manifest.yaml");
+        std::fs::write(&manifest, serde_yaml_ng::to_string(&value).unwrap()).unwrap();
+        std::fs::write(
+            dir.join(sub).join("zz-alias.yaml"),
+            format!(
+                "parts:\n  zz_a: {{ block: {ALIAS_WORD} }}\n  zz_b: {{ block: {NO_BLOCK} }}\nlinks:\n  - {{ from: zz_a, to: zz_b, carries: zz_c }}\n"
+            ),
+        )
+        .unwrap();
+
+        let checked = metaspec(&[
+            OsString::from("pack"),
+            "check".into(),
+            "--manifest".into(),
+            manifest.clone().into(),
+            "--pack".into(),
+            dir.clone().into(),
+        ]);
+        assert_eq!(
+            checked.status.code(),
+            Some(0),
+            "{name}: the manifest with the alias loads: {}",
+            String::from_utf8_lossy(&checked.stdout)
+        );
+
+        let state = scratch(&format!("adversary-alias-state-{name}"));
+        let out = scratch(&format!("adversary-alias-pages-{name}"));
+        let run = render_with(&state, &dir, &manifest, &out, &[]);
+        assert_eq!(
+            run.status.code(),
+            Some(0),
+            "{name}: {}",
+            String::from_utf8_lossy(&run.stderr)
+        );
+        let page = files(&out)
+            .into_iter()
+            .filter(|rel| rel != "index.html")
+            .map(|rel| page_data(&std::fs::read_to_string(out.join(rel)).unwrap()))
+            .find(|data| {
+                data["document"]
+                    .as_str()
+                    .is_some_and(|d| d.ends_with("zz-alias.yaml"))
+            })
+            .unwrap_or_else(|| panic!("{name}: a page of the new document"));
+        let block_of = |id: &str| {
+            page["graph"]["parts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|p| p["id"] == id)
+                .and_then(|p| p["block"].as_str().map(String::from))
+        };
+        assert_eq!(
+            block_of("zz_a").as_deref(),
+            Some(target.as_str()),
+            "{name}: the page's graph carries the block the alias names"
+        );
+        assert_eq!(block_of("zz_b").as_deref(), Some(NO_BLOCK), "{name}");
+        let groups = |id: &str| -> Vec<String> {
+            page["scenes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|s| s["boxes"].as_array().unwrap().iter())
+                .filter(|b| b["id"] == id)
+                .map(|b| b["group"].as_str().unwrap().to_string())
+                .collect()
+        };
+        let a = groups("zz_a");
+        assert!(!a.is_empty(), "{name}: the aliased part is drawn");
+        assert!(
+            a.iter().all(|g| g != UNKNOWN),
+            "{name}: the aliased part is drawn in its block's group, not {UNKNOWN:?}: {a:?}"
+        );
+        let b = groups("zz_b");
+        assert!(
+            !b.is_empty() && b.iter().all(|g| g == UNKNOWN),
+            "{name}: {b:?}"
+        );
+    }
+}

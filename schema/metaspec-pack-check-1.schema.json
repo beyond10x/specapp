@@ -94,7 +94,7 @@
       "properties": {
         "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
         "subject": {
-          "description": "manifest, path:<path>, block:<name>, kpi:<id>, class:<class>, document:<path>, family:<name>, view:<class>/<id> or tool:<program>.",
+          "description": "manifest, path:<path>, block:<name>, alias:<word> (a key of blocks.aliases), kpi:<id>, class:<class>, document:<path>, family:<name>, view:<class>/<id>, extends:<pack> or tool:<program>.",
           "type": "string"
         },
         "message": { "type": "string" }

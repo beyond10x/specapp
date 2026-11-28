@@ -1,7 +1,10 @@
 //! The manifest: the schema and the decoder agree, and a manifest the schema refuses is
 //! refused with the place named.
 
-use super::common::{block_names, load_with_aliases, manifest_of, packs, repo, schema_errors};
+use super::common::{
+    block_names, load_pack, load_with_aliases, load_with_aliases_and, manifest_of, packs, repo,
+    schema_errors,
+};
 use metaspec_core::known;
 use metaspec_core::manifest::{self, PALETTE, Visibility, parse};
 use serde_json::Value;
@@ -343,6 +346,120 @@ fn alias_target_not_a_block_is_refused() {
             report.errors
         );
     }
+}
+
+#[test]
+fn alias_key_that_is_a_domain_name_is_refused() {
+    let mut prefixed = 0;
+    for (name, dir) in packs() {
+        let pack = load_pack(&dir).1.expect("loads");
+        let (domain, target) = (pack.blocks[0].domain.as_str(), pack.blocks[1].name.as_str());
+        if domain == pack.blocks[0].name {
+            continue;
+        }
+        prefixed += 1;
+        let (report, pack) = load_with_aliases(&dir, &[(domain, target)]);
+        assert!(!report.valid && pack.is_none(), "{name}: taken");
+        assert!(
+            report.errors.iter().any(|e| e.code == "manifest_invalid"
+                && e.subject == format!("alias:{domain}")
+                && e.message.contains(domain)),
+            "{name}: {:?}",
+            report.errors
+        );
+    }
+    assert!(prefixed >= 1, "a fixture pack strips a prefix");
+}
+
+#[test]
+fn alias_named_in_a_view_is_a_warning_naming_its_block() {
+    let mut seen = 0;
+    for (name, dir) in packs() {
+        let blocks = block_names(&dir);
+        let target = blocks[0].as_str();
+        let (report, pack) = load_with_aliases_and(&dir, &[(ALIAS, target)], |m| {
+            let Some(class) = m.documents.iter_mut().find(|c| !c.views.is_empty()) else {
+                return;
+            };
+            let view = &mut class.views[0];
+            view.blocks.push(ALIAS.to_string());
+            view.hubs
+                .get_or_insert_with(Default::default)
+                .blocks
+                .push(ALIAS.to_string());
+        });
+        assert!(
+            report.valid && pack.is_some(),
+            "{name}: {:?}",
+            report.errors
+        );
+        let named: Vec<_> = report
+            .warnings
+            .iter()
+            .filter(|w| w.message.contains(ALIAS))
+            .collect();
+        if named.is_empty() {
+            continue;
+        }
+        seen += 1;
+        assert_eq!(
+            named.len(),
+            2,
+            "{name}: one for blocks, one for hubs.blocks: {named:?}"
+        );
+        for w in named {
+            assert_eq!(w.code, "view_alias_block", "{name}: {w:?}");
+            assert!(
+                w.message
+                    .contains(&format!("{ALIAS} is an alias of {target}; name {target}")),
+                "{name}: {w:?}"
+            );
+        }
+    }
+    assert!(seen >= 1, "a fixture pack has a view");
+}
+
+/// The other place a manifest names a block by its name, a family's `blocks`, says the same.
+#[test]
+fn alias_named_in_a_family_is_a_warning_naming_its_block() {
+    let mut seen = 0;
+    for (name, dir) in packs() {
+        let blocks = block_names(&dir);
+        let target = blocks[0].as_str();
+        let (report, _) = load_with_aliases_and(&dir, &[(ALIAS, target)], |m| {
+            if let Some(family) = m
+                .presentation
+                .as_mut()
+                .and_then(|p| p.families.values_mut().next())
+            {
+                family.blocks.push(ALIAS.to_string());
+            }
+        });
+        assert!(report.valid, "{name}: {:?}", report.errors);
+        let named: Vec<_> = report
+            .warnings
+            .iter()
+            .filter(|w| w.message.contains(ALIAS))
+            .collect();
+        if named.is_empty() {
+            continue;
+        }
+        seen += 1;
+        assert_eq!(named.len(), 1, "{name}: {named:?}");
+        assert_eq!(
+            named[0].code, "family_alias_block",
+            "{name}: {:?}",
+            named[0]
+        );
+        assert!(
+            named[0]
+                .message
+                .contains(&format!("{ALIAS} is an alias of {target}; name {target}")),
+            "{name}: {:?}",
+            named[0]
+        );
+    }
+    assert!(seen >= 1, "a fixture pack has families");
 }
 
 #[test]

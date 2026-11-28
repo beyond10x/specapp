@@ -168,6 +168,15 @@ pub fn block_names(dir: &Path) -> Vec<String> {
 /// Loads a fixture pack with its manifest and `aliases` as `blocks.aliases`. The manifest's
 /// text is changed and parsed again, so the schema and the decoder read the aliases.
 pub fn load_with_aliases(dir: &Path, aliases: &[(&str, &str)]) -> (Report, Option<Pack>) {
+    load_with_aliases_and(dir, aliases, |_| {})
+}
+
+/// `load_with_aliases`, with the parsed manifest then changed by `change`.
+pub fn load_with_aliases_and(
+    dir: &Path,
+    aliases: &[(&str, &str)],
+    change: impl FnOnce(&mut metaspec_core::Manifest),
+) -> (Report, Option<Pack>) {
     let text = std::fs::read_to_string(manifest_of(dir)).expect("the manifest");
     let mut value: Value = serde_yaml_ng::from_str(&text).expect("the manifest is YAML");
     let map: serde_json::Map<String, Value> = aliases
@@ -176,8 +185,9 @@ pub fn load_with_aliases(dir: &Path, aliases: &[(&str, &str)]) -> (Report, Optio
         .collect();
     value["blocks"]["aliases"] = Value::Object(map);
     let text = serde_yaml_ng::to_string(&value).expect("YAML");
-    let manifest = metaspec_core::manifest::parse(&text)
+    let mut manifest = metaspec_core::manifest::parse(&text)
         .unwrap_or_else(|e| panic!("the schema refuses the aliases: {e:?}"));
+    change(&mut manifest);
     load_with(dir, manifest, &compiled)
 }
 

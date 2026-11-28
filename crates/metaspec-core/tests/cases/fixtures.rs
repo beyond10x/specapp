@@ -1,7 +1,10 @@
 //! Both fixture packs load with the counts their expectation names, no warning, and a report
 //! that follows `metaspec-pack-check/1`.
 
-use super::common::{codes, expected, load_changed, load_pack, packs, schema_errors};
+use super::common::{
+    block_names, codes, expected, load_changed, load_pack, load_with_aliases, packs, repo,
+    schema_errors,
+};
 use metaspec_core::report::ToolState;
 use metaspec_core::words::{Kind, words};
 use std::collections::BTreeMap;
@@ -256,4 +259,49 @@ fn the_fixture_packs_share_no_word() {
         .collect();
     let shared: Vec<_> = all[0].intersection(&all[1]).collect();
     assert!(shared.is_empty(), "{shared:?}");
+}
+
+#[test]
+fn alias_keys_are_words_of_the_pack() {
+    for (name, dir) in packs() {
+        let blocks = block_names(&dir);
+        let (report, pack) = load_with_aliases(&dir, &[("zz_alias_word", &blocks[0])]);
+        assert!(report.valid, "{name}: {:?}", report.errors);
+        let words = words(&pack.expect("loads"));
+        assert!(
+            words.contains(&(Kind::Block, String::from("zz_alias_word"))),
+            "{name}: a key of blocks.aliases is a block word of the pack, so the vocabulary check sees it"
+        );
+    }
+}
+
+/// Every subject prefix the loader writes into an issue of `metaspec pack check` (a literal
+/// `format!("<prefix>:{…}")` in `pack.rs`) is named by the schema's description of a subject.
+#[test]
+fn every_subject_prefix_of_the_loader_is_named_in_the_pack_check_schema() {
+    let source =
+        std::fs::read_to_string(repo().join("crates/metaspec-core/src/pack.rs")).expect("pack.rs");
+    let schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(repo().join("schema/metaspec-pack-check-1.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let described = schema["$defs"]["issue"]["properties"]["subject"]["description"]
+        .as_str()
+        .expect("a description of the subject");
+    let mut prefixes = std::collections::BTreeSet::new();
+    for piece in source.split("format!(\"").skip(1) {
+        let head: String = piece
+            .chars()
+            .take_while(|c| c.is_ascii_lowercase() || *c == '_')
+            .collect();
+        if !head.is_empty() && piece[head.len()..].starts_with(":{") {
+            prefixes.insert(head);
+        }
+    }
+    assert!(prefixes.len() >= 5, "{prefixes:?}");
+    let missing: Vec<_> = prefixes
+        .iter()
+        .filter(|p| !described.contains(&format!("{p}:<")))
+        .collect();
+    assert!(missing.is_empty(), "not named in the schema: {missing:?}");
 }
