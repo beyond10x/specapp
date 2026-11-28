@@ -1,5 +1,5 @@
 format: ess-inputs/2
-requires: ess 0.99.9
+requires: ess 0.99.11
 specification:
   - system.yaml
   - domains/packs.yaml
