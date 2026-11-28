@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-index-1.schema.json",
+  "title": "metaspec-index/1",
+  "description": "index.json of `metaspec docs build`: the one docs site of every pack it was given. The site's title and, per pack in the order of its name, its identity, the route of its pages, the file of its part of the site (metaspec-site/1), its counts and the check of its documents. The site's page / lists them. One producer: metaspec. Read by @beyond10x/metaspec-docusaurus.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "title", "packs"],
+  "properties": {
+    "format": { "const": "metaspec-index/1" },
+    "title": { "description": "The title of the site, on every page.", "type": "string" },
+    "packs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pack", "title", "summary", "visibility", "source_url", "level", "route", "site", "counts", "check"],
+        "properties": {
+          "pack": { "description": "The pack's name; its directory in the output.", "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "title": { "type": "string" },
+          "summary": { "type": ["string", "null"] },
+          "visibility": { "description": "A site with a private pack refuses a publication target.", "enum": ["public", "private"] },
+          "source_url": { "type": ["string", "null"] },
+          "level": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] },
+          "route": { "description": "The route of the pack's pages, /<pack>.", "type": "string", "pattern": "^/[a-z][a-z0-9-]*$" },
+          "site": { "description": "The pack's part of the site, <pack>/site.json (metaspec-site/1).", "type": "string" },
+          "counts": {
+            "description": "The counts of the pack's site.json.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["blocks", "layers", "kpis", "planned_blocks", "documents", "pages"],
+            "properties": {
+              "blocks": { "type": "integer", "minimum": 0 },
+              "layers": { "type": "integer", "minimum": 0 },
+              "kpis": { "type": "integer", "minimum": 0 },
+              "planned_blocks": { "type": "integer", "minimum": 0 },
+              "documents": { "type": "integer", "minimum": 0 },
+              "pages": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "check": {
+            "description": "The check of the pack's drawn documents by its tool: how many it found valid, refused, or did not check (no tool, not trusted, timed out, failed). status is refused when one is refused, valid when every drawn document was checked and none refused, else not checked.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "valid", "refused", "not_checked"],
+            "properties": {
+              "status": { "enum": ["valid", "refused", "not checked"] },
+              "valid": { "type": "integer", "minimum": 0 },
+              "refused": { "type": "integer", "minimum": 0 },
+              "not_checked": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

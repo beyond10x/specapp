@@ -43,7 +43,7 @@
           "extra": {},
           "layer": 3,
           "planned": false,
-          "route": "/blocks/3-yield/harvest#kpis"
+          "route": "/orchard/blocks/3-yield/harvest#kpis"
         },
         {
           "id": "basket_overflow_count",
@@ -69,7 +69,7 @@
           "extra": {},
           "layer": 2,
           "planned": false,
-          "route": "/blocks/2-hands/basket#kpis"
+          "route": "/orchard/blocks/2-hands/basket#kpis"
         },
         {
           "id": "grove_unpicked_share",
@@ -95,7 +95,7 @@
           "extra": {},
           "layer": 1,
           "planned": false,
-          "route": "/blocks/1-soil/grove#kpis"
+          "route": "/orchard/blocks/1-soil/grove#kpis"
         }
       ]
     }

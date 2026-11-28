@@ -83,18 +83,20 @@ tasks:
       - scripts/check-vocabulary.sh
 
   check:docs:
-    desc: Generate the docs site of each fixture pack (fixtures/packs/<pack> with fixtures/manifests/<pack>.yaml) with metaspec docs build --check and compare it byte for byte with the committed fixtures/expected/<pack>/site. The fixture tools are trusted in target/docs-state, apart from the user's trust.
+    desc: Generate the one docs site of every fixture pack (fixtures/packs/<pack> with fixtures/manifests/<pack>.yaml) with metaspec docs build --check and compare it byte for byte with the committed fixtures/expected/site. The fixture tools are trusted in target/docs-state, apart from the user's trust.
     cmds:
       - cargo build --quiet --locked -p metaspec
       - |
         set -eu
         state=target/docs-state
         mkdir -p "$state"
+        set --
         for manifest in fixtures/manifests/*.yaml; do
           pack=$(basename "$manifest" .yaml)
           XDG_STATE_HOME="$state" target/debug/metaspec trust --manifest "$manifest" --pack "fixtures/packs/$pack" > /dev/null
-          XDG_STATE_HOME="$state" target/debug/metaspec docs build --manifest "$manifest" --pack "fixtures/packs/$pack" --out "fixtures/expected/$pack/site" --check
+          set -- "$@" --pack "$manifest=fixtures/packs/$pack"
         done
+        XDG_STATE_HOME="$state" target/debug/metaspec docs build "$@" --out fixtures/expected/site --check
 
   web:install:
     desc: Install the node packages of web/ (npm ci) when web/node_modules is missing or older than web/package-lock.json. Needs the network; check does not run it.
@@ -119,7 +121,7 @@ tasks:
       - cd web/ui && {{.SLOT}} npx vitest run --maxWorkers=4
 
   ux:
-    desc: The UX lane, not part of check. Builds the docs sites of both fixture packs and runs the Playwright gates on every page at 1440x900 and 1280x800, light and dark, with no serious or critical axe-core violation (scripts/ux.sh). Needs task web:install and a Chromium for Playwright.
+    desc: The UX lane, not part of check. Builds the one docs site of both fixture packs and runs the Playwright gates on every page, light and dark, with no serious or critical axe-core violation at 1440x900 and no sideways scroll at 1440x900 and 1280x800 (scripts/ux.sh). Needs task web:install and a Chromium for Playwright.
     cmds:
       - scripts/ux.sh
 

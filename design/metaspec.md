@@ -343,9 +343,11 @@ in agenticspec.
 
 ## Docs
 
-`metaspec docs build [NAME | --manifest <file>] --pack <dir> --out <dir>` writes pages and data;
-`--check` compares bytes with a fresh generation and lists files it does not own. No file of the
-output is edited by hand.
+One site for every pack, titled metaspec ("Decided: one site for every pack"):
+`metaspec docs build --pack <NAME|FILE>=<dir> [--pack ...] --out <dir>` (or
+`[NAME | --manifest <file>] --pack <dir>` for a site of one pack) writes pages and data, each
+pack's under `/<pack>`; `--check` compares bytes with a fresh generation and lists files it does
+not own. No file of the output is edited by hand.
 
 Pages, all generated:
 
@@ -957,6 +959,54 @@ a comment in `spec/` that names the typed form and the refusal it got.
   rows); a measurement's gap is its report's pack's and names its measure (a cross-row comparison
   of text); a measurement holds not both a value and a gap (synthesis then writes no scenario of
   RecordMeasurement, ESS-SYNTH-003).
+
+## Decided: one site for every pack (2026-11-28)
+
+The owner, on the orgspec site: "the header says orgspec all the time, but this is now about
+metaspec", "or navigation". One site holds every pack; this replaces the site per pack of
+"Decided in wave 3" (one docs plugin instance `metaspec`, the pack's title in the navbar,
+`METASPEC_SITE_PACK`, `fixtures/expected/<pack>/site`).
+
+- The title of the site and of every page's header is `metaspec`. The navbar has one item per
+  pack, with the pack's title, that opens the pack's own sidebar.
+- `metaspec docs build --pack <NAME|FILE>=<dir> [--pack ...] --out <dir> [--check]
+  [--deadline <s>]` writes one site over every pack given: NAME is a pack metaspec knows, FILE a
+  manifest (a path with a `/`, or ending in `.yaml` or `.yml`). The single-pack form
+  `[NAME | --manifest <file>] --pack <dir> [--extends <file>]` stays and writes a site of that
+  one pack, in the same layout. Two packs of one name are bad usage (exit 2).
+- Layout of the output, per pack `<pack>/docs/<id>.mdx`, `<pack>/pages/<id>.json` and
+  `<pack>/site.json` (`metaspec-site/1`, unchanged in shape); for the site `index.json`
+  (`metaspec-index/1`, `schema/metaspec-index-1.schema.json`: the title and, per pack ordered by
+  name, its identity, route `/<pack>`, the file of its part, its counts and the check of its
+  documents), `_index/index.mdx` (the page `/`) and one `palette.css`. `_index` is a name no
+  pack can take (`^[a-z][a-z0-9-]*$`), and a pages plugin over the output's root would also
+  compile the packs' MDX. A write accepts a directory with an `index.json` of a docs build, or a
+  `site.json` of the earlier layout, and refuses any other that holds files.
+- A pack's pages are routed below `/<pack>`: the `slug` of each page in `site.json` and every
+  `route` in the components' data carry the prefix, so the components link with no base of their
+  own (`configure({base: ''})`). The MDX of the pages is byte for byte what the site per pack
+  wrote; only the routes in the data changed.
+- The check of a pack on `/`: per drawn document, `valid` when the tool ran and found it valid,
+  `refused` when the tool refused it or found it invalid, else `not checked` (no tool, not
+  trusted, timed out, failed). The pack is `refused` when one document is refused, `valid` when
+  every drawn document was checked and none refused, else `not checked`. Records documents are
+  not checked and not counted.
+- The page `/` is Markdown, readable without components: one table row per pack with its title
+  (a link to `/<pack>`), summary, blocks, documents, KPIs and the check with its counts.
+- `@beyond10x/metaspec-docusaurus`: `withMetaspecSite(config, {out, siteDir})` adds one docs
+  plugin instance per pack (id and route base the pack's name, its sidebar from its
+  `site.json`), a pages plugin instance `metaspec-index` over `<out>/_index`, and the plugin of
+  the styles and links; `packNavbarItems(index)` gives the navbar items (`docSidebar`), and
+  `readIndex(out)` / `readSite(out, pack)` read the files. A site with a pack that is not public
+  is refused unless its `url` is this machine.
+- `web/site` builds the site of `METASPEC_SITE_OUT`, by default the committed
+  `fixtures/expected/site`, the one site of both fixture packs, compared byte for byte by a test
+  and by `task check:docs`. The UX lane builds it once (`web/site/build/fixtures`), serves it
+  once, and checks `/` and every page of both packs; on each page the navbar title is metaspec
+  and every pack is a navbar item, and `/` lists every pack with its counts and check.
+- `scripts/acceptance.sh` builds the one site of both real packs (`target/acceptance/docs-site`,
+  through `web/site` into `target/acceptance/site`): per pack its HTML pages equal its pages, and
+  the site has its page `/`. `scripts/parity.sh` reads the pack's part, `<out>/<pack>`.
 
 ## Open questions
 

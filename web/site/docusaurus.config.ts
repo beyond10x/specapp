@@ -3,23 +3,22 @@ import type * as Preset from '@docusaurus/preset-classic';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {withProductSite} from '@beyond10x/docs-system/product-site';
-import {readSite, withMetaspecSite} from '@beyond10x/metaspec-docusaurus';
+import {packNavbarItems, readIndex, withMetaspecSite} from '@beyond10x/metaspec-docusaurus';
 
-// The docs site of one pack. By default the pages of a fixture pack that metaspec docs build wrote
-// and committed under fixtures/expected/<pack>/site: METASPEC_SITE_PACK names the pack (default
-// harbor); the UX lane builds each into build/<pack>. METASPEC_SITE_OUT names the output directory
-// of any other docs build instead (the acceptance builds the real packs' sites so).
+// The one docs site of every pack a docs build was given. By default the site of both fixture
+// packs that metaspec docs build wrote and committed under fixtures/expected/site; the UX lane
+// builds it into build/fixtures. METASPEC_SITE_OUT names the output directory of any other docs
+// build instead (the acceptance builds the site of the real packs so).
 
 const siteDir = path.dirname(fileURLToPath(import.meta.url));
-const pack = process.env.METASPEC_SITE_PACK ?? 'harbor';
 const out = process.env.METASPEC_SITE_OUT
   ? path.resolve(process.env.METASPEC_SITE_OUT)
-  : path.resolve(siteDir, '../../fixtures/expected', pack, 'site');
-const site = readSite(out);
+  : path.resolve(siteDir, '../../fixtures/expected/site');
+const index = readIndex(out);
 
 const config: Config = {
-  title: site.title,
-  tagline: site.summary,
+  title: index.title,
+  tagline: 'The docs of every specification pack of this site.',
   future: {v4: true},
   url: 'http://127.0.0.1',
   baseUrl: '/',
@@ -40,16 +39,14 @@ const config: Config = {
   ],
   themeConfig: {
     navbar: {
-      title: site.title,
-      items: site.pages
-        .filter((p) => ['layer-map', 'kpis', 'class', 'rules'].includes(p.kind))
-        .map((p) => ({to: p.slug, label: p.kind === 'layer-map' ? 'Building blocks' : p.title, position: 'left' as const})),
+      title: index.title,
+      items: packNavbarItems(index),
     },
-    footer: {copyright: `${site.title}: pages written by metaspec docs build.`},
+    footer: {copyright: `${index.title}: pages written by metaspec docs build.`},
   } satisfies Preset.ThemeConfig,
 };
 
-const built = withProductSite(withMetaspecSite(config, {out, siteDir, routeBasePath: '/'}), {mark: site.title.slice(0, 1)});
+const built = withProductSite(withMetaspecSite(config, {out, siteDir}), {mark: index.title.slice(0, 1)});
 
 export default {
   ...built,

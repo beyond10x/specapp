@@ -43,7 +43,7 @@
           "extra": {},
           "layer": 1,
           "planned": false,
-          "route": "/blocks/1-shore/berth#kpis"
+          "route": "/harbor/blocks/1-shore/berth#kpis"
         },
         {
           "id": "vessel_unmoored_count",
@@ -69,7 +69,7 @@
           "extra": {},
           "layer": 2,
           "planned": false,
-          "route": "/blocks/2-craft/vessel#kpis"
+          "route": "/harbor/blocks/2-craft/vessel#kpis"
         },
         {
           "id": "tug_wait_minutes",
@@ -95,7 +95,7 @@
           "extra": {},
           "layer": 2,
           "planned": false,
-          "route": "/blocks/2-craft/tug#kpis"
+          "route": "/harbor/blocks/2-craft/tug#kpis"
         },
         {
           "id": "crane_lift_rate",
@@ -121,7 +121,7 @@
           "extra": {},
           "layer": null,
           "planned": true,
-          "route": "/blocks/planned#crane"
+          "route": "/harbor/blocks/planned#crane"
         }
       ]
     }

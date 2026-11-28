@@ -1,7 +1,7 @@
 /**
- * Renders every component tag of every committed page of both fixture packs
- * (fixtures/expected/<pack>/site, written by `metaspec docs build`) with the data and presentation
- * the page's MDX hands it, and checks what each draws against that data.
+ * Renders every component tag of every committed page of both fixture packs (their parts of the
+ * one site fixtures/expected/site, written by `metaspec docs build`) with the data and
+ * presentation the page's MDX hands it, and checks what each draws against that data.
  */
 import {cleanup, render} from '@testing-library/react';
 import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
@@ -11,11 +11,12 @@ import {afterEach, describe, expect, it} from 'vitest';
 import * as ui from '../src/index.js';
 import type {FindingsData, KpiCatalogueData, LayerMapData, Presentation, RecordTableData, Scene} from '../src/index.js';
 
-const expected = resolve(process.cwd(), '../../fixtures/expected');
-const packs = readdirSync(expected)
-  .filter((n) => existsSync(join(expected, n, 'site', 'site.json')))
+const expected = resolve(process.cwd(), '../../fixtures/expected/site');
+const packs = (JSON.parse(readFileSync(join(expected, 'index.json'), 'utf8')) as {packs: {pack: string}[]}).packs
+  .map((p) => p.pack)
+  .filter((n) => existsSync(join(expected, n, 'site.json')))
   .sort();
-if (packs.length < 2) throw new Error(`fixtures/expected holds ${packs.length} built sites; metaspec docs build writes them`);
+if (packs.length < 2) throw new Error(`fixtures/expected/site holds ${packs.length} packs; metaspec docs build writes them`);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {
@@ -41,7 +42,7 @@ function tags(mdx: string, page: {data: Record<string, unknown>}): Tag[] {
 afterEach(cleanup);
 
 describe.each(packs)('pack %s', (pack) => {
-  const root = join(expected, pack, 'site');
+  const root = join(expected, pack);
   const site = JSON.parse(readFileSync(join(root, 'site.json'), 'utf8')) as {
     presentation: Presentation;
     counts: Record<string, number>;

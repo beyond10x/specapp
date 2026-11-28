@@ -93,91 +93,91 @@
     {
       "id": "index",
       "kind": "pack",
-      "slug": "/",
+      "slug": "/orchard",
       "title": "Orchard"
     },
     {
       "id": "blocks/index",
       "kind": "layer-map",
-      "slug": "/blocks",
+      "slug": "/orchard/blocks",
       "title": "Building blocks"
     },
     {
       "id": "blocks/0-seed/seedbank",
       "kind": "block",
-      "slug": "/blocks/0-seed/seedbank",
+      "slug": "/orchard/blocks/0-seed/seedbank",
       "title": "seedbank"
     },
     {
       "id": "blocks/1-soil/grove",
       "kind": "block",
-      "slug": "/blocks/1-soil/grove",
+      "slug": "/orchard/blocks/1-soil/grove",
       "title": "grove"
     },
     {
       "id": "blocks/1-soil/tree",
       "kind": "block",
-      "slug": "/blocks/1-soil/tree",
+      "slug": "/orchard/blocks/1-soil/tree",
       "title": "tree"
     },
     {
       "id": "blocks/2-hands/picker",
       "kind": "block",
-      "slug": "/blocks/2-hands/picker",
+      "slug": "/orchard/blocks/2-hands/picker",
       "title": "picker"
     },
     {
       "id": "blocks/2-hands/basket",
       "kind": "block",
-      "slug": "/blocks/2-hands/basket",
+      "slug": "/orchard/blocks/2-hands/basket",
       "title": "basket"
     },
     {
       "id": "blocks/3-yield/harvest",
       "kind": "block",
-      "slug": "/blocks/3-yield/harvest",
+      "slug": "/orchard/blocks/3-yield/harvest",
       "title": "harvest"
     },
     {
       "id": "blocks/planned",
       "kind": "planned",
-      "slug": "/blocks/planned",
+      "slug": "/orchard/blocks/planned",
       "title": "Planned blocks"
     },
     {
       "id": "kpis",
       "kind": "kpis",
-      "slug": "/kpis",
+      "slug": "/orchard/kpis",
       "title": "KPI catalogue"
     },
     {
       "id": "layout/index",
       "kind": "class",
-      "slug": "/layout",
+      "slug": "/orchard/layout",
       "title": "Orchard layouts"
     },
     {
       "id": "layout/hillside",
       "kind": "document",
-      "slug": "/layout/hillside",
+      "slug": "/orchard/layout/hillside",
       "title": "hillside"
     },
     {
       "id": "variety/index",
       "kind": "class",
-      "slug": "/variety",
+      "slug": "/orchard/variety",
       "title": "Varieties"
     },
     {
       "id": "variety/russet",
       "kind": "record",
-      "slug": "/variety/russet",
+      "slug": "/orchard/variety/russet",
       "title": "russet"
     },
     {
       "id": "rules",
       "kind": "rules",
-      "slug": "/rules",
+      "slug": "/orchard/rules",
       "title": "Rules"
     }
   ],
@@ -190,7 +190,7 @@
         "group": "0 seed",
         "layer": 0,
         "layer_name": "seed",
-        "route": "/blocks/0-seed/seedbank"
+        "route": "/orchard/blocks/0-seed/seedbank"
       },
       "grove": {
         "label": "grove",
@@ -199,7 +199,7 @@
         "group": "1 soil",
         "layer": 1,
         "layer_name": "soil",
-        "route": "/blocks/1-soil/grove"
+        "route": "/orchard/blocks/1-soil/grove"
       },
       "tree": {
         "label": "tree",
@@ -208,7 +208,7 @@
         "group": "1 soil",
         "layer": 1,
         "layer_name": "soil",
-        "route": "/blocks/1-soil/tree"
+        "route": "/orchard/blocks/1-soil/tree"
       },
       "picker": {
         "label": "picker",
@@ -217,7 +217,7 @@
         "group": "2 hands",
         "layer": 2,
         "layer_name": "hands",
-        "route": "/blocks/2-hands/picker"
+        "route": "/orchard/blocks/2-hands/picker"
       },
       "basket": {
         "label": "basket",
@@ -226,7 +226,7 @@
         "group": "2 hands",
         "layer": 2,
         "layer_name": "hands",
-        "route": "/blocks/2-hands/basket"
+        "route": "/orchard/blocks/2-hands/basket"
       },
       "harvest": {
         "label": "harvest",
@@ -235,7 +235,7 @@
         "group": "3 yield",
         "layer": 3,
         "layer_name": "yield",
-        "route": "/blocks/3-yield/harvest"
+        "route": "/orchard/blocks/3-yield/harvest"
       }
     },
     "groups": [

@@ -5,10 +5,10 @@
 #
 #   scripts/parity.sh <agenticspec-dir> [<manifest>]
 #
-# Generates the site with `metaspec docs build agenticspec --pack <dir>` (the manifest metaspec
-# knows, packs/agenticspec.yaml), or with `--manifest <manifest>` when one is given, into
-# target/parity/site (the pack's tool, if the manifest names one, trusted under
-# target/parity/state only), then checks:
+# Generates the site of the pack alone with `metaspec docs build agenticspec --pack <dir>` (the
+# manifest metaspec knows, packs/agenticspec.yaml), or with `--manifest <manifest>` when one is
+# given, into target/parity/site, the pack's pages under target/parity/site/<pack> (the pack's
+# tool, if the manifest names one, trusted under target/parity/state only), then checks:
 #
 #   block pages       docs/blocks/<N-layer>/<block>.md  against  docs/blocks/<N-layer>/<block>.mdx
 #   layer map         docs/blocks/index.md and planned.md against the generated ones
@@ -50,7 +50,8 @@ metaspec=$root/target/debug/metaspec
 XDG_STATE_HOME=$work/state "$metaspec" trust "$@" --pack "$pack" > /dev/null 2>&1 || true
 XDG_STATE_HOME=$work/state "$metaspec" docs build "$@" --pack "$pack" --out "$work/site" \
   || { echo "parity: metaspec docs build failed" >&2; exit 2; }
-site=$work/site
+# the pack's part of the site: <out>/<pack>
+site=$work/site/$(jq -r '.packs[0].pack' "$work/site/index.json")
 theirs=$pack/docs
 
 missing=0
@@ -173,5 +174,5 @@ if [ -s "$work/sections-expected" ]; then
   say_expected "sections of a run result: $(cut -d: -f2- "$work/sections-expected" | sort | uniq -c | awk '{ $1 = $1 "x"; print }' | tr '\n' ';')"
 fi
 
-echo "parity: $green green, $missing missing, $expected expected missing (site: target/parity/site)"
+echo "parity: $green green, $missing missing, $expected expected missing (site: target/parity/site/<pack>)"
 [ "$missing" = 0 ]

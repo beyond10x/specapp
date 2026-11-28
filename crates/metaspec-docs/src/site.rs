@@ -1,16 +1,19 @@
-//! The site: pages, their files, `site.json` with the sidebar and the presentation table, and
-//! the comparison with an output directory (`--check`).
+//! The site: one for every pack it is given. Per pack its pages, their files and `site.json`
+//! with the sidebar and the presentation table; the site's `index.json` and page `/`; and the
+//! comparison with an output directory (`--check`).
 
 use crate::document::{self, Drawn, visibility};
 use crate::kpis::{self, Kpi};
-use crate::md::yaml;
+use crate::md::{plural, text, yaml};
 use crate::model::Model;
 use crate::{blocks, catalogue, documents};
 use metaspec_core::pack::{Block, Pack};
+use metaspec_core::tool::CheckState;
 use metaspec_layout::{Style, icons, palette};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::path::Path;
 use std::time::Duration;
 
@@ -25,6 +28,15 @@ pub const PAGE_SCHEMA: &str = include_str!("../../../schema/metaspec-page-1.sche
 
 /// The schema of `site.json`.
 pub const SITE_SCHEMA: &str = include_str!("../../../schema/metaspec-site-1.schema.json");
+
+/// The format of `index.json`, the site's list of its packs.
+pub const INDEX_FORMAT: &str = "metaspec-index/1";
+
+/// The schema of `index.json`.
+pub const INDEX_SCHEMA: &str = include_str!("../../../schema/metaspec-index-1.schema.json");
+
+/// The title of the site, on every page.
+pub const SITE_TITLE: &str = "metaspec";
 
 /// The module the generated pages import their components from.
 pub const UI_MODULE: &str = "@beyond10x/metaspec-ui";
@@ -83,9 +95,19 @@ impl Page {
         )
     }
 
-    /// The slug of the page: `/` for the pack page, else `/<id>` without a trailing `index`.
+    /// The slug of the page below the pack's route: `/` for the pack page, else `/<id>` without
+    /// a trailing `index`.
     pub fn slug(&self) -> String {
         slug_of(&self.id)
+    }
+
+    /// The title of the page, from its front matter.
+    pub fn title(&self) -> Value {
+        self.front
+            .iter()
+            .find(|(k, _)| *k == "title")
+            .map(|(_, v)| v.clone())
+            .unwrap_or(Value::Null)
     }
 
     /// The page as data, `metaspec-page/1`.
@@ -142,6 +164,16 @@ pub fn slug_of(id: &str) -> String {
     format!("/{id}")
 }
 
+/// The route of a page of a pack in the site: the pack's route (`/<pack>`) and the page's slug.
+pub fn route_of(base: &str, id: &str) -> String {
+    let slug = slug_of(id);
+    match (base.trim_end_matches('/'), slug.as_str()) {
+        ("", slug) => slug.to_string(),
+        (base, "/") => base.to_string(),
+        (base, slug) => format!("{base}{slug}"),
+    }
+}
+
 /// A Markdown link target from the page `from` to the page `to`: the relative path of its file.
 pub fn rel(from: &str, to: &str) -> String {
     let from_dir: Vec<&str> = {
@@ -178,6 +210,8 @@ pub struct Ctx<'a> {
     pub drawn: Drawn,
     /// The directory of each document class's pages.
     pub class_dirs: BTreeMap<String, String>,
+    /// The route of the pack's pages in the site, `/<pack>`.
+    pub base: String,
 }
 
 impl Ctx<'_> {
@@ -205,11 +239,12 @@ impl Ctx<'_> {
         None
     }
 
-    /// The route of a block for a component: its slug, or the planned page's with an anchor.
+    /// The route of a block for a component: its page's route, or the planned page's with an
+    /// anchor.
     pub fn block_route(&self, name: &str) -> Option<String> {
         self.block_target(name).map(|(id, a)| match a {
-            Some(a) => format!("{}#{a}", slug_of(&id)),
-            None => slug_of(&id),
+            Some(a) => format!("{}#{a}", route_of(&self.base, &id)),
+            None => route_of(&self.base, &id),
         })
     }
 
@@ -269,14 +304,25 @@ pub fn anchor(text: &str) -> String {
 #[derive(Debug, Clone, Default)]
 pub struct Built {
     pub files: BTreeMap<String, String>,
-    /// The number of pages of each kind.
+    /// The number of pages of each kind, over every pack.
     pub kinds: BTreeMap<&'static str, usize>,
+    /// Per pack, in the order of the site: its name and the number of its pages of each kind.
+    pub packs: Vec<(String, BTreeMap<&'static str, usize>)>,
 }
 
 impl Built {
+    /// The number of pages of the packs; the site's own page `/` is not counted.
     pub fn pages(&self) -> usize {
         self.kinds.values().sum()
     }
+}
+
+/// The pages of one pack: files relative to the pack's directory of the site, and its entry in
+/// `index.json`.
+struct PackBuilt {
+    files: BTreeMap<String, String>,
+    kinds: BTreeMap<&'static str, usize>,
+    entry: Value,
 }
 
 #[derive(Serialize)]
@@ -418,9 +464,32 @@ fn json_text(v: &Value) -> String {
     s
 }
 
-/// Builds every file of the docs of a loaded pack. The tool's `check` runs for a trusted pack
-/// only (`state` is the state directory with the trust file).
-pub fn build(pack: &Pack, state: Option<&Path>, deadline: Duration) -> Built {
+/// The check of a pack's documents in the site's list of packs: how many the pack's tool found
+/// valid, refused, or did not check, and one word for the pack. `refused` when the tool refused
+/// one document; `valid` when it checked every drawn document and refused none; else
+/// `not checked`.
+fn check_summary(drawn: &Drawn) -> Value {
+    let (mut valid, mut refused, mut unchecked) = (0usize, 0usize, 0usize);
+    for page in drawn.classes.iter().flat_map(|c| c.pages.iter()) {
+        match (page.check.state, &page.check.result) {
+            (CheckState::Ran, Some(r)) if r.valid => valid += 1,
+            (CheckState::Ran, Some(_)) | (CheckState::Refused, _) => refused += 1,
+            _ => unchecked += 1,
+        }
+    }
+    let status = if refused > 0 {
+        "refused"
+    } else if valid > 0 && unchecked == 0 {
+        "valid"
+    } else {
+        "not checked"
+    };
+    json!({"status": status, "valid": valid, "refused": refused, "not_checked": unchecked})
+}
+
+/// Builds the pages of one pack, routed below `base` (`/<pack>`). The tool's `check` runs for a
+/// trusted pack only (`state` is the state directory with the trust file).
+fn build_pack(pack: &Pack, state: Option<&Path>, deadline: Duration, base: &str) -> PackBuilt {
     let model = Model::new(pack);
     let kpis = kpis::read(pack);
     let mut planned: Vec<String> = Vec::new();
@@ -456,6 +525,7 @@ pub fn build(pack: &Pack, state: Option<&Path>, deadline: Duration) -> Built {
         planned,
         drawn,
         class_dirs,
+        base: base.to_string(),
     };
 
     let mut pages: Vec<Page> = Vec::new();
@@ -486,13 +556,12 @@ pub fn build(pack: &Pack, state: Option<&Path>, deadline: Duration) -> Built {
     let index = crate::documents::pack_page(&ctx, &pages);
     pages.insert(0, index);
 
-    let mut built = Built::default();
+    let mut files = BTreeMap::new();
+    let mut kinds = BTreeMap::new();
     for p in &pages {
-        *built.kinds.entry(p.kind).or_insert(0) += 1;
-        built.files.insert(format!("docs/{}.mdx", p.id), p.mdx());
-        built
-            .files
-            .insert(format!("pages/{}.json", p.id), json_text(&p.json()));
+        *kinds.entry(p.kind).or_insert(0) += 1;
+        files.insert(format!("docs/{}.mdx", p.id), p.mdx());
+        files.insert(format!("pages/{}.json", p.id), json_text(&p.json()));
     }
     let counts = json!({
         "blocks": pack.blocks.len(),
@@ -515,18 +584,135 @@ pub fn build(pack: &Pack, state: Option<&Path>, deadline: Duration) -> Built {
         "pages": pages.iter().map(|p| json!({
             "id": p.id,
             "kind": p.kind,
-            "slug": p.slug(),
-            "title": p.front.iter().find(|(k, _)| *k == "title").map(|(_, v)| v.clone()).unwrap_or(Value::Null),
+            "slug": route_of(base, &p.id),
+            "title": p.title(),
         })).collect::<Vec<_>>(),
         "presentation": presentation(&ctx),
     });
+    files.insert(String::from("site.json"), json_text(&site));
+    let entry = json!({
+        "pack": pack.manifest.pack,
+        "title": pack.manifest.title,
+        "summary": pack.manifest.summary,
+        "visibility": visibility(pack),
+        "source_url": pack.manifest.source_url,
+        "level": pack.manifest.level(),
+        "route": base,
+        "site": format!("{}/site.json", pack.manifest.pack),
+        "counts": counts,
+        "check": check_summary(&ctx.drawn),
+    });
+    PackBuilt {
+        files,
+        kinds,
+        entry,
+    }
+}
+
+/// The site's own page `/`: every pack with its summary, its counts and the check of its
+/// documents, a link to the pack's pages.
+fn index_page(entries: &[Value]) -> String {
+    let mut s = String::from("---\n");
+    s.push_str(&format!("title: {SITE_TITLE}\n"));
+    s.push_str(&format!(
+        "description: {}\n",
+        yaml("The docs of every specification pack of this site.")
+    ));
+    s.push_str("hide_table_of_contents: true\n---\n\n");
+    s.push_str("{/* Generated by metaspec docs build. Do not edit. */}\n\n");
+    s.push_str(&format!("# {SITE_TITLE}\n\n"));
+    s.push_str(&format!(
+        "{} on this site. Each has its building blocks, its documents and, where the pack has \
+         them, its KPIs and the findings of its tool.\n\n",
+        plural(entries.len(), "pack", "packs")
+    ));
+    s.push_str("| pack | what it holds | blocks | documents | KPIs | check |\n");
+    s.push_str("|---|---|---|---|---|---|\n");
+    for e in entries {
+        let n = |k: &str| e["counts"][k].as_u64().unwrap_or(0);
+        let check = &e["check"];
+        let count = |k: &str| check[k].as_u64().unwrap_or(0) as usize;
+        let status = check["status"].as_str().unwrap_or("not checked");
+        let parts: Vec<(usize, &str)> = [
+            ("refused", "refused"),
+            ("valid", "valid"),
+            ("not_checked", "not checked"),
+        ]
+        .iter()
+        .filter(|(k, _)| count(k) > 0)
+        .map(|(k, word)| (count(k), *word))
+        .collect();
+        let detail = match parts.as_slice() {
+            [] => format!("{status} (no document to check)"),
+            [(n, _)] => format!("{status} ({})", plural(*n, "document", "documents")),
+            _ => format!(
+                "{status} ({})",
+                parts
+                    .iter()
+                    .map(|(n, word)| format!("{n} {word}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        };
+        let _ = writeln!(
+            s,
+            "| [{}]({}) | {} | {} | {} | {} | {} |",
+            text(e["title"].as_str().unwrap_or("")),
+            e["route"].as_str().unwrap_or("/"),
+            text(e["summary"].as_str().unwrap_or("")),
+            n("blocks"),
+            n("documents"),
+            n("kpis"),
+            detail
+        );
+    }
+    s
+}
+
+/// Builds every file of one docs site over the loaded packs: per pack its pages under
+/// `<pack>/` (routed below `/<pack>`), the site's list of packs `index.json`, its page
+/// `_index/index.mdx` and `palette.css`. The packs are ordered by name. Refuses two packs of one name.
+pub fn build(packs: &[&Pack], state: Option<&Path>, deadline: Duration) -> Result<Built, String> {
+    let mut sorted: Vec<&Pack> = packs.to_vec();
+    sorted.sort_by(|a, b| a.manifest.pack.cmp(&b.manifest.pack));
+    if let Some(w) = sorted
+        .windows(2)
+        .find(|w| w[0].manifest.pack == w[1].manifest.pack)
+    {
+        return Err(format!(
+            "two packs are named {}; a site holds each pack once",
+            w[0].manifest.pack
+        ));
+    }
+    let mut built = Built::default();
+    let mut entries = Vec::new();
+    for pack in sorted {
+        let name = pack.manifest.pack.clone();
+        let one = build_pack(pack, state, deadline, &format!("/{name}"));
+        for (path, text) in one.files {
+            built.files.insert(format!("{name}/{path}"), text);
+        }
+        for (kind, n) in &one.kinds {
+            *built.kinds.entry(kind).or_insert(0) += n;
+        }
+        built.packs.push((name, one.kinds));
+        entries.push(one.entry);
+    }
+    let index = json!({
+        "format": INDEX_FORMAT,
+        "title": SITE_TITLE,
+        "packs": entries,
+    });
     built
         .files
-        .insert(String::from("site.json"), json_text(&site));
+        .insert(String::from("index.json"), json_text(&index));
+    built
+        .files
+        .insert(String::from("_index/index.mdx"), index_page(&entries));
     built
         .files
         .insert(String::from("palette.css"), palette_css());
-    built
+    Ok(built)
 }
 
 fn walk(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
@@ -572,13 +758,18 @@ pub fn check(out: &Path, built: &Built) -> Vec<String> {
     lines
 }
 
-/// Whether a directory is the output of an earlier docs build: it has a `site.json` of
+/// Whether a directory is the output of an earlier docs build: it has an `index.json` of
+/// format `metaspec-index/1`, or, written before one site held every pack, a `site.json` of
 /// format `metaspec-site/1`.
 fn is_output(out: &Path) -> bool {
-    std::fs::read_to_string(out.join("site.json"))
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .is_some_and(|v| v["format"] == SITE_FORMAT)
+    let format = |file: &str| {
+        std::fs::read_to_string(out.join(file))
+            .ok()
+            .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+            .and_then(|v| v["format"].as_str().map(String::from))
+    };
+    format("index.json").as_deref() == Some(INDEX_FORMAT)
+        || format("site.json").as_deref() == Some(SITE_FORMAT)
 }
 
 /// Writes every file that differs and removes the files it does not own. Refuses a directory
@@ -592,7 +783,7 @@ pub fn write(out: &Path, built: &Built) -> Result<Vec<String>, String> {
             .is_none();
         if !empty && !is_output(out) {
             return Err(format!(
-                "{} holds files and no site.json of a docs build; metaspec writes only into an empty directory or its own output",
+                "{} holds files and no index.json of a docs build; metaspec writes only into an empty directory or its own output",
                 out.display()
             ));
         }
