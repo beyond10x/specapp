@@ -7,7 +7,12 @@ title: 'A wide graph on the docs site: fit to width, zoom, pan, and follow one p
 summary: GraphView fits, zooms, pans and dims all but a selected part on the docs site; found by a consumer.
 relations:
 - depends_on: story:focus-pages
-revision: 1
+scope:
+- confidence: inferred
+  path: web/ui/src/GraphSwitch.tsx
+- confidence: inferred
+  path: web/ui/src/GraphView.tsx
+revision: 3
 ---
 # A wide graph on the docs site: fit to width, zoom, pan, and follow one part
 

@@ -11,6 +11,7 @@ relations:
 - depends_on: story:part-block-aliases
 - depends_on: story:collapsed-regions
 - depends_on: story:extends-inherits
+- depends_on: story:band-wrap
 scope:
 - confidence: inferred
   path: CHANGELOG.md
@@ -54,7 +55,7 @@ scope:
   path: scripts/acceptance.sh
 - confidence: inferred
   path: spec/domains/documents.yaml
-revision: 24
+revision: 25
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:54:29Z", actor: "human:operator", revision: 3}
@@ -84,3 +85,5 @@ fixture document writes one focus page per part, a focus page holds exactly the 
 neighbours and the links among them, each part on the document page links to its focus page, and
 `focus: false` writes none; the existing pages of both real packs stay byte for byte except for
 the added links, whose goldens are updated in the same change.
+
+It lands after story:band-wrap (D61, the consumer's gaps first): both edit `crates/metaspec-core/src/manifest.rs`, `crates/metaspec-layout/src/lib.rs`, `schema/metaspec-pack-1.schema.json`, `spec/domains/documents.yaml`, `fixtures/manifests/harbor.yaml` and the harbor goldens.

@@ -11,6 +11,7 @@ relations:
 - depends_on: story:part-block-aliases
 - depends_on: story:collapsed-regions
 - depends_on: story:extends-inherits
+- depends_on: story:band-wrap
 scope:
 - confidence: inferred
   path: CHANGELOG.md
@@ -52,7 +53,7 @@ scope:
   path: schema/metaspec-scene-1.schema.json
 - confidence: inferred
   path: spec/domains/documents.yaml
-revision: 23
+revision: 24
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 3}
@@ -81,3 +82,5 @@ a fixture view with `layout: matrix` and `targets: {in_degree: 2}` has one colum
 at least 2 incoming links, one row per caller of them, the link names in the cells, a finding on
 a link marked in its cell, and every other link listed below; the existing pages of both real
 packs stay byte for byte.
+
+It lands after story:band-wrap (D61, the consumer's gaps first): both edit `crates/metaspec-core/src/manifest.rs`, `crates/metaspec-layout/src/lib.rs`, `schema/metaspec-pack-1.schema.json`, `spec/domains/documents.yaml`, `fixtures/manifests/harbor.yaml` and the harbor goldens.

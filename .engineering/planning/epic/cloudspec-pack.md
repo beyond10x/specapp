@@ -5,7 +5,7 @@ kind: epic
 status: draft
 title: metaspec draws the architectures of cloudspec
 summary: A cloudspec manifest, containment by in and per, views by field and link pattern, collapsed regions, later runs.
-revision: 3
+revision: 4
 ---
 # metaspec draws the architectures of cloudspec
 
@@ -30,6 +30,11 @@ own repository; an architecture of about 100 parts and 200 links. Nothing of it 
   patterns (for example data, edge and messaging).
 - A region (`in:`) can be drawn collapsed, with the links that cross its border rolled up, and a
   drill-down to the region's own view.
+- Parts that sit in no region can be drawn collapsed too: one box per block, optionally split by
+  the value of a part field, with the count and the member names, the links rolled up and a
+  drill-down as for a region (story:block-groups).
+- A band of the layout `rows` can wrap at a set number of boxes, so a view of many boxes in one
+  layer is not one row wide (story:band-wrap).
 - The page of a document shows the warnings of cloudspec's check as findings that do not gate
   (story:cloudspec-warnings).
 - A part whose block word names an entity inside a cloudspec block (for example `group`,

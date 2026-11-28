@@ -5,7 +5,16 @@ kind: story
 status: draft
 title: 'A placement view: the parts of one pack''s document inside the units of another''s'
 summary: Draws a document's parts inside the units of a translated document of another pack, from a placement file; found by a consumer.
-revision: 2
+relations:
+- depends_on: story:band-wrap
+scope:
+- confidence: inferred
+  path: crates/metaspec-core/src/manifest.rs
+- confidence: inferred
+  path: crates/metaspec-docs/src/documents.rs
+- confidence: inferred
+  path: schema/metaspec-pack-1.schema.json
+revision: 3
 ---
 # A placement view: the parts of one pack's document inside the units of another's
 
