@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
 // One test for the page / and one per generated page of each fixture pack, all in the one site of
-// both packs: at both viewports and in both themes, axe-core finds no serious or critical
-// violation, the page does not scroll sideways, the navbar's title is the site's (metaspec) and
-// each pack is a navbar item with its own title, and every component the page names is drawn.
+// both packs: in both themes axe-core finds no serious or critical violation (at 1440x900), and at
+// both viewports the page does not scroll sideways, the navbar's title is the site's (metaspec)
+// and each pack is a navbar item with its own title, and every component the page names is drawn.
 // The page / lists every pack with a link to its pages.
 
 const viewports = [
@@ -52,7 +52,14 @@ const marker: Record<string, string> = {
   ResultSections: '.sa-result, .sa-result__none',
 };
 
-/** Opens a route in each theme and viewport and runs the gates every page shares, then `more`. */
+/**
+ * Opens a route in each theme and viewport and runs the gates every page shares, then `more`.
+ * axe-core runs once per theme, at the first viewport: both viewports are wider than the
+ * desktop breakpoint of the theme (996px), so they render the same elements with the same
+ * styles; axe at 1280x800 found no violation of any impact that 1440x900 did not, on any page
+ * or theme. The second viewport gates the layout: the navbar is visible and complete, every
+ * component the page names is visible, and the page does not scroll sideways.
+ */
 async function gate(
   browser: import('@playwright/test').Browser,
   baseURL: string | undefined,
@@ -67,9 +74,10 @@ async function gate(
     await page.setViewportSize(viewports[0]);
     await page.goto(`${route}?docusaurus-theme=${theme}`, {waitUntil: 'load'});
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-    for (const viewport of viewports) {
+    for (const [n, viewport] of viewports.entries()) {
       await page.setViewportSize(viewport);
       const where = `${name} ${theme} ${viewport.width}x${viewport.height}`;
+      await expect(page.locator('.navbar__title'), `${where}: the navbar title`).toBeVisible();
       await expect(page.locator('.navbar__title'), `${where}: the navbar title`).toHaveText(index.title);
       const items = page.locator('.navbar__items:not(.navbar__items--right) a.navbar__link');
       await expect(items, `${where}: one navbar item per pack`).toHaveText(index.packs.map((p) => p.title));
@@ -79,7 +87,15 @@ async function gate(
       await more(page, where);
       const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(sideways, `${where}: the page scrolls sideways`).toBeLessThanOrEqual(0);
-      const result = await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      if (n > 0) continue;
+      // axe.run in the page itself: the default mode also opens a blank page per call to
+      // collect the results of frames, and the site has no frame. Only violations are reported
+      // in full; passes and incomplete results are not read.
+      const result = await new AxeBuilder({page})
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .options({resultTypes: ['violations']})
+        .setLegacyMode()
+        .analyze();
       const bad = result.violations
         .filter((v) => v.impact === 'serious' || v.impact === 'critical')
         .map((v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`);

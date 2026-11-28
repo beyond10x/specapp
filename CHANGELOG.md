@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `task ux` keeps its test budget: axe-core runs once per page and theme, at 1440x900, and in the
+  page itself (`setLegacyMode`, no blank page per call); 1280x800 checks the layout (no sideways
+  scroll, the navbar and every component of the page visible). On a host at load 26 to 51 the
+  gates step went from 100 s (and two runs of three cut off at 120 s) to 30 to 53 s, the slowest
+  test from 12.2 s to under 4.5 s.
+
 - One docs site for every pack, on the owner's word about the orgspec site ("the header says
   orgspec all the time, but this is now about metaspec"). The title and header are `metaspec`
   on every page; the navbar has one item per pack with its title, each pack has its own sidebar

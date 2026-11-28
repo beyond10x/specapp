@@ -121,7 +121,7 @@ tasks:
       - cd web/ui && {{.SLOT}} npx vitest run --maxWorkers=4
 
   ux:
-    desc: The UX lane, not part of check. Builds the one docs site of both fixture packs and runs the Playwright gates on every page at 1440x900 and 1280x800, light and dark, with no serious or critical axe-core violation (scripts/ux.sh). Needs task web:install and a Chromium for Playwright.
+    desc: The UX lane, not part of check. Builds the one docs site of both fixture packs and runs the Playwright gates on every page, light and dark, with no serious or critical axe-core violation at 1440x900 and no sideways scroll at 1440x900 and 1280x800 (scripts/ux.sh). Needs task web:install and a Chromium for Playwright.
     cmds:
       - scripts/ux.sh
 

@@ -78,10 +78,13 @@ other.
   `web/*/src`, not the manifests). A command of the gate that is no cargo call starts with
   `{{.SLOT}}`, which is `slot` where slot is installed and empty in CI.
 - `task ux` (`scripts/ux.sh`) is the UX lane, outside `task check`: it builds the one site of both
-  fixture packs and runs the Playwright and axe-core gates (`/` and every page, 1440x900 and
-  1280x800, both themes, no serious or critical violation, no sideways scroll, the navbar title
-  metaspec and one navbar item per pack, `/` lists every pack; a test is killed at 60 s, the run
-  at 120 s). Run it after a change under `web/` or of the generated pages.
+  fixture packs and runs the Playwright and axe-core gates (`/` and every page, both themes, no
+  serious or critical violation at 1440x900; at 1440x900 and 1280x800 no sideways scroll, the
+  navbar title metaspec and one navbar item per pack, every component of the page visible, `/`
+  lists every pack; a test is killed at 60 s, the run at 120 s, the gates step stays under 60 s).
+  axe runs once per page and theme, in the page (`setLegacyMode`): the default mode opens a blank
+  page per call, and four calls per page cost the step 100 s on a loaded host. Run it after a
+  change under `web/` or of the generated pages.
 - `web/` is one npm workspace (`ui`, `docusaurus`, `site`). Its packages are private and never
   published. `@beyond10x/docs-system` is a git dependency of the workspace root, pinned at the
   commit agenticspec uses; `.npmrc` allows git for the root only. `npm ci` runs without slot;

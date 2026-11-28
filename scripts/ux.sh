@@ -1,10 +1,10 @@
 #!/bin/sh
 # ux.sh: the UX lane. Builds the packages of web/, builds the one docs site of both fixture packs
 # from its committed pages (fixtures/expected/site) into web/site/build/fixtures, then runs the
-# Playwright gates on it: the page / and every page of each pack at 1440x900 and 1280x800, light
-# and dark, no serious or critical axe-core violation, no sideways scroll; the navbar title is
-# metaspec on every page, each pack is a navbar item, and / lists every pack. A test is killed at
-# 60 s, the run at 120 s.
+# Playwright gates on it: the page / and every page of each pack, light and dark, no serious or
+# critical axe-core violation (at 1440x900), and at 1440x900 and 1280x800 no sideways scroll, the
+# navbar title is metaspec on every page, each pack is a navbar item, and / lists every pack. A
+# test is killed at 60 s, the run at 120 s.
 #
 #   scripts/ux.sh
 #
