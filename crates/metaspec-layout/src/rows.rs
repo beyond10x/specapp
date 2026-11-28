@@ -636,11 +636,16 @@ pub fn layout(
     }
 }
 
-/// The one line of a part drawn inside its host: its id and block.
+/// The one line of a part drawn inside its host: its id and block, and the part it sits in when
+/// it has one besides its host.
 fn child_label(graph: &Graph, style: &Style, part: usize) -> String {
     let p = &graph.parts[part];
-    match &p.block {
+    let mut label = match &p.block {
         Some(b) => format!("{} · {}", p.id, style.word(b)),
         None => p.id.clone(),
+    };
+    if let Some(inside) = &p.inside {
+        label.push_str(&format!(" · in {inside}"));
     }
+    label
 }

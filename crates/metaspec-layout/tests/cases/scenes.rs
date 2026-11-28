@@ -4,6 +4,7 @@
 //! or a link of the document is marked in a scene.
 
 use super::common::{drawn, golden, schema_errors};
+use metaspec_core::manifest::Layout;
 use metaspec_core::tool::Subject;
 use metaspec_layout::{layout, scene, select, svg};
 use std::collections::BTreeSet;
@@ -176,6 +177,75 @@ fn every_finding_about_a_part_or_link_of_the_document_is_marked_and_numbered() {
     }
     assert!(marked >= 4, "{marked}");
     assert!(links >= 2, "a link finding in each fixture pack");
+}
+
+#[test]
+fn contain_both_nested_draws_the_part_inside_its_in_container_and_notes_its_per() {
+    let mut drawn_inside = 0;
+    for d in drawn() {
+        for view in d.views.iter().filter(|v| v.layout == Layout::Nested) {
+            let s = layout(&d.graph, view, &d.style, &d.findings);
+            for b in s.boxes.iter().filter(|b| !b.ghost) {
+                let part = d.graph.part(&b.id).unwrap();
+                let (Some(inside), Some(per)) = (&part.inside, &part.per) else {
+                    continue;
+                };
+                if !s.boxes.iter().any(|o| &o.id == inside) {
+                    continue;
+                }
+                assert_eq!(
+                    b.parent.as_deref(),
+                    Some(inside.as_str()),
+                    "{} {}: {}",
+                    d.graph.document,
+                    view.id,
+                    b.id
+                );
+                assert!(
+                    b.lines.contains(&format!("per {per}")),
+                    "{} {}: {} {:?}",
+                    d.graph.document,
+                    view.id,
+                    b.id,
+                    b.lines
+                );
+                drawn_inside += 1;
+            }
+        }
+    }
+    assert!(
+        drawn_inside >= 1,
+        "a nested view of a fixture document shows a part both in and per another"
+    );
+}
+
+#[test]
+fn contain_both_rows_draws_the_part_inside_its_per_host_and_notes_its_in() {
+    let mut hosted = 0;
+    for d in drawn() {
+        for view in d.views.iter().filter(|v| v.layout == Layout::Rows) {
+            let s = layout(&d.graph, view, &d.style, &d.findings);
+            for b in s.boxes.iter().filter(|b| !b.ghost && b.parent.is_some()) {
+                let part = d.graph.part(&b.id).unwrap();
+                let (Some(inside), Some(per)) = (&part.inside, &part.per) else {
+                    continue;
+                };
+                assert_eq!(b.parent.as_deref(), Some(per.as_str()), "{}", b.id);
+                assert!(
+                    b.label.ends_with(&format!(" · in {inside}")),
+                    "{} {}: {}",
+                    d.graph.document,
+                    view.id,
+                    b.label
+                );
+                hosted += 1;
+            }
+        }
+    }
+    assert!(
+        hosted >= 1,
+        "a rows view of a fixture document shows a part both in and per another"
+    );
 }
 
 #[test]

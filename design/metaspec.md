@@ -630,6 +630,7 @@ Q8 below kept their defaults.
 
 - `contain` is `{ in: <field> }` or `{ per: <field> }`, exactly one key; the value names the
   part's field. The first draft wrote `{ field: in }` for orgspec, which the schema refuses.
+  Both keys at once since 2026-11-28 ("Decided: containment by `in` and `per` at once").
 - `visibility` is required: a manifest that forgets it is refused rather than published.
 - `extends` is the name of a pack, not a path. Where that pack is checked out is given when
   metaspec is started, so a manifest names no path outside its pack.
@@ -1143,6 +1144,25 @@ metaspec", "or navigation". One site holds every pack; this replaces the site pe
   value of `schema/metaspec-*.schema.json` (read with jq) before it searches, and its last line
   says how many it left out (`37 word(s) of 2 pack(s), 0 of them metaspec's own, none in the
   code`); `scripts/check-vocabulary.test.sh` holds both sides.
+
+## Decided: containment by `in` and `per` at once (2026-11-28)
+
+`story:contain-in-and-per` of `epic:cloudspec-pack`: cloudspec places one part `in` a part and
+`per` another at once. This replaces "exactly one key" of wave 1 and "`inside` or `per`" of
+wave 2.
+
+- The manifest's `contain` is `{ in: <field> }`, `{ per: <field> }` or `{ in: <field>, per:
+  <field> }` (`metaspec-pack/1`, at least one key). The single forms read as before.
+- `metaspec-graph/1` is unchanged in shape: a part keeps `inside` and `per` both. `groups` stays
+  one group per containing part and word: a part that holds parts by `in` and by `per` has an
+  `in` group and a `per` group, the `in` group first, so `contain` stays `in` or `per`.
+- `nested` draws a part with both inside its `in` container (its `per` container when the `in`
+  one is not shown) and writes the other as a line of its box, `per <part>`. `rows` draws it
+  inside its `per` host as before, and its line there ends `· in <part>`. A part with one of the
+  two is drawn as before, so no existing scene changes.
+- The table of parts on a document's page says `in <part>, per <part>`.
+- The fixture pack harbor holds it: `contain: { in: within, per: one_per }` and the plan
+  `harbors/lagoon.yaml`, whose berth sits in the quay and exists once per ferry.
 
 ## Open questions
 
