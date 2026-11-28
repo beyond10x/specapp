@@ -7,7 +7,7 @@ import {cleanup, fireEvent, render} from '@testing-library/react';
 import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import {join, relative, resolve} from 'node:path';
 import type {ComponentType} from 'react';
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterAll, afterEach, describe, expect, it} from 'vitest';
 import * as ui from '../src/index.js';
 import type {
   FindingsData,
@@ -48,6 +48,13 @@ function tags(mdx: string, page: {data: Record<string, unknown>}): Tag[] {
 }
 
 afterEach(cleanup);
+
+let regionsDrawn = 0;
+
+afterAll(() => {
+  // The fixture site holds collapsed regions, so the test of their links checks something.
+  expect(regionsDrawn).toBeGreaterThan(1);
+});
 
 describe.each(packs)('pack %s', (pack) => {
   const root = join(expected, pack);
@@ -131,6 +138,31 @@ describe.each(packs)('pack %s', (pack) => {
       }
       cleanup();
     }
+  });
+
+  it('the box of a collapsed region links the view of its parts on the same page', () => {
+    let regions = 0;
+    for (const file of walk(join(root, 'pages'))) {
+      const page = JSON.parse(readFileSync(file, 'utf8'));
+      const scenes = Object.entries(page.data)
+        .filter(([k]) => k.startsWith('scene-'))
+        .flatMap(([, value]) => ('views' in (value as object) ? (value as GraphSwitchData).views : [value as Scene]));
+      for (const scene of scenes) {
+        const collapsed = scene.boxes.filter((b) => b.collapsed);
+        const {container} = render(<ui.GraphView data={scene} presentation={site.presentation} />);
+        const where = `${relative(root, file)} ${scene.view.id}`;
+        expect(container.querySelectorAll('g.sa-scene__box--collapsed').length, where).toBe(collapsed.length);
+        for (const b of collapsed) {
+          const link = container.querySelector(`a[href="#view-${b.collapsed!.view}"]`);
+          expect(link, `${where} ${b.id}`).not.toBeNull();
+          expect(link!.querySelector(`g.sa-scene__box[data-id="${b.id}"]`), `${where} ${b.id}`).not.toBeNull();
+          expect(scenes.some((s) => s.view.id === b.collapsed!.view), `${where}: the page draws ${b.collapsed!.view}`).toBe(true);
+          regions += 1;
+        }
+        cleanup();
+      }
+    }
+    regionsDrawn += regions;
   });
 
   it('a view with hubs and its edges view are one drawing with a switch', () => {

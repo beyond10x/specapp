@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T19:39:03Z",
+  "actor": "human:operator",
+  "artifact": "story:collapsed-regions",
+  "kind": "story",
+  "revision": 28,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "task check and three-pack acceptance on b28598f: 202 tests, 135 scenarios, 16 vitest, 154 rows equal"
+  }
+}

@@ -13,6 +13,11 @@
 //! hub as a badge on its caller's box ([`Elision`]); [`views_of`] follows it with the view
 //! `<id>/edges`, the same view with every link an edge.
 //!
+//! A view with `collapse` draws each collapsed region (a shown part a shown part sits `in`) as
+//! one box with the number of parts inside, rolls the links across its border up by far end and
+//! name with a count ([`Selection::collapsed`]), and [`views_of`] follows it with the view
+//! `<id>/<region>` of the region and its parts.
+//!
 //! The same input gives the same bytes: no hash order, no clock, coordinates rounded to one
 //! decimal. This crate knows no pack: names, colours and icons come from the manifest.
 
@@ -25,7 +30,7 @@ pub mod svg;
 pub mod text;
 
 use metaspec_core::graph::{Graph, Part};
-use metaspec_core::manifest::{DocumentClass, Hubs, Layout, RowsBy, View};
+use metaspec_core::manifest::{Collapse, DocumentClass, Hubs, Layout, RowsBy, View};
 use metaspec_core::pack::Pack;
 use metaspec_core::tool::{Finding, Subject};
 use scene::{LegendEntry, Mark, Scene, SceneBox, SceneView};
@@ -172,6 +177,12 @@ pub struct ViewSpec {
     /// The parts drawn apart, each link to them a badge on its caller; none draws every link as
     /// an edge.
     pub hubs: Option<Hubs>,
+    /// The regions drawn collapsed; none draws every part.
+    pub collapse: Option<Collapse>,
+    /// For the view of one collapsed region, `<view>/<region>`: the region, whose parts it shows.
+    pub region: Option<String>,
+    /// The id of the declared view this view is made from (`<id>/edges`, `<id>/<region>`).
+    pub of: Option<String>,
     pub implicit: bool,
 }
 
@@ -185,6 +196,9 @@ impl From<&View> for ViewSpec {
             blocks: view.blocks.clone(),
             carries: view.carries.clone(),
             hubs: view.hubs.clone(),
+            collapse: view.collapse.clone(),
+            region: None,
+            of: None,
             implicit: false,
         }
     }
@@ -201,15 +215,40 @@ pub fn views_of(class: &DocumentClass, graph: &Graph) -> Vec<ViewSpec> {
     let mut views: Vec<ViewSpec> = Vec::new();
     for view in &class.views {
         let spec = ViewSpec::from(view);
-        let elides = !elided(graph, &spec, &select(graph, &spec)).is_empty();
+        let shown = select(graph, &spec);
+        // Elision is decided on the links the view draws: after the roll-up, as `layout` does.
+        let elides = if shown.collapsed.is_empty() {
+            !elided(graph, &spec, &shown).is_empty()
+        } else {
+            let folded = fold(graph, &shown);
+            !elided(&folded.graph, &spec, &folded.selection).is_empty()
+        };
         let edges = elides.then(|| ViewSpec {
             id: format!("{}/edges", spec.id),
             title: format!("{}, every link an edge", spec.title),
             hubs: None,
+            of: Some(spec.id.clone()),
             ..spec.clone()
         });
+        let regions: Vec<ViewSpec> = shown
+            .collapsed
+            .iter()
+            .map(|r| {
+                let region = &graph.parts[r.part].id;
+                ViewSpec {
+                    id: format!("{}/{region}", spec.id),
+                    title: format!("{}: region {region}", spec.title),
+                    hubs: None,
+                    collapse: None,
+                    region: Some(region.clone()),
+                    of: Some(spec.id.clone()),
+                    ..spec.clone()
+                }
+            })
+            .collect();
         views.push(spec);
         views.extend(edges);
+        views.extend(regions);
     }
     let mut parts = BTreeSet::new();
     let mut links = BTreeSet::new();
@@ -233,6 +272,9 @@ pub fn views_of(class: &DocumentClass, graph: &Graph) -> Vec<ViewSpec> {
             blocks: Vec::new(),
             carries: Vec::new(),
             hubs: None,
+            collapse: None,
+            region: None,
+            of: None,
             implicit: true,
         });
     }
@@ -246,10 +288,105 @@ pub struct Selection {
     pub parts: Vec<usize>,
     pub links: Vec<usize>,
     pub ghosts: Vec<String>,
+    /// The regions drawn collapsed. `parts` holds each region and none of the parts inside it;
+    /// `links` holds no link between two parts of one region.
+    pub collapsed: Vec<Region>,
+}
+
+pub use metaspec_core::manifest::REGION_EDGES;
+
+/// One collapsed region of what a view shows.
+#[derive(Debug, Clone, Default)]
+pub struct Region {
+    /// The region, an index of the graph's parts.
+    pub part: usize,
+    /// The shown parts inside it through `in`, at any depth, in the graph's order.
+    pub inside: Vec<usize>,
+    /// The shown links between two of the region's parts or a part and the region.
+    pub links: Vec<usize>,
+}
+
+/// For each of `shown` (indices of the graph's parts) that sits `in` another of them: that one.
+fn in_parents(graph: &Graph, shown: &[usize]) -> BTreeMap<usize, usize> {
+    let mut index: BTreeMap<&str, usize> = BTreeMap::new();
+    for &i in shown {
+        index.entry(graph.parts[i].id.as_str()).or_insert(i);
+    }
+    shown
+        .iter()
+        .filter_map(|&i| {
+            let holder = *index.get(graph.parts[i].inside.as_deref()?)?;
+            (holder != i).then_some((i, holder))
+        })
+        .collect()
+}
+
+/// The parts `i` sits in through `in`, nearest first; a cycle is cut where it closes.
+fn ancestors(parents: &BTreeMap<usize, usize>, i: usize) -> Vec<usize> {
+    let mut out = Vec::new();
+    let mut cur = parents.get(&i).copied();
+    while let Some(p) = cur {
+        if p == i || out.contains(&p) {
+            break;
+        }
+        out.push(p);
+        cur = parents.get(&p).copied();
+    }
+    out
+}
+
+/// The regions of `shown` that `collapse` collapses, each with the parts inside it. A region is
+/// a shown part that a shown part sits `in`; a region inside a collapsed region is inside its
+/// box and not a region of its own.
+///
+/// A part whose id is [`REGION_EDGES`] is not collapsed: its view would take the id of the view
+/// `<id>/edges` of a view with hubs. `metaspec pack check` names it (`view_region_edges`).
+fn regions(graph: &Graph, shown: &[usize], collapse: &Collapse) -> Vec<Region> {
+    let parents = in_parents(graph, shown);
+    let holders: BTreeSet<usize> = parents.values().copied().collect();
+    let named: BTreeSet<usize> = holders
+        .iter()
+        .copied()
+        .filter(|&r| {
+            let part = &graph.parts[r];
+            if part.id == REGION_EDGES {
+                return false;
+            }
+            match collapse {
+                Collapse::Every(_) => ancestors(&parents, r).is_empty(),
+                Collapse::Parts(ids) => ids.contains(&part.id),
+                Collapse::Blocks(c) => part.block.as_ref().is_some_and(|b| c.blocks.contains(b)),
+            }
+        })
+        .collect();
+    let outer: Vec<usize> = named
+        .iter()
+        .copied()
+        .filter(|&r| !ancestors(&parents, r).iter().any(|a| named.contains(a)))
+        .collect();
+    let mut out: Vec<Region> = outer
+        .iter()
+        .map(|&part| Region {
+            part,
+            ..Region::default()
+        })
+        .collect();
+    for &i in shown {
+        if let Some(k) = ancestors(&parents, i)
+            .iter()
+            .find_map(|a| outer.iter().position(|r| r == a))
+        {
+            out[k].inside.push(i);
+        }
+    }
+    out.sort_by_key(|r| r.part);
+    out
 }
 
 /// The parts of the view's blocks (every part when it names none) and the links of the view's
-/// names (every link when it names none) whose ends are both shown or are no part at all.
+/// names (every link when it names none) whose ends are both shown or are no part at all. The
+/// view of a region shows the region and the parts inside it; a view with `collapse` shows a
+/// collapsed region without the parts inside it, which [`Selection::collapsed`] lists.
 pub fn select(graph: &Graph, view: &ViewSpec) -> Selection {
     let shows_block = |part: &Part| {
         view.blocks.is_empty()
@@ -258,9 +395,21 @@ pub fn select(graph: &Graph, view: &ViewSpec) -> Selection {
                 .as_ref()
                 .is_some_and(|b| view.blocks.iter().any(|v| v == b))
     };
-    let parts: Vec<usize> = (0..graph.parts.len())
+    let mut parts: Vec<usize> = (0..graph.parts.len())
         .filter(|&i| shows_block(&graph.parts[i]))
         .collect();
+    if let Some(region) = &view.region {
+        let parents = in_parents(graph, &parts);
+        let r = parts
+            .iter()
+            .copied()
+            .find(|&i| &graph.parts[i].id == region);
+        parts.retain(|&i| Some(i) == r || r.is_some_and(|r| ancestors(&parents, i).contains(&r)));
+    }
+    let mut collapsed = match &view.collapse {
+        Some(collapse) => regions(graph, &parts, collapse),
+        None => Vec::new(),
+    };
     let shown = |name: &str| parts.iter().any(|&i| graph.parts[i].id == name);
     let exists = |name: &str| graph.parts.iter().any(|p| p.id == name);
     let mut links = Vec::new();
@@ -282,6 +431,20 @@ pub fn select(graph: &Graph, view: &ViewSpec) -> Selection {
         if !fine {
             continue;
         }
+        let region_of = |end: Option<&str>| {
+            collapsed.iter().position(|r| {
+                end.is_some_and(|name| {
+                    graph.parts[r.part].id == name
+                        || r.inside.iter().any(|&k| graph.parts[k].id == name)
+                })
+            })
+        };
+        if let (Some(a), Some(b)) = (region_of(ends[0]), region_of(ends[1]))
+            && a == b
+        {
+            collapsed[a].links.push(i);
+            continue;
+        }
         links.push(i);
         for end in ends {
             let name = end.unwrap_or("?");
@@ -290,10 +453,16 @@ pub fn select(graph: &Graph, view: &ViewSpec) -> Selection {
             }
         }
     }
+    let hidden: BTreeSet<usize> = collapsed
+        .iter()
+        .flat_map(|r| r.inside.iter().copied())
+        .collect();
+    parts.retain(|i| !hidden.contains(i));
     Selection {
         parts,
         links,
         ghosts,
+        collapsed,
     }
 }
 
@@ -301,13 +470,213 @@ pub fn select(graph: &Graph, view: &ViewSpec) -> Selection {
 /// number is its position in that list, from 1.
 pub fn layout(graph: &Graph, view: &ViewSpec, style: &Style, findings: &[Finding]) -> Scene {
     let selection = select(graph, view);
-    let (_, marked) = numbers(findings);
-    let (kept, elision) = elide(graph, view, &selection, style, &marked);
+    if selection.collapsed.is_empty() {
+        return draw(graph, view, style, findings, &selection, None);
+    }
+    let folded = fold(graph, &selection);
+    draw(
+        &folded.graph,
+        view,
+        style,
+        findings,
+        &folded.selection,
+        Some((&selection, &folded)),
+    )
+}
+
+/// A graph and what a view shows of it with each collapsed region's border links rolled up.
+struct Folded {
+    /// The graph with one link more per rolled-up edge, after its own links.
+    graph: Graph,
+    /// What the view shows, with the rolled-up links in place of the links they stand for.
+    selection: Selection,
+    /// By the index of a rolled-up link: the links it stands for.
+    rolled: BTreeMap<usize, Vec<usize>>,
+}
+
+/// The drawn ends of a link and its name: what a rolled-up edge is one per.
+type Ends = (Option<String>, Option<String>, Option<String>);
+
+/// Rolls up the links of what a view shows that end at a collapsed region or a part inside
+/// one: such a link is drawn from or to the region's box, and the links with the same two
+/// ends and name are one link, `<from>-><to>:<name>` of the ends drawn.
+fn fold(graph: &Graph, sel: &Selection) -> Folded {
+    let mut owner: BTreeMap<&str, usize> = BTreeMap::new();
+    for r in &sel.collapsed {
+        owner.insert(graph.parts[r.part].id.as_str(), r.part);
+        for &i in &r.inside {
+            owner.insert(graph.parts[i].id.as_str(), r.part);
+        }
+    }
+    let mut out = graph.clone();
+    let mut selection = sel.clone();
+    selection.links.clear();
+    let mut rolled: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    let mut groups: BTreeMap<Ends, usize> = BTreeMap::new();
+    for &li in &sel.links {
+        let link = &graph.links[li];
+        let end = |name: &Option<String>| {
+            let drawn = name.as_deref().and_then(|n| owner.get(n));
+            (
+                drawn.is_some(),
+                drawn.map_or_else(|| name.clone(), |&r| Some(graph.parts[r].id.clone())),
+            )
+        };
+        let ((af, from), (at, to)) = (end(&link.from), end(&link.to));
+        if !af && !at {
+            selection.links.push(li);
+            continue;
+        }
+        let key = (from.clone(), to.clone(), link.carries.clone());
+        if let Some(&k) = groups.get(&key) {
+            rolled.entry(k).or_default().push(li);
+            continue;
+        }
+        let shown = |v: &Option<String>| v.clone().unwrap_or_else(|| String::from("?"));
+        out.links.push(metaspec_core::graph::Link {
+            id: format!("{}->{}:{}", shown(&from), shown(&to), shown(&link.carries)),
+            from,
+            to,
+            carries: link.carries.clone(),
+            fields: Default::default(),
+            added_by: None,
+            markers: Vec::new(),
+        });
+        let k = out.links.len() - 1;
+        groups.insert(key, k);
+        rolled.insert(k, vec![li]);
+        selection.links.push(k);
+    }
+    Folded {
+        graph: out,
+        selection,
+        rolled,
+    }
+}
+
+/// The text of a collapsed region's box: its parts inside, and its findings inside when it has.
+fn region_lines(parts: usize, findings: usize) -> Vec<String> {
+    let mut lines = vec![if parts == 1 {
+        String::from("1 part inside")
+    } else {
+        format!("{parts} parts inside")
+    }];
+    if findings > 0 {
+        lines.push(if findings == 1 {
+            String::from("1 finding inside")
+        } else {
+            format!("{findings} findings inside")
+        });
+    }
+    lines
+}
+
+/// Lays out what a view shows. With `folded`, the selection before the fold and the fold: the
+/// collapsed regions' boxes and the rolled-up edges say what they stand for.
+fn draw(
+    graph: &Graph,
+    view: &ViewSpec,
+    style: &Style,
+    findings: &[Finding],
+    selection: &Selection,
+    folded: Option<(&Selection, &Folded)>,
+) -> Scene {
+    let (by_part, by_link) = numbers(findings);
+    let mut marked = by_link.clone();
+    // Per collapsed region: its box's id, the parts inside and the findings inside.
+    let mut regions: Vec<(String, usize, Vec<usize>)> = Vec::new();
+    if let Some((before, f)) = folded {
+        for (&k, members) in &f.rolled {
+            let mut ns: Vec<usize> = members
+                .iter()
+                .filter_map(|&li| by_link.get(graph.links[li].id.as_str()))
+                .flatten()
+                .copied()
+                .collect();
+            ns.sort_unstable();
+            marked.insert(graph.links[k].id.as_str(), ns);
+        }
+        for r in &before.collapsed {
+            let mut ns: Vec<usize> = r
+                .inside
+                .iter()
+                .filter_map(|&i| by_part.get(graph.parts[i].id.as_str()))
+                .chain(
+                    r.links
+                        .iter()
+                        .filter_map(|&li| by_link.get(graph.links[li].id.as_str())),
+                )
+                .flatten()
+                .copied()
+                .collect();
+            ns.sort_unstable();
+            ns.dedup();
+            regions.push((graph.parts[r.part].id.clone(), r.inside.len(), ns));
+        }
+    }
+    let counts: BTreeMap<usize, usize> = folded
+        .map(|(_, f)| f.rolled.iter().map(|(&k, m)| (k, m.len())).collect())
+        .unwrap_or_default();
+    let (kept, mut elision) = elide(graph, view, selection, style, &marked, &counts);
+    elision.counts = counts;
+    if folded.is_some() {
+        for (id, parts, ns) in &regions {
+            elision
+                .lines
+                .insert(id.clone(), region_lines(*parts, ns.len()));
+        }
+    }
     let mut scene = match view.layout {
         Layout::Rows => rows::layout(graph, view, style, &kept, &marked, &elision),
         Layout::Nested => nested::layout(graph, style, &kept, &marked, &elision),
     };
     place_badges(&mut scene, graph, style, &elision);
+    if let Some((_, f)) = folded {
+        let base = view.of.as_deref().unwrap_or(&view.id);
+        for b in scene.boxes.iter_mut().filter(|b| !b.ghost) {
+            let Some((_, parts, ns)) = regions.iter().find(|(id, _, _)| id == &b.id) else {
+                continue;
+            };
+            let drill = format!("{base}/{}", b.id);
+            b.title.push_str(&format!(
+                "\n{}, drawn in the view {drill}",
+                region_lines(*parts, ns.len()).join(", ")
+            ));
+            b.collapsed = Some(scene::Collapsed {
+                parts: *parts,
+                view: drill,
+                findings: ns.clone(),
+            });
+        }
+        // A rolled-up link, drawn as an edge or as a badge, names the links it stands for.
+        let rolled = |id: &str| -> Option<(usize, Vec<String>, String)> {
+            let (_, members) = f.rolled.iter().find(|(k, _)| graph.links[**k].id == id)?;
+            let ids: Vec<String> = members
+                .iter()
+                .map(|&li| graph.links[li].id.clone())
+                .collect();
+            let title = format!(
+                "{} across the border of a collapsed region:\n{}",
+                if ids.len() == 1 {
+                    String::from("1 link")
+                } else {
+                    format!("{} links", ids.len())
+                },
+                ids.join("\n")
+            );
+            Some((ids.len(), ids, title))
+        };
+        for e in &mut scene.edges {
+            if let Some((n, ids, title)) = rolled(&e.id) {
+                (e.count, e.links, e.title) = (Some(n), ids, title);
+            }
+        }
+        for b in &mut scene.badges {
+            if let Some((n, ids, title)) = rolled(&b.id) {
+                (b.count, b.links, b.title) = (Some(n), ids, title);
+            }
+        }
+    }
     scene.format = scene::FORMAT.to_string();
     scene.document = graph.document.clone();
     scene.view = SceneView {
@@ -321,8 +690,9 @@ pub fn layout(graph: &Graph, view: &ViewSpec, style: &Style, findings: &[Finding
     scene
 }
 
-/// What a view's hubs change in its drawing: the hubs, drawn once and apart, and per caller the
-/// links to a hub drawn as badges on the caller's box.
+/// What a view's hubs and collapsed regions change in its drawing: the hubs, drawn once and
+/// apart, and per caller the links to a hub drawn as badges on the caller's box; the number of
+/// links a rolled-up edge stands for, and the lines of a collapsed region's box.
 #[derive(Debug, Clone, Default)]
 pub struct Elision {
     /// The hubs, indices of the graph's parts.
@@ -330,9 +700,24 @@ pub struct Elision {
     /// By the id of the caller's box (a part, or a name no part has): its badges, in the order
     /// of the links, each the link's index and the badge's width.
     pub badges: BTreeMap<String, Vec<(usize, f64)>>,
+    /// By the index of a rolled-up link: the number of links it stands for.
+    pub counts: BTreeMap<usize, usize>,
+    /// By the id of a collapsed region's box: the lines its text adds.
+    pub lines: BTreeMap<String, Vec<String>>,
 }
 
 impl Elision {
+    /// The label of the edge of link `li`: its name in the pack's words, and `×<n>` when it
+    /// stands for n links, two or more.
+    pub fn label(&self, li: usize, link: &metaspec_core::graph::Link, style: &Style) -> String {
+        counted(link_label(link, style), self.counts.get(&li))
+    }
+
+    /// The lines a box's text adds: for a collapsed region, its parts and findings inside.
+    pub fn lines(&self, id: &str) -> Vec<String> {
+        self.lines.get(id).cloned().unwrap_or_default()
+    }
+
     /// The widths of the badges on the box `id`.
     pub fn widths(&self, id: &str) -> Vec<f64> {
         self.badges
@@ -381,6 +766,14 @@ pub fn badge_label(link: &metaspec_core::graph::Link, style: &Style) -> String {
     )
 }
 
+/// A label with `×<n>` when it stands for n links, two or more.
+fn counted(label: String, count: Option<&usize>) -> String {
+    match count {
+        Some(&n) if n > 1 => format!("{label} ×{n}"),
+        _ => label,
+    }
+}
+
 /// The links of what a view shows that it draws as badges: every link to a hub from a part that
 /// is no hub (or from a name no part has). None without hubs.
 pub fn elided(graph: &Graph, view: &ViewSpec, sel: &Selection) -> Vec<usize> {
@@ -405,6 +798,7 @@ fn elide(
     sel: &Selection,
     style: &Style,
     marked: &BySubject<'_>,
+    counts: &BTreeMap<usize, usize>,
 ) -> (Selection, Elision) {
     let hubs = hubs_of(graph, view, sel);
     if hubs.is_empty() {
@@ -419,7 +813,8 @@ fn elide(
         if elided.contains(&li) {
             let empty = Vec::new();
             let marks = marked.get(link.id.as_str()).unwrap_or(&empty);
-            let w = label_width(&badge_label(link, style), marks).ceil();
+            let label = counted(badge_label(link, style), counts.get(&li));
+            let w = label_width(&label, marks).ceil();
             badges
                 .entry(link.from.clone().unwrap_or_else(|| String::from("?")))
                 .or_default()
@@ -428,7 +823,14 @@ fn elide(
             kept.links.push(li);
         }
     }
-    (kept, Elision { hubs, badges })
+    (
+        kept,
+        Elision {
+            hubs,
+            badges,
+            ..Elision::default()
+        },
+    )
 }
 
 /// Rows of badges of `widths` left to right in `room`, wrapped before it is full.
@@ -497,7 +899,7 @@ fn place_badges(scene: &mut Scene, graph: &Graph, style: &Style, elision: &Elisi
                         from: caller.clone(),
                         to: link.to.clone().unwrap_or_else(|| String::from("?")),
                         carries: link.carries.clone(),
-                        label: badge_label(link, style),
+                        label: counted(badge_label(link, style), elision.counts.get(&li)),
                         at: scene::Rect {
                             x: scene::round(x),
                             y: scene::round(top + r as f64 * (BADGE_H + BADGE_GAP)),
@@ -507,6 +909,8 @@ fn place_badges(scene: &mut Scene, graph: &Graph, style: &Style, elision: &Elisi
                         added_by: link.added_by.clone(),
                         findings: Vec::new(),
                         title: link_title(link),
+                        count: None,
+                        links: Vec::new(),
                     },
                 ));
                 x += w + BADGE_GAP;
@@ -569,12 +973,13 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
         }
     }
     for e in &mut scene.edges {
-        let Some(ns) = links.get(e.id.as_str()) else {
+        let ns = link_findings(&links, &e.id, &e.links);
+        if ns.is_empty() {
             continue;
-        };
+        }
         e.findings = ns.clone();
         let mut left = e.label_at.x + 3.0;
-        for &n in ns {
+        for &n in &ns {
             let w = mark_width(n);
             marks.push(Mark {
                 finding: n,
@@ -589,12 +994,13 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
         }
     }
     for badge in &mut scene.badges {
-        let Some(ns) = links.get(badge.id.as_str()) else {
+        let ns = link_findings(&links, &badge.id, &badge.links);
+        if ns.is_empty() {
             continue;
-        };
+        }
         badge.findings = ns.clone();
         let mut left = badge.at.x + 3.0;
-        for &n in ns {
+        for &n in &ns {
             let w = mark_width(n);
             marks.push(Mark {
                 finding: n,
@@ -610,6 +1016,21 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
     }
     marks.sort_by_key(|m| m.finding);
     scene.marks = marks;
+}
+
+/// The findings of the link `id`, or, for a rolled-up link, of the links `members` it stands for.
+fn link_findings(links: &BySubject<'_>, id: &str, members: &[String]) -> Vec<usize> {
+    if members.is_empty() {
+        return links.get(id).cloned().unwrap_or_default();
+    }
+    let mut all: Vec<usize> = members
+        .iter()
+        .filter_map(|l| links.get(l.as_str()))
+        .flatten()
+        .copied()
+        .collect();
+    all.sort_unstable();
+    all
 }
 
 /// The width of an edge label with room for the marks of its findings.
@@ -770,6 +1191,7 @@ pub fn scene_box(
         on_border: part.is_some_and(|p| p.on_border),
         ghost,
         hub: false,
+        collapsed: None,
         findings: Vec::new(),
         title: card.title.clone(),
     }

@@ -1,0 +1,177 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/lagoon.yaml",
+  "view": {
+    "id": "quays",
+    "title": "Quays folded",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 288.0,
+  "height": 268.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 38.0,
+      "h": 92.0
+    },
+    {
+      "title": "1 shore",
+      "y": 156.0,
+      "h": 92.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "ferry",
+      "block": "vessel",
+      "label": "ferry",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 16.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "ferry (block vessel), craft\ndraught: 2m"
+    },
+    {
+      "id": "east_quay",
+      "block": "quay",
+      "label": "east_quay",
+      "lines": [
+        "quay",
+        "1 part inside"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 40.0,
+      "y": 180.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "collapsed": {
+        "parts": 1,
+        "view": "quays/east_quay",
+        "findings": []
+      },
+      "findings": [],
+      "title": "east_quay (block quay), shore\n1 part inside, drawn in the view quays/east_quay"
+    },
+    {
+      "id": "escort",
+      "block": "tug",
+      "label": "escort",
+      "lines": [
+        "tug"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 160.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "escort (block tug), craft"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ferry->east_quay:moors_at",
+      "from": "ferry",
+      "to": "east_quay",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          72.0,
+          126.0
+        ],
+        [
+          86.0,
+          143.0
+        ],
+        [
+          96.0,
+          180.0
+        ]
+      ],
+      "label_at": {
+        "x": 55.4,
+        "y": 134.0,
+        "w": 61.3,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "1 link across the border of a collapsed region:\nferry->ferry_berth:moors_at",
+      "count": 1,
+      "links": [
+        "ferry->ferry_berth:moors_at"
+      ]
+    },
+    {
+      "id": "escort->ferry:guides",
+      "from": "escort",
+      "to": "ferry",
+      "carries": "guides",
+      "label": "guides",
+      "points": [
+        [
+          216.0,
+          62.0
+        ],
+        [
+          144.0,
+          25.0
+        ],
+        [
+          72.0,
+          62.0
+        ]
+      ],
+      "label_at": {
+        "x": 119.4,
+        "y": 16.0,
+        "w": 49.2,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "escort->ferry:guides"
+    }
+  ],
+  "marks": [],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel",
+        "tug"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay"
+      ]
+    }
+  ]
+}

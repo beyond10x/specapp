@@ -172,6 +172,43 @@ pub struct View {
     /// The parts the view draws apart, each link to them a badge on its caller.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hubs: Option<Hubs>,
+    /// The regions the view draws collapsed, each one box with a view of its own parts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collapse: Option<Collapse>,
+}
+
+/// The regions a view draws collapsed. A region is a shown part that a shown part sits `in`.
+/// `[<part id>]` names regions, `all` collapses every region that sits in no shown region, and
+/// `{ blocks: [<block>] }` every region whose block (after `blocks.aliases`) is listed. A
+/// region inside a collapsed region is inside its box.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Collapse {
+    /// `all`.
+    Every(Every),
+    /// The ids of the regions, one or more.
+    Parts(Vec<String>),
+    /// The blocks whose regions collapse.
+    Blocks(CollapseBlocks),
+}
+
+/// The id of a part that `collapse` never collapses: the view of the region would take the id
+/// of the view `<id>/edges` of a view with hubs. `metaspec pack check` names such a region
+/// (`view_region_edges`).
+pub const REGION_EDGES: &str = "edges";
+
+/// The word `all` of `collapse`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Every {
+    All,
+}
+
+/// `collapse: { blocks: [<block>] }`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CollapseBlocks {
+    pub blocks: Vec<String>,
 }
 
 /// The hubs of a view: the parts with at least `in_degree` incoming links shown in the view,

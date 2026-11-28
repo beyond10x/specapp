@@ -149,6 +149,7 @@ pub fn layout(
         {
             noted.push(format!("per {per}"));
         }
+        noted.extend(elision.lines(&part.id));
         let mut c = card(part, style, &noted);
         grow(&mut c, &elision.widths(&part.id));
         let children: Vec<usize> = sel
@@ -252,7 +253,7 @@ pub fn layout(
         ) else {
             continue;
         };
-        let label = crate::link_label(link, style);
+        let label = elision.label(li, link, style);
         let empty = Vec::new();
         let marks = marked.get(link.id.as_str()).unwrap_or(&empty);
         let (la, lb) = (items[a].layer, items[b].layer);
@@ -607,7 +608,7 @@ pub fn layout(
             from: link.from.clone().unwrap_or_else(|| String::from("?")),
             to: link.to.clone().unwrap_or_else(|| String::from("?")),
             carries: link.carries.clone(),
-            label: crate::link_label(link, style),
+            label: elision.label(r.link, link, style),
             points: pts
                 .iter()
                 .map(|p| [scene::round(p[0]), scene::round(p[1])])
@@ -621,6 +622,8 @@ pub fn layout(
             added_by: link.added_by.clone(),
             findings: Vec::new(),
             title: crate::link_title(link),
+            count: None,
+            links: Vec::new(),
         });
     }
 

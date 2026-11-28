@@ -1,8 +1,8 @@
 ---
 title: cove
 sidebar_label: cove
-description: "An invented small cove with one quay and two berths."
-lede: "An invented small cove with one quay and two berths."
+description: "An invented small cove with one quay and two berths; its skiff moors at either."
+lede: "An invented small cove with one quay and two berths; its skiff moors at either."
 kicker: "Harbor plans"
 source: "harbors/cove.yaml"
 ---
@@ -21,7 +21,7 @@ A finding is a numbered mark on the part or link it names (filled: gated; outlin
 
 ## Layout
 
-Layout `nested`: 4 parts, 1 link, 0 finding marks.
+Layout `nested`: 4 parts, 2 links, 0 finding marks.
 
 <GraphView data={page.data["scene-1"]} presentation={site.presentation} />
 
@@ -30,6 +30,18 @@ Layout `nested`: 4 parts, 1 link, 0 finding marks.
 Layout `rows`: 5 parts, 1 link, 0 finding marks.
 
 <GraphView data={page.data["scene-2"]} presentation={site.presentation} />
+
+## Quays folded
+
+Layout `rows`: 3 parts, 2 links, 0 finding marks. 1 region drawn collapsed: it is one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.
+
+<GraphView data={page.data["scene-3"]} presentation={site.presentation} />
+
+## Quays folded: region north\_quay
+
+Layout `rows`: 3 parts, 0 links, 0 finding marks.
+
+<GraphView data={page.data["scene-4"]} presentation={site.presentation} />
 
 ## Findings
 
@@ -61,6 +73,7 @@ None.
 | from | carries | to | fields |
 |---|---|---|---|
 | `skiff` | `moors at` | `berth_a` | – |
+| `skiff` | `moors at` | `berth_b` | – |
 | `tug_one` | `guides` | `skiff` | – |
 
 ## Border

@@ -147,6 +147,11 @@ pub fn document(p: &DocumentPage) -> String {
                 s.view.id
             ));
         }
+        let collapsed = s.boxes.iter().filter(|b| b.collapsed.is_some()).count();
+        if collapsed > 0 {
+            meta.push(' ');
+            meta.push_str(&metaspec_docs::documents::region_sentence(collapsed));
+        }
         let _ = writeln!(h, "<p class=\"meta\">{}</p>", esc(&meta));
         // A view key is `[A-Za-z_][A-Za-z0-9_-]*` (metaspec-pack-1): the `/` of `<id>/edges`
         // becomes a `.`, which no key has, so its SVG ids meet no declared view's.

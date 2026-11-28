@@ -1,0 +1,223 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/reef.yaml",
+  "view": {
+    "id": "quays",
+    "title": "Quays folded",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 240.0,
+  "height": 337.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 12.0,
+      "h": 92.0
+    },
+    {
+      "title": "1 shore",
+      "y": 130.0,
+      "h": 92.0
+    },
+    {
+      "title": "names no part has",
+      "y": 240.0,
+      "h": 77.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "ketch",
+      "block": "vessel",
+      "label": "ketch",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 68.0,
+      "y": 36.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [
+        2
+      ],
+      "title": "ketch (block vessel), craft\ndraught: 2m"
+    },
+    {
+      "id": "outer_quay",
+      "block": "quay",
+      "label": "outer_quay",
+      "lines": [
+        "quay",
+        "1 part inside"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 106.0,
+      "y": 154.0,
+      "w": 118.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "collapsed": {
+        "parts": 1,
+        "view": "quays/outer_quay",
+        "findings": []
+      },
+      "findings": [],
+      "title": "outer_quay (block quay), shore\n1 part inside, drawn in the view quays/outer_quay"
+    },
+    {
+      "id": "berth_x",
+      "label": "berth_x",
+      "lines": [
+        "no part has this name"
+      ],
+      "colour": "slate",
+      "group": "a name no part has",
+      "x": 16.0,
+      "y": 264.0,
+      "w": 136.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": true,
+      "findings": [],
+      "title": "berth_x: a link names it, and no part of the document has this name"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ketch->berth_x:moors_at",
+      "from": "ketch",
+      "to": "berth_x",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          115.0,
+          100.0
+        ],
+        [
+          86.0,
+          117.0
+        ],
+        [
+          84.0,
+          134.0
+        ],
+        [
+          84.0,
+          218.0
+        ],
+        [
+          84.0,
+          226.0
+        ],
+        [
+          84.0,
+          236.0
+        ],
+        [
+          84.0,
+          264.0
+        ]
+      ],
+      "label_at": {
+        "x": 44.0,
+        "y": 108.0,
+        "w": 83.9,
+        "h": 18.0
+      },
+      "findings": [
+        1
+      ],
+      "title": "ketch->berth_x:moors_at"
+    },
+    {
+      "id": "outer_quay->ketch:guides",
+      "from": "outer_quay",
+      "to": "ketch",
+      "carries": "guides",
+      "label": "guides",
+      "points": [
+        [
+          165.0,
+          154.0
+        ],
+        [
+          163.0,
+          117.0
+        ],
+        [
+          133.0,
+          100.0
+        ]
+      ],
+      "label_at": {
+        "x": 138.4,
+        "y": 108.0,
+        "w": 49.2,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "1 link across the border of a collapsed region:\npilot->ketch:guides",
+      "count": 1,
+      "links": [
+        "pilot->ketch:guides"
+      ]
+    }
+  ],
+  "marks": [
+    {
+      "finding": 1,
+      "rule": "mooring_without_berth",
+      "gate": true,
+      "subject": "link:ketch->berth_x:moors_at",
+      "x": 56.8,
+      "y": 117.0,
+      "w": 19.6
+    },
+    {
+      "finding": 2,
+      "rule": "vessel_without_berth",
+      "gate": true,
+      "subject": "part:ketch",
+      "x": 164.2,
+      "y": 36.0,
+      "w": 19.6
+    }
+  ],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay"
+      ]
+    },
+    {
+      "label": "a name no part has",
+      "colour": "slate",
+      "blocks": []
+    }
+  ]
+}

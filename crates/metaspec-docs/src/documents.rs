@@ -269,6 +269,15 @@ pub fn hub_sentence(links: usize, hubs: usize) -> String {
     )
 }
 
+/// What a view with collapsed regions says of them: `regions` regions drawn collapsed.
+pub fn region_sentence(regions: usize) -> String {
+    format!(
+        "{} drawn collapsed: {} one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.",
+        plural(regions, "region", "regions"),
+        if regions == 1 { "it is" } else { "each is" }
+    )
+}
+
 fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
     let id = d.page.clone();
     let mut p = Page::new(id.clone(), "document");
@@ -329,6 +338,10 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
         if !scene.badges.is_empty() {
             let hubs = scene.boxes.iter().filter(|b| b.hub).count();
             let _ = write!(meta, " {}", hub_sentence(scene.badges.len(), hubs));
+        }
+        let collapsed = scene.boxes.iter().filter(|b| b.collapsed.is_some()).count();
+        if collapsed > 0 {
+            let _ = write!(meta, " {}", region_sentence(collapsed));
         }
         match edges {
             Some(edges) => {

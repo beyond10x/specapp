@@ -1,6 +1,6 @@
 format: harbor-plan/1
 harbor: cove
-summary: An invented small cove with one quay and two berths.
+summary: An invented small cove with one quay and two berths; its skiff moors at either.
 
 parts:
   north_quay:  { block: quay }
@@ -11,6 +11,7 @@ parts:
 
 links:
   - { from: skiff,     to: berth_a, carries: moors_at }
+  - { from: skiff,     to: berth_b, carries: moors_at }
   - { from: tug_one,   to: skiff,   carries: guides }
 
 border: [skiff]

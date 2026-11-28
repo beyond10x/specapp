@@ -81,10 +81,13 @@ fn every_shown_part_has_one_box_and_every_shown_link_one_edge() {
                 view.id
             );
             assert_eq!(parts.len(), want.len(), "one box per part");
+            // A rolled-up edge or badge stands for `count` links.
+            let drawn: usize = s.edges.iter().map(|e| e.count.unwrap_or(1)).sum::<usize>()
+                + s.badges.iter().map(|b| b.count.unwrap_or(1)).sum::<usize>();
             assert_eq!(
-                s.edges.len() + s.badges.len(),
+                drawn,
                 shown.links.len(),
-                "every shown link is one edge or one badge"
+                "every shown link is one edge or one badge, or one of the links a rolled-up one stands for"
             );
             let ghosts: Vec<&str> = s
                 .boxes

@@ -1,0 +1,130 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/inlet.yaml",
+  "view": {
+    "id": "quays",
+    "title": "Quays folded",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 146.0,
+  "height": 242.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 12.0,
+      "h": 107.0
+    },
+    {
+      "title": "1 shore",
+      "y": 145.0,
+      "h": 77.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "barge",
+      "block": "vessel",
+      "label": "barge",
+      "lines": [
+        "vessel",
+        "varies: draught",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 17.0,
+      "y": 36.0,
+      "w": 112.0,
+      "h": 79.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "barge (block vessel), craft\ndraught: 3m\nvaries draught: 3m over [2m, 3m, 4m]"
+    },
+    {
+      "id": "lone_berth",
+      "block": "berth",
+      "label": "lone_berth",
+      "lines": [
+        "berth"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 169.0,
+      "w": 114.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [
+        1
+      ],
+      "title": "lone_berth (block berth), shore"
+    }
+  ],
+  "edges": [
+    {
+      "id": "barge->lone_berth:moors_at",
+      "from": "barge",
+      "to": "lone_berth",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          73.0,
+          115.0
+        ],
+        [
+          73.0,
+          132.0
+        ],
+        [
+          73.0,
+          169.0
+        ]
+      ],
+      "label_at": {
+        "x": 42.4,
+        "y": 123.0,
+        "w": 61.3,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "barge->lone_berth:moors_at"
+    }
+  ],
+  "marks": [
+    {
+      "finding": 1,
+      "rule": "berth_without_quay",
+      "gate": true,
+      "subject": "part:lone_berth",
+      "x": 114.2,
+      "y": 169.0,
+      "w": 19.6
+    }
+  ],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "berth"
+      ]
+    }
+  ]
+}
