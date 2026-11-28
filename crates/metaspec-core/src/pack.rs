@@ -51,12 +51,13 @@ pub struct Pack {
     pub documents: Vec<Vec<Document>>,
 }
 
-/// Compiles an ESS system with the `ess` program on PATH and returns its JSON.
+/// Compiles an ESS system with the `ess` program on PATH and returns its JSON. `ess` runs in the
+/// blocks directory with `--path .`, as ess asks: there a release that dispatches hands the run
+/// to the release the blocks' `ess-inputs.yaml` pins, where from a directory above it refuses.
 pub fn ess_compile(blocks: &Path) -> Result<Value, String> {
     let output = Command::new("ess")
-        .args(["specify", "compile", "--path"])
-        .arg(blocks)
-        .args(["--format", "json"])
+        .args(["specify", "compile", "--path", ".", "--format", "json"])
+        .current_dir(blocks)
         .output()
         .map_err(|error| format!("ess cannot be started: {error}"))?;
     if !output.status.success() {

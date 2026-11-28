@@ -1,0 +1,52 @@
+#!/bin/sh
+# A stub of ess for the tests of metaspec's quality measures; metaspec runs it when the
+# environment variable METASPEC_ESS names it.
+#
+#   ess --version                       prints one line, "ess stub"
+#   ess <word>... <verb> [--option ...] prints <this directory>/<pack>/<verb>.json and exits 0
+#
+# The verb is the last word before the first option. The pack is the name of the directory above
+# the working directory: metaspec runs ess in the pack's blocks directory (blocks.path `blocks`
+# in the fixture packs), and a test's copy of a fixture pack keeps its name. A later answer is a
+# new file <pack>/<verb>.json; this script does not change.
+#
+# Exit 2, with a line on stderr: a --path other than `.` (metaspec names the blocks directory it
+# runs in, never another), or no answer is recorded for that pack and verb.
+
+set -eu
+
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+if [ "${1-}" = --version ]; then
+  echo "ess stub"
+  exit 0
+fi
+
+verb=
+options=
+path=.
+for word in "$@"; do
+  case "$options:$word" in
+    path:*) path=$word options=yes ;;
+    *:--path) options=path ;;
+    *:--path=*) path=${word#--path=} options=yes ;;
+    *:-*) options=yes ;;
+    :*) verb=$word ;;
+  esac
+done
+if [ "$options" = path ]; then
+  echo "ess stub: --path needs a value" >&2
+  exit 2
+fi
+if [ "$path" != . ]; then
+  echo "ess stub: --path $path is not the working directory; metaspec runs ess in the blocks directory with --path ." >&2
+  exit 2
+fi
+
+pack=$(basename -- "$(dirname -- "$PWD")")
+answer=$here/$pack/$verb.json
+if [ -z "$verb" ] || [ ! -f "$answer" ]; then
+  echo "ess stub: no answer recorded for pack $pack and verb ${verb:-<none>}" >&2
+  exit 2
+fi
+cat -- "$answer"

@@ -1,0 +1,19 @@
+{
+  "measure": "ess_completeness.unanswered",
+  "unit": "count",
+  "direction": "lower_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 2
+  },
+  "behind": [
+    {
+      "kind": "finding",
+      "name": "`orchard.grove.RetireGrove` declares no `wrong_state` outcome, so what it answers for a retired grove is undeclared and not checked"
+    },
+    {
+      "kind": "finding",
+      "name": "`orchard.tree.RetireTree` declares no `wrong_state` outcome, so what it answers for a retired tree is undeclared and not checked"
+    }
+  ]
+}

@@ -21,8 +21,10 @@ pub fn repo() -> PathBuf {
 /// The compiled model of a blocks directory, once per digest of `ess --version` and its files.
 pub fn compiled(blocks: &Path) -> Result<Value, String> {
     let mut hasher = Sha256::new();
+    // In the blocks directory, where ess_compile runs: the release that answers there.
     let version = Command::new("ess")
         .arg("--version")
+        .current_dir(blocks)
         .output()
         .map_err(|e| e.to_string())?;
     hasher.update(&version.stdout);

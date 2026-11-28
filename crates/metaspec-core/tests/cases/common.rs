@@ -78,8 +78,10 @@ pub fn scratch(name: &str) -> PathBuf {
 /// directory and read by every later test.
 pub fn compiled(blocks: &Path) -> Result<Value, String> {
     let mut hasher = Sha256::new();
+    // In the blocks directory, where ess_compile runs: the release that answers there.
     let version = Command::new("ess")
         .arg("--version")
+        .current_dir(blocks)
         .output()
         .map_err(|error| format!("ess cannot be started: {error}"))?;
     hasher.update(&version.stdout);

@@ -1,0 +1,68 @@
+{
+  "valid": false,
+  "system": "orchard",
+  "version": "v1",
+  "files_read": 7,
+  "scenarios": 2,
+  "domains": 6,
+  "commands": 10,
+  "events": 10,
+  "components": 1,
+  "unresolved_references": [],
+  "scenario_refusals": [
+    {
+      "code": "ESS-SCENARIO-002",
+      "origin": "scenarios/basket.yaml",
+      "scenario": "orchard.basket.StartBasket/twice",
+      "message": "the scenario starts a basket that its first step started already, and names no outcome for it"
+    }
+  ],
+  "completeness": {
+    "unscenarioed": [
+      {
+        "code": "ESS-SYNTH-003",
+        "subject": "outcome orchard.harvest.RetireHarvest/no-such-harvest",
+        "scenario": "orchard.harvest.RetireHarvest/outcome/no-such-harvest"
+      }
+    ],
+    "outside": [
+      {
+        "scenario": "orchard.picker.RetirePicker/outcome/retired",
+        "needs": [
+          "orchard.picker.Pickers"
+        ]
+      }
+    ],
+    "unanswered": [
+      "`orchard.grove.RetireGrove` declares no `wrong_state` outcome, so what it answers for a retired grove is undeclared and not checked",
+      "`orchard.tree.RetireTree` declares no `wrong_state` outcome, so what it answers for a retired tree is undeclared and not checked"
+    ],
+    "counts": {
+      "unscenarioed": 1,
+      "outside": 1,
+      "unanswered": 2
+    }
+  },
+  "warnings": [
+    {
+      "code": "ESS-ENTITY-019",
+      "severity": "warning",
+      "message": "`orchard.harvest.Harvest` stores `tree_id`, typed `orchard.seedbank.TreeId`, which identifies `orchard.tree.Tree`, and no relation declares that it names a `orchard.tree.Tree`",
+      "details": [
+        {
+          "kind": "note",
+          "text": "`ess-domain` warns of this as `implied_relation`; it is legal and compiles as written"
+        }
+      ],
+      "hint": "declare a `references` relation on `orchard.harvest.Harvest`",
+      "span": {
+        "source": "3-yield/harvest.yaml",
+        "path": "entity orchard.harvest.Harvest.fields.tree_id",
+        "located": {
+          "line": 15,
+          "column": 9
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "measure": "ess_completeness.unscenarioed",
+  "unit": "count",
+  "direction": "lower_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 1
+  },
+  "behind": [
+    {
+      "kind": "finding",
+      "name": "ESS-SYNTH-003 outcome orchard.harvest.RetireHarvest/no-such-harvest"
+    }
+  ]
+}
