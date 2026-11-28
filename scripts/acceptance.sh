@@ -2,7 +2,13 @@
 # acceptance.sh: the acceptance of waves 1 ("Contract") and 2 ("Graph") on both fixture packs and
 # both real packs.
 #
-#   scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <agenticspec-manifest>
+#   scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>
+#
+# specapp knows the packs; a pack knows nothing of specapp. The real packs are read with their
+# manifests under packs/, by name (`specapp pack check orgspec --pack <dir>`); the fixture packs
+# with fixtures/manifests/<name>.yaml. First scripts/check-pack-dirs.sh: no pack directory given
+# here holds a file named like a manifest of specapp (the fixture packs: nothing of specapp at
+# all).
 #
 # Runs `specapp pack check --json` on each pack and compares its counts with what the pack's
 # own tooling prints:
@@ -24,9 +30,11 @@
 # trusted in a state directory of this run (target/acceptance/state): one page per document
 # (fixture packs: the drawn documents of pack check; orgspec: `orgspec check --json`;
 # agenticspec: architectures/*.yaml). For every broken design of orgspec
-# (organizations/broken/*.yaml, through a manifest of this run) and every example, the rule
-# ids in the page data equal those `orgspec check --json` reports, and every finding about a
-# part or link is marked in a scene. Pages are under target/acceptance/pages-<pack>/.
+# (organizations/broken/*.yaml, through a manifest of this run made from packs/orgspec.yaml)
+# and every example, the rule ids in the page data equal those `orgspec check --json` reports,
+# and every finding about a part or link is marked in a scene. The findings come from
+# `orgspec check --json` itself, mapped by the adapter in packs/orgspec.yaml. Pages are under
+# target/acceptance/pages-<pack>/.
 #
 # Then runs scripts/check-vocabulary.sh with all four packs.
 #
@@ -34,20 +42,24 @@
 # The pack scripts write into their pack's target/ directory. Needs ess, jq, yq (for the
 # packs' KPI scripts) and cargo.
 #
-# Exit 0: every count is equal and no word of a pack is in the code. Exit 1: a count differs
-# or a word was found. Exit 2: bad usage or a tool failed.
+# Exit 0: every count is equal and no word of a pack is in the code. Exit 1: a count differs,
+# a word was found or a pack directory holds a manifest of specapp. Exit 2: bad usage or a tool
+# failed.
 
 set -eu
 
-[ $# -eq 3 ] || { echo "usage: scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <agenticspec-manifest>" >&2; exit 2; }
+[ $# -eq 2 ] || { echo "usage: scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>" >&2; exit 2; }
 org=$(CDPATH= cd -- "$1" && pwd)
 agentic=$(CDPATH= cd -- "$2" && pwd)
-agentic_manifest=$(CDPATH= cd -- "$(dirname -- "$3")" && pwd)/$(basename -- "$3")
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 work=$root/target/acceptance
 rm -rf "$work"
 mkdir -p "$work"
+
+status=0
+"$root/scripts/check-pack-dirs.sh" || status=1
+"$root/scripts/check-pack-dirs.sh" "$org" "$agentic" || status=1
 
 (cd "$root" && cargo build --quiet --locked -p specapp)
 specapp=$root/target/debug/specapp
@@ -59,13 +71,12 @@ row() {
   printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5" >> "$rows"
 }
 
-# check <name> <dir> [<manifest>]: specapp's report of a pack, in $work/<name>.json
+# check <name> <dir> <name|manifest-file>: specapp's report of a pack, in $work/<name>.json
 check() {
-  if [ $# -eq 3 ]; then
-    "$specapp" pack check "$2" --manifest "$3" --json > "$work/$1.json" || true
-  else
-    "$specapp" pack check "$2" --json > "$work/$1.json" || true
-  fi
+  case "$3" in
+    */*) "$specapp" pack check --manifest "$3" --pack "$2" --json > "$work/$1.json" || true ;;
+    *) "$specapp" pack check "$3" --pack "$2" --json > "$work/$1.json" || true ;;
+  esac
   if [ "$(jq -r .valid "$work/$1.json")" != true ]; then
     echo "acceptance: specapp refused the pack $1:" >&2
     jq -r '.errors[] | "  \(.code) \(.subject): \(.message)"' "$work/$1.json" >&2
@@ -90,10 +101,10 @@ graph_layers() {
 }
 
 # --- fixture packs ---
-for dir in "$root"/fixtures/packs/*/; do
-  dir=${dir%/}
-  name=$(basename "$dir")
-  check "$name" "$dir"
+for manifest in "$root"/fixtures/manifests/*.yaml; do
+  name=$(basename "$manifest" .yaml)
+  dir=$root/fixtures/packs/$name
+  check "$name" "$dir" "$manifest"
   own=$(ess specify compile --path "$dir/blocks" --format json | jq '.domains | length')
   row "$name" blocks "$(of "$name" .counts.blocks)" "$own" "ess specify compile"
   own=$(find "$dir/blocks" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*-*' | wc -l | tr -d ' ')
@@ -101,27 +112,28 @@ for dir in "$root"/fixtures/packs/*/; do
   own=$(grep -c '^  - id: ' "$dir/kpis/catalogue.yaml")
   row "$name" kpis "$(of "$name" .counts.kpis)" "$own" "catalogue rows"
   for class in $(jq -r '.documents[].class' "$work/$name.json"); do
-    pattern=$(yq -r ".documents[] | select(.class == \"$class\") | .paths[0]" "$dir/specapp.yaml")
+    pattern=$(yq -r ".documents[] | select(.class == \"$class\") | .paths[0]" "$manifest")
     own=$(cd "$dir" && ls -1 $pattern | wc -l | tr -d ' ')
     row "$name" "documents:$class" "$(documents "$name" "$class")" "$own" "ls $pattern"
   done
 done
 
 # --- orgspec ---
-check orgspec "$org"
+# specapp builds nothing of a pack: the tool its manifest runs is built first
+(cd "$org" && cargo build --quiet --locked -p orgspec)
+check orgspec "$org" orgspec
 own=$(cd "$org" && scripts/check-layers.sh | sed -n 's/^layers: \([0-9]*\) domains.*/\1/p')
 row orgspec blocks "$(of orgspec .counts.blocks)" "$own" "scripts/check-layers.sh"
 row orgspec layers "$(of orgspec .counts.layers)" "$(graph_layers "$org")" "scripts/check-layers.sh --graph"
 own=$(cd "$org" && scripts/check-kpis.sh | sed -n 's/^check-kpis: \([0-9]*\) KPIs ok$/\1/p')
 row orgspec kpis "$(of orgspec .counts.kpis)" "$own" "scripts/check-kpis.sh"
-(cd "$org" && cargo build --quiet --locked -p orgspec)
 own=$(cd "$org" && { target/debug/orgspec check --json organizations/*.yaml || true; } | jq length)
 row orgspec documents:organization "$(documents orgspec organization)" "$own" "orgspec check --json"
 own=$(cd "$org" && { target/debug/orgspec type check --json types/*.yaml || true; } | jq length)
 row orgspec documents:type "$(documents orgspec type)" "$own" "orgspec type check --json"
 
 # --- agenticspec ---
-check agenticspec "$agentic" "$agentic_manifest"
+check agenticspec "$agentic" agenticspec
 own=$(cd "$agentic" && scripts/check-layers.sh | sed -n 's/^layers: \([0-9]*\) domains.*/\1/p')
 row agenticspec blocks "$(of agenticspec .counts.blocks)" "$own" "scripts/check-layers.sh"
 row agenticspec layers "$(of agenticspec .counts.layers)" "$(graph_layers "$agentic")" "scripts/check-layers.sh --graph"
@@ -142,31 +154,31 @@ page_data() {
   sed -n 's|.*<script type="application/json" id="specapp-data">\(.*\)</script>.*|\1|p' "$1"
 }
 
-# pages <name> <dir> <out> [<manifest>]: trust the pack's tool when it names one, render it,
-# print the number of pages (index.html not counted)
+# pages <name> <dir> <out> <name|manifest-file>: trust the pack's tool when it names one,
+# render it, print the number of pages (index.html not counted)
 pages() {
-  if [ $# -eq 4 ]; then
-    "$specapp" trust "$2" --manifest "$4" > /dev/null 2>&1 || true
-    "$specapp" render --pack "$2" --manifest "$4" --out "$3" > "$3.log" || { echo "acceptance: render $1 failed" >&2; exit 1; }
-  else
-    "$specapp" trust "$2" > /dev/null 2>&1 || true
-    "$specapp" render --pack "$2" --out "$3" > "$3.log" || { echo "acceptance: render $1 failed" >&2; exit 1; }
-  fi
-  find "$3" -name '*.html' ! -name index.html | wc -l | tr -d ' '
+  case "$4" in
+    */*) set -- "$1" "$2" "$3" --manifest "$4" ;;
+    *) set -- "$1" "$2" "$3" "$4" ;;
+  esac
+  name=$1 dir=$2 out=$3
+  shift 3
+  "$specapp" trust "$@" --pack "$dir" > /dev/null 2>&1 || true
+  "$specapp" render "$@" --pack "$dir" --out "$out" > "$out.log" || { echo "acceptance: render $name failed" >&2; exit 1; }
+  find "$out" -name '*.html' ! -name index.html | wc -l | tr -d ' '
 }
 
-for dir in "$root"/fixtures/packs/*/; do
-  dir=${dir%/}
-  name=$(basename "$dir")
-  n=$(pages "$name" "$dir" "$work/pages-$name")
+for manifest in "$root"/fixtures/manifests/*.yaml; do
+  name=$(basename "$manifest" .yaml)
+  n=$(pages "$name" "$root/fixtures/packs/$name" "$work/pages-$name" "$manifest")
   own=$(jq '[.documents[] | select(.shape == "parts-links/1") | .documents] | add' "$work/$name.json")
   row "$name" pages "$n" "$own" "drawn documents of specapp pack check"
 done
 
-n=$(pages orgspec "$org" "$work/pages-orgspec")
+n=$(pages orgspec "$org" "$work/pages-orgspec" orgspec)
 own=$(cd "$org" && { target/debug/orgspec check --json organizations/*.yaml || true; } | jq length)
 row orgspec pages:organization "$n" "$own" "orgspec check --json organizations/*.yaml"
-n=$(pages agenticspec "$agentic" "$work/pages-agenticspec" "$agentic_manifest")
+n=$(pages agenticspec "$agentic" "$work/pages-agenticspec" agenticspec)
 own=$(find "$agentic/architectures" -maxdepth 1 -name '*.yaml' | wc -l | tr -d ' ')
 row agenticspec pages:architecture "$n" "$own" "architectures/*.yaml"
 
@@ -189,8 +201,9 @@ rules() {
   done
 }
 
-# broken designs: a manifest of this run whose organizations are organizations/broken/*.yaml
-sed 's#organizations/\*\.yaml#organizations/broken/*.yaml#' "$org/specapp.yaml" > "$work/orgspec-broken.yaml"
+# broken designs: a manifest of this run, made from packs/orgspec.yaml, whose organizations are
+# organizations/broken/*.yaml
+sed 's#organizations/\*\.yaml#organizations/broken/*.yaml#' "$root/packs/orgspec.yaml" > "$work/orgspec-broken.yaml"
 grep -q 'organizations/broken/\*\.yaml' "$work/orgspec-broken.yaml" || { echo "acceptance: cannot point a manifest at organizations/broken" >&2; exit 2; }
 n=$(pages orgspec-broken "$org" "$work/pages-orgspec-broken" "$work/orgspec-broken.yaml")
 own=$(find "$org/organizations/broken" -maxdepth 1 -name '*.yaml' | wc -l | tr -d ' ')
@@ -203,7 +216,6 @@ row orgspec examples:rules-matched "$(awk '{ s += $2 } END { print s + 0 }' "$wo
 row orgspec examples:findings-drawn "$(awk '{ s += $4 } END { print s + 0 }' "$work/examples.rows")" "$(awk '{ s += $5 } END { print s + 0 }' "$work/examples.rows")" "findings on a part or link marked in a scene"
 
 # --- the table ---
-status=0
 printf '%-12s %-24s %8s %8s  %-5s %s\n' pack count specapp own equal source
 while IFS="$(printf '\t')" read -r pack count mine own source; do
   if [ -n "$own" ] && [ "$mine" = "$own" ]; then equal=yes; else equal=NO; status=1; fi
@@ -215,14 +227,14 @@ done
 
 echo
 set --
-for dir in "$root"/fixtures/packs/*/; do
-  set -- "$@" --pack "${dir%/}"
+for manifest in "$root"/fixtures/manifests/*.yaml; do
+  set -- "$@" --pack "$root/fixtures/packs/$(basename "$manifest" .yaml)" --manifest "$manifest"
 done
 "$root/scripts/check-vocabulary.sh" "$@" \
-  --pack "$org" --pack "$agentic" --manifest "$agentic_manifest" || status=1
+  --pack "$org" --name orgspec --pack "$agentic" --name agenticspec || status=1
 
 if [ "$status" = 0 ]; then
-  echo "acceptance: every count equal, no word of a pack in the code"
+  echo "acceptance: every count equal, no word of a pack in the code, no pack holds a manifest of specapp"
 else
   echo "acceptance: FAILED"
 fi

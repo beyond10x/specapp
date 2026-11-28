@@ -84,7 +84,8 @@ pub fn packs() -> Vec<(String, Pack)> {
     dirs.into_iter()
         .map(|dir| {
             let name = dir.file_name().unwrap().to_string_lossy().into_owned();
-            let (report, pack) = specapp_core::load(&dir, None, &compiled);
+            let manifest = repo().join(format!("fixtures/manifests/{name}.yaml"));
+            let (report, pack) = specapp_core::load(&dir, &manifest, &compiled);
             (name, pack.unwrap_or_else(|| panic!("{:?}", report.errors)))
         })
         .collect()
@@ -116,7 +117,13 @@ pub fn drawn() -> Vec<Drawn> {
             }
             for document in documents {
                 let graph = graph::read(class, &document.path, document.value.as_ref().unwrap());
-                let check = tool::check(&pack, &document.path, Some(&state), tool::DEADLINE);
+                let check = tool::check(
+                    &pack,
+                    &document.path,
+                    Some(&graph),
+                    Some(&state),
+                    tool::DEADLINE,
+                );
                 assert_eq!(check.state, tool::CheckState::Ran, "{:?}", check.message);
                 out.push(Drawn {
                     pack: name.clone(),

@@ -4,7 +4,9 @@ Status: waves 1 ("Contract") and 2 ("Graph") are built: the manifest, the schema
 packs, `specapp pack check`, the `parts-links/1` reader, the layout, `specapp trust` and
 `specapp render` (a static page per document with the findings of the pack's tool). The build
 order is at the end; "Decided in wave 1" and "Decided in wave 2" list what the builds decided
-that this design had left open.
+that this design had left open. On 2026-11-28 the owner reversed the dependency between specapp
+and the packs: specapp knows the packs, a pack knows nothing of specapp ("Decided: reversed the
+dependency"). Where an older section below says otherwise, that section wins.
 
 ## What it is
 
@@ -21,9 +23,13 @@ specapp is the user interface of such a repository, written once:
   it at every change, run it, compare variants, keep drafts, and do all of that together with an
   agent.
 
-A repository that specapp can load is a **pack**. A pack describes itself in one manifest.
-specapp contains no word of any pack: no block name, no layer name, no colour of a block, no rule
-id.
+A repository that specapp can load is a **pack**. specapp describes a pack in one manifest of
+its own; the pack knows nothing of specapp. specapp's code contains no word of any pack: no
+block name, no layer name, no colour of a block, no rule id. The words are in the manifests.
+
+specapp is the top-level application over all spec packs. The packs it knows today are
+agenticspec and orgspec; cloudspec is the third (a planning store so far, no blocks), and
+`packs/cloudspec.yaml` is added once it has blocks.
 
 ## What exists today
 
@@ -90,24 +96,36 @@ Different, and therefore declared by the pack:
 - Extra document classes: types in orgspec; profiles and experiments in agenticspec.
 - What the tool can do beyond the check: simulate, search, lower to ESS commands.
 
-## The principle: the pack describes itself
+## The principle: specapp knows the packs; a pack knows nothing of specapp
 
-1. specapp reads a pack through one manifest and a small set of neutral formats. A pack never
-   adapts to specapp's code; it states where its things are and what they are called.
+1. specapp reads a pack through a manifest of its own and a small set of neutral formats. The
+   manifest and its adapters are specapp's: the manifests of public packs are in specapp's
+   `packs/`, a private pack's manifest stays outside this repository and is given by its path
+   at run time. A pack holds no file of specapp, names no format of specapp and has no command
+   for specapp; it never adapts to specapp. specapp adapts to the pack: the manifest states
+   where the pack's things are, what they are called and how its own tool answers.
 2. Reading costs nothing to adopt and executes nothing. Behaviour (check, run, apply) comes from
-   the pack's own tool through one process protocol.
+   the pack's own tool, run as the pack ships it and read by an adapter in the manifest (see
+   "The tool adapter"), generic in specapp's code.
 3. One model, one component library, two shells. The docs site is the static export of the
    read-only part of the studio. A page looks the same in both.
 4. What specapp shows is what the pack's tool says. specapp implements no rule of any pack. A
    finding, a KPI value and a refusal are the tool's.
 5. A private pack stays on the machine. See "Private packs".
+6. One application for every pack. No feature of specapp is built for one pack only. A feature
+   that one pack's tool supports is offered for every pack through the manifest's adapter, and
+   what a pack lacks for it is listed as that pack's gap ("Gaps per pack").
 
 ## A pack
 
-The manifest is `specapp.yaml` at the root of the pack, format `specapp-pack/1`.
+specapp holds the manifest of every public pack it knows, `packs/<name>.yaml`, format
+`specapp-pack/2`; `specapp pack check <name> --pack <dir>` reads it by the pack's name. A pack
+specapp does not know, such as a private pack, is read with a manifest given by its path:
+`specapp pack check --manifest <file> --pack <dir>`. The pack directory is always given
+separately; nothing in it is read as a manifest.
 
 ```yaml
-format: specapp-pack/1
+format: specapp-pack/2
 pack: orgspec
 title: orgspec
 summary: Building blocks of an organization.
@@ -150,8 +168,20 @@ documents:
       - { title: KPIs,  at: kpis,  columns: [id, block, measures, unit, summary] }
 
 tool:
-  run: [orgspec, specapp]           # argv prefix of the pack's tool; see "The tool protocol"
-  verbs: [check]
+  run: [target/debug/orgspec]       # the pack's own tool, as the pack ships it
+  verbs:
+    check:                          # the adapter; see "The tool adapter"
+      args: [check, --json]
+      exit: [0, 1]
+      at: /0
+      error: /error
+      valid: { at: /valid }
+      findings:
+        - at: /violations
+          rule: "{/rule}"
+          gate: { at: /gate }
+          message: "{/message}"
+          subject: { id: "{/subject}", link_when_contains: "->", unknown: document }
 
 presentation:
   families:
@@ -161,16 +191,20 @@ presentation:
 
 The same manifest for agenticspec differs in names and in four places: `strip_prefix: agentic.`,
 `kpis.fields: { measure: kind, modes: modes }`, one document class `architecture` with
-`contain: { per: per }` and one view, and `tool.verbs: [check, simulate, search]`.
+`contain: { per: per }` and one view, and no `tool` yet (see "Gaps per pack").
 
 Rules of the manifest:
 
+- It is specapp's file and lies outside the pack: under `packs/` for a public pack specapp
+  knows, anywhere outside this repository for a private one. A pack directory holds no file
+  named like it; `scripts/check-pack-dirs.sh` fails on one.
 - Every path is inside the pack. A path that leaves it is refused.
 - `presentation` is optional. Without it a block's row is the layer of its domain and its colour
   is the colour of its layer, from a palette of specapp. This is the one place a pack states a
   colour or an icon; a pack that needs none writes none.
 - No number about the pack is written in the manifest or in any copy: counts are counted.
-- `extends` names another pack; see "Private packs".
+- `extends` names another pack: a pack specapp knows (`packs/<name>.yaml`), or one whose manifest
+  is given at run time (`--extends <file>`); see "Private packs".
 
 ### Levels of adoption, cheapest first
 
@@ -182,26 +216,26 @@ A pack is useful from the first level and may stop at any.
 - **L1 KPIs.** The catalogue: a searchable table, and the KPIs on each block's page.
 - **L2 documents.** Document classes with a shape. Every document is a page; a `parts-links/1`
   document is drawn. Nothing of the pack is executed.
-- **L3 check.** The tool's `check`: findings on the graph and in a list, per document and as a
-  table over all documents.
+- **L3 check.** The manifest's adapter for `check`: the pack's tool runs on a document, and its
+  findings are drawn on the graph and listed, per document and as a table over all documents.
 - **L4 runs.** The tool's `simulate` and `search`: results, KPIs per part, variants.
 - **L5 edit.** The tool's `apply`, or specapp's generic edits: drafts, revisions, comparison,
   the agent channel.
 
-orgspec today reaches L3 with a manifest and one small subcommand. agenticspec reaches L4.
+orgspec today reaches L3: its manifest in specapp reads `orgspec check --json` through an
+adapter. agenticspec reaches L2 today (see "Gaps per pack").
 
 ## Neutral formats
 
 specapp's own formats. A pack's formats stay the pack's.
 
-- `specapp-pack/1`: the manifest.
+- `specapp-pack/2`: the manifest, with the adapters of the pack's tool. One producer: specapp's
+  maintainers (`packs/`), or the owner of a private pack (a file outside this repository).
 - `specapp-pack-check/1`: what `specapp pack check --json` prints. `valid`, `errors` and
   `warnings` (`{code, subject, message}`); for a pack that loads also its name, visibility,
   `extends`, the level it declares, `counts` (blocks, layers, KPIs, planned blocks, document
   classes, documents), the layers with their blocks, the documents per class, and the state of
   the tool (`none`, `found`, `not_found`). One producer: specapp.
-- `specapp-tool/1`: the tool's answer to `describe`: `verbs`, the format each verb answers
-  in (`formats`), `edit_verbs`, `kpis`. Produced by the tool only.
 - `specapp-model/1`: the blocks, from the compiled ESS model. Layers, blocks, dependency edges
   with counts, and per block its entities, lifecycles, commands, events, views, types and source
   lines. One producer: specapp, from `ess specify compile --format json`.
@@ -210,46 +244,74 @@ specapp's own formats. A pack's formats stay the pack's.
 - `specapp-graph/1`: one composed document. `parts[{id, block, kind, fields, inside, per,
   on_border, markers}]`, `links[{id, from, to, carries, fields, added_by}]`, `groups` from
   containment. `added_by` names a default of the pack that added a link the document did not
-  write. Produced by specapp's reader for `parts-links/1`, or by the tool's `graph`.
+  write. Produced by specapp's reader for `parts-links/1`, or by an adapter of the tool's
+  `graph`.
 - `specapp-findings/1`: a check result. `valid`, and `findings[{rule, gate, subject, message}]`
-  where `subject` is `part:<id>`, `link:<id>` or `document`. Counts per rule. Produced by the
-  tool only.
+  where `subject` is `part:<id>`, `link:<id>` or `document`. Counts per rule. Produced by
+  specapp only: the adapter of the manifest maps the tool's own answer to it.
 - `specapp-scene/1`: a laid-out view of a graph: boxes, groups, edge paths, labels, in
   coordinates. Produced by specapp's layout, deterministic for the same input. The docs site
   and the studio draw the same scene.
 - `specapp-result/1`: a run. Baseline and best, KPI values per document and per part, the
   marked places, variants, a trace. agenticspec's `agenticspec-sim-result/1` is the model for
-  it; the tool translates.
+  it; an adapter of the manifest maps the tool's own result to it.
 - `specapp-patch/1`: an ordered list of edits. See "Operations".
 - `specapp-page/1`: one generated page: front matter, Markdown, and the data of its components.
 - `specapp-document/1`: the data of one page `specapp render` writes (wave 2): the graph, the
   check, the findings with the views they are drawn in, the scenes. One producer: specapp.
 - `specapp-trust/1`: the trust file in the user's state directory. One producer: specapp.
 
-Every format has a JSON Schema in `schema/` and a version in its name. A pack's tool that
-answers in a version specapp does not know is refused with both versions named.
+Every format has a JSON Schema in `schema/` and a version in its name. A manifest in a version
+specapp does not know is refused with both versions named. A pack's tool answers in the pack's
+own format; specapp never asks it for one of its own.
 
-## The tool protocol
+## The tool adapter
 
-The pack's tool is a process. specapp runs `<tool.run> <verb> [arguments]`, gives one JSON
-document on stdin where the verb takes one, and reads one JSON document from stdout. Exit 0 with
-a document, exit 2 with `{error}`; a check that finds violations is exit 0 with `valid: false`.
+The pack's tool is a process the pack ships for its own use; it knows nothing of specapp. For
+each verb specapp offers, the manifest's `tool.verbs` holds an adapter: how specapp runs the
+tool and how it maps the tool's own answer to a neutral format. The mapping is declarative and
+generic in specapp's code; no adapter names a word of a pack in the code. A verb the manifest
+does not declare is not offered for that pack; nothing is asked of the tool (there is no
+`describe`).
 
-- `describe`: the verbs, the format versions, the edit verbs beyond the generic ones, the KPI
-  ids a run reports.
-- `graph <document>`: `specapp-graph/1`. Optional; needed only where the generic reader is not
-  enough (a pack whose defaults add links).
-- `check <document>`: `specapp-findings/1`.
-- `simulate <document> [--budget N]`, `search <document> [--budget N]`: `specapp-result/1`.
-  specapp passes the budget and a deadline; a run over the deadline is killed and shown as such.
-- `apply <document>` with a `specapp-patch/1` on stdin: the new document text and the findings,
-  or a refusal that names the edit and the rule. `--dry-run` writes nothing.
+`check` (L3) is the verb built today. specapp runs `<tool.run> <args> <document>` in the pack
+directory with stdin closed and reads stdout as JSON:
+
+- `exit`: the exit codes that come with an answer (default `[0]`). Another exit code is a failed
+  run, unless `error` finds a text.
+- `at`: a JSON pointer to the document's result in the answer (default: the whole answer).
+  Every other pointer is relative to it.
+- `error`: a pointer to a text that, when the result has it, refuses the document with that
+  text, whatever the exit code.
+- `valid`: a test, `{ at: <pointer> }` for a boolean or `{ at: <pointer>, equals: <value> }`;
+  without it, a document is valid when no finding is gated.
+- `counts`: a pointer to a mapping from a rule to a count.
+- `findings`: lists of findings, each `{at, rule, gate, message, subject}`, in the order the
+  findings are shown. `rule` and `message` are templates: `{<pointer>}` stands for the text at
+  that pointer in one entry. `gate` is `true`, `false` or a test of the entry. `subject` is
+  `document`, or a rule: `id` (a template) and either `link_when_contains: <text>` (an id that
+  contains the text is a link, any other a part) or `kind: <template>` with `kinds` (the
+  template's value names `part`, `link` or `document`). `unknown: document` makes an id that the
+  drawn graph does not have a finding about the document, with the id put before the message
+  unless it is the document's name.
+
+The result is `specapp-findings/1`, validated against its schema; an answer the adapter cannot
+read is a failed check, shown as such. orgspec's adapter reads `orgspec check --json`; the two
+fixture packs answer in two other shapes (a list with exit 1 for an invalid plan, and an object
+with a verdict word and a kind field per finding), so the mapping is tested on both.
+
+The verbs to come take the same form when they are built: `graph` (an adapter to
+`specapp-graph/1`, where the generic reader is not enough, such as a pack whose defaults add
+links), `simulate` and `search` (to `specapp-result/1`; specapp passes the budget and a
+deadline, a run over the deadline is killed and shown as such), and `apply` (a
+`specapp-patch/1` translated to the tool's own edit, or specapp's generic edits).
 
 Running a pack's tool is running code from a repository. So:
 
 - L0 to L2 execute nothing of the pack.
-- specapp runs a tool only for a pack the user trusted: `specapp trust <dir>` records the digest
-  of the manifest's `tool` section. A changed `tool` section asks again.
+- specapp runs a tool only for a pack the user trusted: `specapp trust <name> --pack <dir>` (or
+  `--manifest <file>`) records the digest of the manifest's `tool` section, adapters included.
+  A changed `tool` section asks again.
 - The tool gets the pack directory as its working directory and no network by default.
 
 ## Presentation
@@ -327,8 +389,8 @@ states it: select, then transform.
 - Generic edits, valid for every `parts-links/1` document: `add_part`, `remove_part`,
   `set_field`, `add_link`, `remove_link`, `move` (containment), `mark` and `unmark` (a place a
   search may vary), `set_border`.
-- A pack adds verbs through its tool (`describe`): agenticspec's `wrap` and `replicate` are
-  such verbs.
+- A pack's own edit verbs are declared in its manifest with an adapter: agenticspec's `wrap` and
+  `replicate` are such verbs.
 - A `specapp-patch/1` is an ordered list of edits. It is applied as a whole or refused as a
   whole, and it is one revision.
 - The agent has four tools: `query`, `apply` (with `dry_run`), `check`, `simulate`. They are the
@@ -354,13 +416,18 @@ nothing else changed, comments included. An edit that cannot be written that way
 
 A pack of one real organization is private. specapp is public. The rules:
 
-- specapp's repository holds no content of any real pack. Its fixtures are two invented packs
-  with different vocabulary (see "Proof of generality").
+- specapp's repository holds no content of any real pack: no block, no document, no finding.
+  It holds the manifests of the public packs it knows (`packs/`, and only there). Its fixtures
+  are two invented packs with different vocabulary (see "Proof of generality").
+- A private pack's manifest is never in specapp's repository: it lives outside it (with the
+  owner of the private pack, never in the pack itself) and is given by its path at run time
+  (`--manifest <file>`).
 - `visibility: private` in the manifest: `docs build` marks every page as private and refuses a
   publication target; `serve` shows a private marker in the header.
-- `extends`: a private pack names the public pack it builds on and adds documents, document
-  paths (a type path) and presentation. The public pack never names the private one. The studio
-  loads both and shows which pack a document comes from.
+- `extends`: a private pack's manifest names the public pack it builds on and adds documents,
+  document paths (a type path) and presentation. The name resolves to `packs/<name>.yaml`, or to
+  a manifest given at run time (`--extends <file>`). The public pack never names the private
+  one. The studio loads both and shows which pack a document comes from.
 - The studio makes no network request of its own: fonts and scripts are served from the binary.
 - The agent channel sends what the agent reads to a model provider. For a private pack it is
   off until the user turns it on for that pack.
@@ -387,27 +454,56 @@ Taken from the rules agenticspec's site already holds, as the floor:
 
 ## Proof of generality
 
-specapp must not become agenticspec's UI with a second skin. Three gates:
+specapp must not become agenticspec's UI with a second skin, nor orgspec's. It is the top-level
+application over all spec packs: whatever it can do with one pack it must do with every pack it
+knows (agenticspec, orgspec, and cloudspec once it has blocks). Four gates:
 
 - **Two fixture packs** in `fixtures/packs/`, both invented and small, with different words,
   different containment (`in` against `per`), different KPI field names and a tool written as a
-  shell script that answers the protocol from files. Every test of the generator, the layout and
-  the components runs on both.
+  shell script that answers from files in a format of its own, a different shape per pack.
+  Their manifests are specapp's, `fixtures/manifests/<name>.yaml`; a fixture pack directory
+  holds nothing of specapp (`scripts/check-pack-dirs.sh`). Every test of the generator, the
+  layout and the components runs on both.
 - **No pack vocabulary in the code.** A check fails when a block name, link name, rule id or
-  KPI id of a real pack or of a fixture pack appears under `crates/` or `web/src/`.
+  KPI id of a real pack or of a fixture pack appears under `crates/` or `web/*/src`. The
+  manifests (`packs/`, `fixtures/manifests/`) are where those words belong and are not searched.
+- **No feature for one pack only.** A feature that one pack's tool supports is offered for
+  every pack through the manifest's adapter. What a pack lacks for it is written down in "Gaps
+  per pack", per pack, not worked around in the code.
 - **The acceptance test of each wave** loads both real packs from their checkouts
-  (`specapp pack check <dir>`) and compares counts with what each pack's own gate prints.
+  (`specapp pack check <name> --pack <dir>`, manifests from `packs/`) and compares counts with
+  what each pack's own gate prints; no pack directory it is given holds a manifest of specapp.
+
+## Gaps per pack
+
+What each known pack lacks for a feature specapp offers. A gap is closed in the pack (its own
+tool, its own documents) or in a neutral format, never by code for one pack.
+
+- **orgspec** (L3). Its defaults add links the generic reader cannot see: a finding on such a
+  link is a row, not a mark, until an adapter for `graph` reads the links its checker adds (no
+  broken design or example needs it today). No `presentation` yet.
+- **agenticspec** (L2). Its tool's check (`agenticspec-sim check <architecture>`) answers in
+  text lines, not JSON, so no adapter for `check` can read it yet; the adapter reads JSON. A
+  JSON answer of its own (any shape) closes the gap. Its simulator's result waits for `simulate`
+  (wave 7). The gaps of its architectures listed in "Decided in wave 2" stand: two blocks the
+  documents use are no block of `blocks/`, a link `over` a part has no neutral field, part
+  fields that name other parts are fields only, and `architectures/ladder/` is outside the
+  manifest's glob.
+- **cloudspec**. A planning store only, no blocks: no manifest yet. `packs/cloudspec.yaml` is
+  added once it has blocks.
 
 ## What moves and what stays
 
 - From agenticspec into specapp: the generator's reading of the compiled model and its page
   writers; the layout and the SVG of the renderer; the five React components. Each becomes
   generic on the way in. agenticspec keeps its simulator, its architecture check, its session
-  application and its hand-written pages, and gains a manifest and the protocol verbs.
+  application and its hand-written pages. It gains nothing of specapp: its manifest and the
+  adapters of its tool are in specapp's `packs/agenticspec.yaml`.
 - agenticspec's generator and renderer are deleted from agenticspec when specapp produces the
   same pages for it: the list of pages and their sections is the parity test.
-- orgspec gains a manifest, the subcommand `orgspec specapp check` (its `--json` in the neutral
-  format) and a `website/` of a few lines. Its scratch viewer is not kept.
+- orgspec gains nothing of specapp: its manifest, with the adapter of `orgspec check --json`, is
+  specapp's `packs/orgspec.yaml`. Its scratch viewer is not kept. Where its site lives is wave 3's
+  question.
 - `@beyond10x/docs-system` stays what it is: the site contract, the tokens and the landing page.
 - `ess-ui-templates` draws any ESS model as one page with its lifecycles played. specapp links
   to that page from a block where a pack builds it; whether its lifecycle drawing replaces
@@ -426,7 +522,9 @@ specapp must not become agenticspec's UI with a second skin. Three gates:
 ```text
 design/                 this document
 schema/                 JSON Schemas of the neutral formats
-scripts/                the vocabulary check, the acceptance script, the planning-only path list
+scripts/                the vocabulary check, the pack directory check, the acceptance script,
+                        the planning-only path list
+packs/                  the manifests of the public packs specapp knows, `<name>.yaml`
 spec/                   the ESS system `specapp` and its ess-ui model
 crates/specapp-core/    manifest, pack loading, the neutral model
 crates/specapp-layout/  graph layout to a scene
@@ -436,7 +534,8 @@ crates/specapp/         the CLI: pack check, docs build, serve, trust, mcp
 web/ui/                 @beyond10x/specapp-ui (React)
 web/docusaurus/         @beyond10x/specapp-docusaurus
 web/studio/             the studio (React, Vite)
-fixtures/packs/         two invented packs
+fixtures/packs/         two invented packs, nothing of specapp in them
+fixtures/manifests/     their manifests, `<name>.yaml`
 fixtures/expected/      what each fixture pack's check must count
 ux/                     adapter, baseline, rounds of the UI loop
 ```
@@ -480,7 +579,8 @@ Q8 below kept their defaults.
 - `pack check` runs nothing of the pack, also not `describe`. It says whether `tool.run`'s
   program can be started: a first element with a slash is a path inside the pack to an
   executable file, any other is looked up on PATH. `describe` is a verb every tool answers;
-  `tool.verbs` lists the others (`graph`, `check`, `simulate`, `search`, `apply`).
+  `tool.verbs` lists the others (`graph`, `check`, `simulate`, `search`, `apply`). Since
+  2026-11-28 there is no `describe`, and `tool.verbs` maps each verb to its adapter.
 - The level a pack is at is the highest one its manifest declares (`level` in the report).
 - The palette has twelve names: blue, violet, green, teal, amber, orange, red, pink, cyan, lime,
   brown, slate.
@@ -559,10 +659,10 @@ defaults.
   inside its frame rather than shrinking text.
 - orgspec answers `check` with `orgspec specapp check <design>`; its manifest runs
   `target/debug/orgspec specapp` (Q8: specapp builds nothing; `pack check` says when the binary
-  is missing). A violation's subject is `part:` when it names a part, `link:` when it names a
-  link the design wrote or a default added, else `document` with the name kept at the start of
-  the message (a name the border lists, the organization). A refused type is a gated finding
-  about the document.
+  is missing). Reversed on 2026-11-28: see "Decided: reversed the dependency". A violation's
+  subject is `part:` when it names a part, `link:` when it names a link the design wrote or a
+  default added, else `document` with the name kept at the start of the message (a name the
+  border lists, the organization). A refused type is a gated finding about the document.
 - orgspec's defaults add links the generic reader cannot see; a finding on such a link is a row,
   not a mark. orgspec's `graph` verb closes that; no broken design or example needs it today.
 - The format keys `value`, `vary` and `message` are also words of real packs (a layer of orgspec,
@@ -573,6 +673,42 @@ defaults.
   does not have"; a link `over` a part (a channel) has no neutral field and is a field only;
   part fields that name other parts (`egress`, `acts_for`) are fields only; the architectures
   under `architectures/ladder/` are outside the manifest's glob.
+
+## Decided: reversed the dependency (2026-11-28)
+
+Ordered by the owner on 2026-11-28: a pack must know nothing of specapp; specapp may know the
+packs. Until then orgspec carried `specapp.yaml` and a subcommand `orgspec specapp check |
+describe` that answered specapp's protocol. What changed:
+
+- The manifests of the public packs are specapp's: `packs/orgspec.yaml` (restored from orgspec's
+  `specapp.yaml`) and `packs/agenticspec.yaml` (the draft that was kept outside both
+  repositories). They are embedded in the binary when it is built, so a pack is named by its
+  name (`specapp pack check orgspec --pack <dir>`, `specapp pack known`). Any other manifest is
+  given by its path (`--manifest <file>`). specapp no longer reads `specapp.yaml` from a pack
+  directory; nothing published used it, so there is no fallback.
+- The tool protocol (`describe`, `check` in `specapp-findings/1`, exit 2 with `{error}`) is
+  gone, and `specapp-tool/1` with it. A manifest declares its verbs, each with an adapter that
+  runs the pack's own command and maps its own answer (see "The tool adapter"). orgspec's
+  adapter reads `orgspec check --json`: findings from `refusals` (each a gated finding about the
+  document, the refused subject before the message) and `violations` (`rule`, `gate`,
+  `message`; a subject with `->` is a link id, any other a part id, and an id the drawn graph
+  does not have is about the document with the id before the message). The result is the same
+  as the subcommand's: the 30 broken designs show the same rule ids as `orgspec check --json`,
+  27 of 27 findings with a part or link subject are marked.
+- The manifest format is `specapp-pack/2`: `tool.verbs` changed from a list of names to a
+  mapping from a verb to its adapter, which a reader of `/1` cannot read. A `/1` manifest is
+  refused with both versions named.
+- Trust stays the digest of the manifest's `tool` section, adapters included.
+- `extends` names a pack specapp knows or one whose manifest is given (`--extends <file>`);
+  `pack check` warns when it resolves to neither (`extends_not_found`) or to another pack.
+- The fixture packs model the same rule: their manifests are `fixtures/manifests/<name>.yaml`,
+  their directories hold nothing of specapp, and their tools answer in two shapes of their own.
+  `scripts/check-pack-dirs.sh` fails when a fixture pack, or a pack directory the acceptance is
+  given, holds a file named like a manifest of specapp.
+- Added the same day by the owner: specapp is the top-level application over all spec packs.
+  No feature is built for one pack only; a feature one pack's tool supports is offered for
+  every pack through the adapter, and each pack's gaps are listed ("Gaps per pack"). cloudspec
+  is the third known pack; its manifest comes when it has blocks.
 
 ## Open questions
 
@@ -591,5 +727,5 @@ Each with the default this design takes.
   the file.
 - Q7 Lifecycle drawing: specapp's own component or the page of `ess-ui-templates`. Default:
   own component for the diagram on a block page, a link to that page for playback.
-- Q8 A tool that is not installed. Default: `tool.run` is an argv the pack chooses, and
+- Q8 A tool that is not installed. Default: `tool.run` is an argv the manifest names, and
   `specapp pack check` says when it cannot be started; specapp builds nothing of a pack.

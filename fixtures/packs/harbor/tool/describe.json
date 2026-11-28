@@ -1,7 +1,0 @@
-{
-  "format": "specapp-tool/1",
-  "verbs": ["describe", "check"],
-  "formats": { "check": "specapp-findings/1" },
-  "edit_verbs": [],
-  "kpis": []
-}

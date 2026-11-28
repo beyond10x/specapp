@@ -1,0 +1,63 @@
+format: specapp-pack/2
+pack: orgspec
+title: orgspec
+summary: Building blocks of an organization, organization types and invented example designs.
+visibility: public
+source_url: https://github.com/beyond10x/orgspec
+
+blocks:
+  path: blocks
+  strip_prefix: org.
+
+kpis:
+  path: kpis/catalogue.yaml
+  fields: { measure: measures, modes: postures }
+
+documents:
+  - class: organization
+    title: Organizations
+    paths: [organizations/*.yaml]
+    shape: parts-links/1
+    name: organization
+    contain: { in: in }
+    views:
+      - id: structure
+        title: Structure
+        layout: nested
+        blocks: [organization, unit, position]
+        carries: [reports_to, answers_to, escalates, delegates, hands_off]
+      - id: subjects
+        title: Who answers for what
+        layout: rows
+        carries: [accountable, decides, approves, proposes, responsible, serves, demand, settles, funds]
+  - class: type
+    title: Types
+    paths: [types/*.yaml]
+    shape: records/1
+    name: type
+    tables:
+      - { title: Kinds, at: kinds, key: name, columns: [block, summary] }
+      - { title: Rules, at: rules, key: id, columns: [rule, summary, gate] }
+      - { title: KPIs, at: kpis, key: id, columns: [block, measures, unit, summary] }
+
+tool:
+  run: [target/debug/orgspec]
+  verbs:
+    check:
+      args: [check, --json]
+      exit: [0, 1]
+      at: /0
+      error: /error
+      valid: { at: /valid }
+      counts: /kpis
+      findings:
+        - at: /refusals
+          rule: "{/refusal}"
+          gate: true
+          message: "{/subject}: {/message}"
+          subject: document
+        - at: /violations
+          rule: "{/rule}"
+          gate: { at: /gate }
+          message: "{/message}"
+          subject: { id: "{/subject}", link_when_contains: "->", unknown: document }

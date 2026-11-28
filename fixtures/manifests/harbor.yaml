@@ -1,4 +1,4 @@
-format: specapp-pack/1
+format: specapp-pack/2
 pack: harbor
 title: Harbor
 summary: An invented pack of a small harbor, for the tests of specapp.
@@ -40,7 +40,25 @@ documents:
 
 tool:
   run: [./tool/harbor-tool.sh]
-  verbs: [check]
+  verbs:
+    check:
+      args: [inspect, --json]
+      exit: [0, 1]
+      at: /0
+      error: /error
+      valid: { at: /passes }
+      counts: /tally
+      findings:
+        - at: /breaches
+          rule: "{/bylaw}"
+          gate: { at: /blocking }
+          message: "{/says}"
+          subject: { id: "{/where}", link_when_contains: "->", unknown: document }
+        - at: /notices
+          rule: "{/bylaw}"
+          gate: false
+          message: "{/says}"
+          subject: document
 
 presentation:
   families:

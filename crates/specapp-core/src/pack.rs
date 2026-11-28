@@ -10,9 +10,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// The name of the manifest in a pack directory.
-pub const MANIFEST: &str = "specapp.yaml";
-
 /// The layer of a block: the number and the name of its directory, `<number>-<name>`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Layer {
@@ -71,15 +68,7 @@ pub fn ess_compile(blocks: &Path) -> Result<Value, String> {
         .map_err(|error| format!("ess specify compile printed no JSON: {error}"))
 }
 
-/// The manifest a pack directory is read with: the one named, or `specapp.yaml` in it.
-pub fn manifest_path(dir: &Path, manifest: Option<&Path>) -> PathBuf {
-    match manifest {
-        Some(path) => path.to_path_buf(),
-        None => dir.join(MANIFEST),
-    }
-}
-
-/// Reads and parses the manifest.
+/// Reads and parses the manifest at `path`.
 pub fn read_manifest(path: &Path) -> Result<Manifest, Vec<Issue>> {
     let text = std::fs::read_to_string(path).map_err(|error| {
         vec![Issue::new(
@@ -91,15 +80,69 @@ pub fn read_manifest(path: &Path) -> Result<Manifest, Vec<Issue>> {
     manifest::parse(&text)
 }
 
-/// Loads the pack in `dir` with the manifest `manifest` (default: `dir/specapp.yaml`).
+/// Reads the manifest of a pack specapp knows (`packs/<name>.yaml`, see [`crate::known`]).
+/// `None` when specapp knows no pack of that name.
+pub fn known_manifest(name: &str) -> Option<Result<Manifest, Vec<Issue>>> {
+    crate::known::manifest(name).map(manifest::parse)
+}
+
+/// Loads the pack in `dir` with the manifest at `manifest`. The manifest is specapp's; it lies
+/// outside the pack.
 pub fn load(
     dir: &Path,
-    manifest: Option<&Path>,
+    manifest: &Path,
     compile: &dyn Fn(&Path) -> Result<Value, String>,
 ) -> (Report, Option<Pack>) {
-    match read_manifest(&manifest_path(dir, manifest)) {
+    match read_manifest(manifest) {
         Ok(manifest) => load_with(dir, manifest, compile),
         Err(errors) => (Report::refused(errors, Vec::new()), None),
+    }
+}
+
+/// What specapp says about the pack a manifest `extends`: the name resolves to a pack specapp
+/// knows, or to the manifest `given` at run time, which must be the manifest of that pack.
+pub fn extends_issues(manifest: &Manifest, given: Option<&Path>) -> Vec<Issue> {
+    let Some(name) = &manifest.extends else {
+        return Vec::new();
+    };
+    let subject = format!("extends:{name}");
+    let base = match given {
+        Some(path) => read_manifest(path),
+        None => match known_manifest(name) {
+            Some(base) => base,
+            None => {
+                return vec![Issue::new(
+                    "extends_not_found",
+                    subject,
+                    format!(
+                        "specapp knows no pack {name} (packs/) and no manifest of it is given (--extends)"
+                    ),
+                )];
+            }
+        },
+    };
+    match base {
+        Ok(base) if base.pack == *name => Vec::new(),
+        Ok(base) => vec![Issue::new(
+            "extends_other_pack",
+            subject,
+            format!(
+                "the manifest given for {name} is the manifest of {}",
+                base.pack
+            ),
+        )],
+        Err(errors) => vec![Issue::new(
+            "extends_unreadable",
+            subject,
+            format!(
+                "the manifest of {name} is refused: {}",
+                errors
+                    .iter()
+                    .map(|e| e.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
+        )],
     }
 }
 
@@ -332,17 +375,7 @@ pub fn load_with(
             };
             ToolRow {
                 run: Some(spec.run.clone()),
-                verbs: Some(
-                    spec.verbs
-                        .iter()
-                        .map(|v| {
-                            serde_json::to_value(v)
-                                .ok()
-                                .and_then(|v| v.as_str().map(String::from))
-                                .unwrap_or_default()
-                        })
-                        .collect(),
-                ),
+                verbs: Some(spec.verbs.names().into_iter().map(String::from).collect()),
                 state,
             }
         }

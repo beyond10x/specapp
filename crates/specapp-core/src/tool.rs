@@ -1,11 +1,14 @@
-//! The pack's tool: trust, and one run of a verb under a deadline (see "The tool protocol" in
+//! The pack's tool: trust, and one run of a verb under a deadline (see "The tool adapter" in
 //! `design/specapp.md`).
 //!
 //! specapp runs a pack's tool only for a pack the user trusted: `specapp trust <dir>` records
 //! the digest of the manifest's `tool` section in the user's state directory. A changed `tool`
-//! section is not trusted until it is trusted again.
+//! section is not trusted until it is trusted again. The tool answers in the pack's own format;
+//! the manifest's adapter maps that answer (`crate::adapter`).
 
-use crate::manifest::{Tool, Verb};
+use crate::adapter::{self, Exit, Mapped};
+use crate::graph::Graph;
+use crate::manifest::Tool;
 use crate::pack::Pack;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -97,13 +100,11 @@ pub fn trusted(state: &Path, root: &Path, tool: &Tool) -> bool {
 /// What one run of the tool came to.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Answer {
-    /// Exit 0 with one JSON document.
-    Document(Value),
-    /// Exit 2 with `{error}`.
-    Refused(String),
+    /// The tool ended by itself; the adapter reads its exit code and stdout.
+    Exited(Exit),
     /// The run went over its deadline and was killed.
     TimedOut(Duration),
-    /// Anything else: not started, another exit, no JSON.
+    /// The tool could not be started or waited for.
     Failed(String),
 }
 
@@ -176,30 +177,16 @@ pub fn run(root: &Path, argv: &[String], args: &[&str], deadline: Duration) -> A
     };
     let out = stdout.join().unwrap_or_default();
     let err = stderr.join().unwrap_or_default();
-    let parsed: Option<Value> = serde_json::from_slice(&out).ok();
-    match (status.code(), parsed) {
-        (Some(0), Some(value)) => Answer::Document(value),
-        (Some(2), Some(value)) => Answer::Refused(
-            value
-                .get("error")
-                .and_then(Value::as_str)
-                .unwrap_or("exit 2 without {error}")
-                .to_string(),
-        ),
-        (code, _) => {
-            let first = String::from_utf8_lossy(&err)
-                .lines()
-                .next()
-                .unwrap_or("")
-                .to_string();
-            let code = code.map_or(String::from("a signal"), |c| format!("exit {c}"));
-            Answer::Failed(
-                format!("{code} without a JSON document on stdout {first}")
-                    .trim_end()
-                    .to_string(),
-            )
-        }
-    }
+    Answer::Exited(Exit {
+        code: status.code(),
+        stdout: out,
+        stderr: String::from_utf8_lossy(&err)
+            .lines()
+            .next()
+            .unwrap_or("")
+            .trim_end()
+            .to_string(),
+    })
 }
 
 /// One finding of a check: a rule, whether it is a gate, what it is about, a sentence.
@@ -232,7 +219,7 @@ impl Finding {
     }
 }
 
-/// A check result, `specapp-findings/1`.
+/// A check result, `specapp-findings/1`: what the adapter reads from the tool's answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Findings {
     pub format: String,
@@ -242,13 +229,13 @@ pub struct Findings {
     pub counts: Option<BTreeMap<String, u64>>,
 }
 
-/// Validates a tool's answer to `check` and decodes it.
+/// Validates a check result against `specapp-findings/1` and decodes it.
 pub fn findings(value: &Value) -> Result<Findings, String> {
     if let Some(format) = value.get("format").and_then(Value::as_str)
         && format != FINDINGS_FORMAT
     {
         return Err(format!(
-            "the tool answers in {format}; this specapp reads {FINDINGS_FORMAT}"
+            "the result is in {format}; this specapp reads {FINDINGS_FORMAT}"
         ));
     }
     let schema: Value = serde_json::from_str(FINDINGS_SCHEMA).expect("the findings schema is JSON");
@@ -281,9 +268,9 @@ pub enum CheckState {
     NotTrusted,
     /// The run went over its deadline and was killed.
     TimedOut,
-    /// The tool answered exit 2 with `{error}`.
+    /// The tool refused the document: its answer holds the text the adapter's `error` points at.
     Refused,
-    /// The tool could not be started, or its answer is no `specapp-findings/1`.
+    /// The tool could not be started, or its answer is not what the adapter declares.
     Failed,
 }
 
@@ -312,31 +299,41 @@ impl Check {
     }
 }
 
-/// Runs the tool's `check <document>` for one document of a loaded pack, when the pack's tool
-/// has the verb and the user trusts it (`state` is the state directory; none trusts nothing).
-pub fn check(pack: &Pack, document: &str, state: Option<&Path>, deadline: Duration) -> Check {
+/// Checks one document of a loaded pack with the pack's tool, when the manifest declares the
+/// verb `check` and the user trusts the tool (`state` is the state directory; none trusts
+/// nothing): runs `<tool.run> <args> <document>` and maps the answer with the manifest's
+/// adapter. `graph` is the document as specapp drew it.
+pub fn check(
+    pack: &Pack,
+    document: &str,
+    graph: Option<&Graph>,
+    state: Option<&Path>,
+    deadline: Duration,
+) -> Check {
     let Some(tool) = &pack.manifest.tool else {
         return Check::without(CheckState::NoTool, "the manifest names no tool");
     };
-    if !tool.verbs.contains(&Verb::Check) {
-        return Check::without(CheckState::NoCheck, "the tool has no verb check");
-    }
+    let Some(spec) = &tool.verbs.check else {
+        return Check::without(CheckState::NoCheck, "the manifest declares no verb check");
+    };
     if !state.is_some_and(|s| trusted(s, &pack.root, tool)) {
         return Check::without(
             CheckState::NotTrusted,
-            "the pack's tool is not trusted; specapp trust <dir> trusts it",
+            "the pack's tool is not trusted; specapp trust trusts it",
         );
     }
-    match run(&pack.root, &tool.run, &["check", document], deadline) {
-        Answer::Document(value) => match findings(&value) {
-            Ok(result) => Check {
+    let mut args: Vec<&str> = spec.args.iter().map(String::as_str).collect();
+    args.push(document);
+    match run(&pack.root, &tool.run, &args, deadline) {
+        Answer::Exited(exit) => match adapter::check(spec, &exit, graph) {
+            Mapped::Findings(result) => Check {
                 state: CheckState::Ran,
                 message: None,
                 result: Some(result),
             },
-            Err(why) => Check::without(CheckState::Failed, why),
+            Mapped::Refused(error) => Check::without(CheckState::Refused, error),
+            Mapped::Failed(why) => Check::without(CheckState::Failed, why),
         },
-        Answer::Refused(error) => Check::without(CheckState::Refused, error),
         Answer::TimedOut(after) => Check::without(
             CheckState::TimedOut,
             format!(

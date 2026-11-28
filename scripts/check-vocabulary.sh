@@ -1,13 +1,16 @@
 #!/bin/sh
 # check-vocabulary.sh: fail when a word of a pack appears in specapp's code.
 #
-#   scripts/check-vocabulary.sh [--pack DIR [--manifest FILE]]...
+#   scripts/check-vocabulary.sh [--pack DIR (--manifest FILE | --name NAME)]...
 #
 # The words come from each pack's own files at check time, through `specapp pack words`: its
-# block names, layer names, link names, KPI ids and rule ids. Without --pack the packs are the
-# fixture packs under fixtures/packs/. The acceptance script adds the real packs.
+# block names, layer names, link names, KPI ids and rule ids. A pack is its directory and its
+# manifest: a file (--manifest) or the name of a pack specapp knows (--name, its manifest is
+# packs/<NAME>.yaml). Without --pack the packs are the fixture packs: fixtures/packs/<name>
+# with fixtures/manifests/<name>.yaml. The acceptance script adds the real packs.
 #
-# Searched: every file under crates/ and, when it exists, web/src/.
+# Searched: every file under crates/ and under web/*/src (when they exist). Not searched: the
+# manifests under packs/ and fixtures/manifests/, which are where a pack's words belong.
 #
 #   - a word with an underscore, a hyphen or a digit (reports_to, a KPI id, a rule id) is found
 #     as a whole word anywhere: in code, in a string, in a comment;
@@ -28,39 +31,42 @@ specapp=${SPECAPP:-$root/target/debug/specapp}
 work=$root/target/check-vocabulary
 rm -rf "$work"
 mkdir -p "$work"
+# one line per pack: <dir> TAB <manifest|name> TAB <value>
 : > "$work/packs"
 
+dir=
 while [ $# -gt 0 ]; do
   case "$1" in
     --pack)
       [ $# -ge 2 ] || { echo "check-vocabulary: --pack needs a directory" >&2; exit 2; }
-      printf '%s\t\n' "$2" >> "$work/packs"
+      [ -z "$dir" ] || { echo "check-vocabulary: --pack $dir has no --manifest or --name" >&2; exit 2; }
+      dir=$2
       shift 2 ;;
-    --manifest)
-      [ $# -ge 2 ] || { echo "check-vocabulary: --manifest needs a file" >&2; exit 2; }
-      [ -s "$work/packs" ] || { echo "check-vocabulary: --manifest comes after --pack" >&2; exit 2; }
-      last=$(tail -n 1 "$work/packs" | cut -f1)
-      sed '$d' "$work/packs" > "$work/packs.tmp"
-      printf '%s\t%s\n' "$last" "$2" >> "$work/packs.tmp"
-      mv "$work/packs.tmp" "$work/packs"
+    --manifest|--name)
+      [ $# -ge 2 ] || { echo "check-vocabulary: $1 needs a value" >&2; exit 2; }
+      [ -n "$dir" ] || { echo "check-vocabulary: $1 comes after --pack" >&2; exit 2; }
+      printf '%s\t%s\t%s\n' "$dir" "${1#--}" "$2" >> "$work/packs"
+      dir=
       shift 2 ;;
     *) echo "check-vocabulary: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
+[ -z "$dir" ] || { echo "check-vocabulary: --pack $dir has no --manifest or --name" >&2; exit 2; }
 
 if [ ! -s "$work/packs" ]; then
-  for dir in "$root"/fixtures/packs/*/; do
-    printf '%s\t\n' "${dir%/}" >> "$work/packs"
+  for manifest in "$root"/fixtures/manifests/*.yaml; do
+    name=$(basename "$manifest" .yaml)
+    printf '%s\tmanifest\t%s\n' "$root/fixtures/packs/$name" "$manifest" >> "$work/packs"
   done
 fi
 
 : > "$work/words"
 npacks=0
-while IFS="$(printf '\t')" read -r dir manifest; do
-  if [ -n "$manifest" ]; then
-    "$specapp" pack words "$dir" --manifest "$manifest" > "$work/one" || { echo "check-vocabulary: specapp refused the pack $dir" >&2; exit 2; }
+while IFS="$(printf '\t')" read -r dir how value; do
+  if [ "$how" = manifest ]; then
+    "$specapp" pack words --manifest "$value" --pack "$dir" > "$work/one" || { echo "check-vocabulary: specapp refused the pack $dir" >&2; exit 2; }
   else
-    "$specapp" pack words "$dir" > "$work/one" || { echo "check-vocabulary: specapp refused the pack $dir" >&2; exit 2; }
+    "$specapp" pack words "$value" --pack "$dir" > "$work/one" || { echo "check-vocabulary: specapp refused the pack $dir" >&2; exit 2; }
   fi
   cat "$work/one" >> "$work/words"
   npacks=$((npacks + 1))
@@ -74,7 +80,9 @@ awk '$2 !~ /^[A-Za-z]+$/ { print $2 }' "$work/words" | sort -u > "$work/whole"
 awk '{ k[$2] = ($2 in k) ? k[$2] "," $1 : $1 } END { for (w in k) print w, k[w] }' "$work/words" > "$work/kinds"
 
 set -- "$root/crates"
-[ -d "$root/web/src" ] && set -- "$@" "$root/web/src"
+for src in "$root"/web/*/src; do
+  [ -d "$src" ] && set -- "$@" "$src"
+done
 
 : > "$work/found"
 if [ -s "$work/whole" ]; then

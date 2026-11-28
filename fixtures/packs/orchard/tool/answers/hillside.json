@@ -1,0 +1,20 @@
+{
+  "orchard": "hillside",
+  "verdict": "sound",
+  "observations": [
+    {
+      "concern": "harvest_unhauled",
+      "severity": "advisory",
+      "on": "station",
+      "name": "crop",
+      "detail": "Only one of two trees is tended, so half of the harvest is never hauled."
+    },
+    {
+      "concern": "fill_over_capacity",
+      "severity": "advisory",
+      "on": "route",
+      "name": "picker->basket:fills",
+      "detail": "Two hands fill one basket faster than it is hauled away."
+    }
+  ]
+}

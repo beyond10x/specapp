@@ -1,37 +1,26 @@
 #!/bin/sh
-# The tool of the invented orchard pack. It answers the specapp tool protocol from files and
-# implements no rule: tool/describe.json is its answer to `describe`, and
-# tool/findings/<name>.json its answer to `check orchards/<name>.yaml`. A document without such
-# a file is valid. The manifest starts it as `sh tool/orchard-tool`.
+# The surveyor of the invented orchard pack. It implements no rule: tool/answers/<name>.json is
+# its survey of orchards/<name>.yaml, printed as it is. An orchard without such a file is sound.
+# It is started as `sh tool/orchard-tool`.
 #
-#   orchard-tool describe
-#   orchard-tool check <document>
+#   orchard-tool survey <orchard>
 #
-# Exit 0 with a JSON document on stdout. Exit 2 with {"error": ...} on stdout.
+# Prints one JSON object and exits 0, whatever the verdict. Exit 3 with {"problem": ...} when
+# the orchard cannot be read.
 
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 fail() {
-  printf '{"error": "%s"}\n' "$1"
-  exit 2
+  printf '{"problem": "%s"}\n' "$1"
+  exit 3
 }
 
-case "${1:-}" in
-  describe)
-    [ $# -eq 1 ] || fail "describe takes no argument"
-    cat "$here/describe.json"
-    ;;
-  check)
-    [ $# -eq 2 ] || fail "check takes one document"
-    [ -f "$2" ] || fail "no such document"
-    name=$(basename -- "$2" .yaml)
-    if [ -f "$here/findings/$name.json" ]; then
-      cat "$here/findings/$name.json"
-    else
-      printf '{"format": "specapp-findings/1", "valid": true, "findings": []}\n'
-    fi
-    ;;
-  *)
-    fail "unknown verb"
-    ;;
-esac
+[ "${1:-}" = survey ] || fail "usage: orchard-tool survey <orchard>"
+[ $# -eq 2 ] || fail "survey takes one orchard"
+[ -f "$2" ] || fail "no such orchard"
+name=$(basename -- "$2" .yaml)
+if [ -f "$here/answers/$name.json" ]; then
+  cat "$here/answers/$name.json"
+else
+  printf '{"orchard": "%s", "verdict": "sound", "observations": []}\n' "$name"
+fi

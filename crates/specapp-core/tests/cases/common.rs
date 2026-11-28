@@ -15,7 +15,9 @@ pub fn repo() -> PathBuf {
         .expect("the repository root")
 }
 
-/// Every fixture pack: its name and its directory.
+/// Every fixture pack: its name and its directory. A fixture pack's manifest is specapp's,
+/// `fixtures/manifests/<name>.yaml`; the pack directory `fixtures/packs/<name>` holds nothing
+/// of specapp.
 pub fn packs() -> Vec<(String, PathBuf)> {
     let dir = repo().join("fixtures/packs");
     let mut packs: Vec<(String, PathBuf)> = std::fs::read_dir(&dir)
@@ -31,7 +33,27 @@ pub fn packs() -> Vec<(String, PathBuf)> {
         .collect();
     packs.sort();
     assert!(packs.len() >= 2, "two fixture packs at least");
+    let mut manifests: Vec<String> = std::fs::read_dir(repo().join("fixtures/manifests"))
+        .expect("fixtures/manifests")
+        .flatten()
+        .filter_map(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .strip_suffix(".yaml")
+                .map(String::from)
+        })
+        .collect();
+    manifests.sort();
+    let names: Vec<String> = packs.iter().map(|(n, _)| n.clone()).collect();
+    assert_eq!(names, manifests, "one manifest per fixture pack");
     packs
+}
+
+/// The manifest of a fixture pack, `fixtures/manifests/<name>.yaml`, where `<name>` is the
+/// last component of the pack directory: a copy of a fixture pack keeps its name.
+pub fn manifest_of(dir: &Path) -> PathBuf {
+    let name = dir.file_name().expect("a pack directory").to_string_lossy();
+    repo().join(format!("fixtures/manifests/{name}.yaml"))
 }
 
 /// What `fixtures/expected/<pack>.json` says about a fixture pack.
@@ -120,9 +142,9 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Loads a pack with its own manifest and the cached compiler.
+/// Loads a fixture pack with its manifest (`manifest_of`) and the cached compiler.
 pub fn load_pack(dir: &Path) -> (Report, Option<Pack>) {
-    load(dir, None, &compiled)
+    load(dir, &manifest_of(dir), &compiled)
 }
 
 /// Loads a pack with a manifest changed by `change`.
@@ -130,8 +152,7 @@ pub fn load_changed(
     dir: &Path,
     change: impl FnOnce(&mut specapp_core::Manifest),
 ) -> (Report, Option<Pack>) {
-    let mut manifest =
-        specapp_core::pack::read_manifest(&dir.join("specapp.yaml")).expect("the manifest");
+    let mut manifest = specapp_core::pack::read_manifest(&manifest_of(dir)).expect("the manifest");
     change(&mut manifest);
     load_with(dir, manifest, &compiled)
 }

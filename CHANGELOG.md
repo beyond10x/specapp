@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+- Decided: reversed the dependency (2026-11-28, ordered by the owner). specapp knows the packs;
+  a pack knows nothing of specapp.
+- The manifests of the public packs are specapp's: `packs/orgspec.yaml` and
+  `packs/agenticspec.yaml`, embedded when specapp is built. `specapp pack check <name> --pack
+  <dir>` reads a known pack by its name; `--manifest <file> --pack <dir>` reads any other (a
+  private pack's manifest stays outside this repository). `specapp pack known` lists the names.
+  The same arguments for `pack words`, `trust` and `render`. specapp no longer reads
+  `specapp.yaml` from a pack directory.
+- The manifest format is `specapp-pack/2` (`schema/specapp-pack-2.schema.json`): `tool.verbs`
+  maps a verb to its adapter, which runs the pack's own command and maps its own JSON answer
+  (`at`, `exit`, `error`, `valid`, `counts`, and lists of findings with templates for rule and
+  message, a gate test and a subject rule: `link_when_contains`, or `kind` with `kinds`, and
+  `unknown: document`). `specapp-pack/1` is refused with both versions named.
+- Removed the tool protocol: no `describe`, no `specapp-tool/1`; `specapp-findings/1` is now
+  produced by specapp's adapter (`specapp-core::adapter`). Trust stays the digest of the `tool`
+  section, adapters included.
+- `extends` resolves to a known pack or to a manifest given with `--extends <file>`; `pack check`
+  warns `extends_not_found` or `extends_other_pack`.
+- Fixtures: the manifests moved to `fixtures/manifests/<name>.yaml`; the pack directories hold
+  nothing of specapp; the two fixture tools answer in shapes of their own (a list with exit 1
+  for an invalid plan; an object with a verdict word and a kind per finding). The committed
+  pages are unchanged.
+- `scripts/check-pack-dirs.sh` with its test: fails when a pack directory holds a file named like
+  a manifest of specapp (fixture packs: anything of specapp). Part of `check:fixtures` and of
+  the acceptance.
+- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>`: manifests from `packs/`; every wave 1
+  and wave 2 row is equal as before. `scripts/check-vocabulary.sh` takes `--pack DIR` with
+  `--manifest FILE` or `--name NAME` and searches `crates/` and `web/*/src`.
+- Rules: no feature for one pack only (owner, 2026-11-28); the gaps of each known pack are
+  listed in `design/specapp.md`; cloudspec is the third known pack, its manifest comes with its
+  blocks.
+
 - Wave 2, "Graph".
 - The reader of `parts-links/1` documents (`specapp-core::graph`): a document to
   `specapp-graph/1` (`schema/specapp-graph-1.schema.json`) with parts, links (id

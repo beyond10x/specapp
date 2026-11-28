@@ -22,11 +22,11 @@
       "required": ["state"],
       "properties": {
         "state": {
-          "description": "ran: the tool answered. no_tool, no_check: the manifest names no tool or no verb check. not_trusted: the user has not trusted this tool section (specapp trust). timed_out: the run went over its deadline and was killed. refused: exit 2 with {error}. failed: not started, or no specapp-findings/1.",
+          "description": "ran: the tool answered. no_tool, no_check: the manifest names no tool or no verb check. not_trusted: the user has not trusted this tool section (specapp trust). timed_out: the run went over its deadline and was killed. refused: the answer holds the text the adapter's error points at. failed: not started, or an answer the adapter cannot read.",
           "enum": ["ran", "no_tool", "no_check", "not_trusted", "timed_out", "refused", "failed"]
         },
         "message": { "type": "string" },
-        "result": { "description": "The tool's answer, specapp-findings/1.", "type": "object", "required": ["format"], "properties": { "format": { "const": "specapp-findings/1" } } }
+        "result": { "description": "The tool's answer as the adapter read it, specapp-findings/1.", "type": "object", "required": ["format"], "properties": { "format": { "const": "specapp-findings/1" } } }
       }
     },
     "findings": {

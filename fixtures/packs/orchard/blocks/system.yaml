@@ -3,7 +3,7 @@ system: orchard
 version: v1
 
 summary: >-
-  An invented pack for the tests of specapp: the blocks of an orchard. Groves hold trees,
+  An invented pack: the blocks of an orchard. Groves hold trees,
   pickers work a grove, each picker fills one basket, a harvest is counted per tree.
 
 domains:

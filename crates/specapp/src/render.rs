@@ -80,7 +80,7 @@ pub fn build(pack: &Pack, state: Option<&Path>, deadline: Duration) -> Rendered 
                     continue;
                 };
                 let graph = graph::read(class, &document.path, value);
-                let check = tool::check(pack, &document.path, state, deadline);
+                let check = tool::check(pack, &document.path, Some(&graph), state, deadline);
                 let findings = check.findings().to_vec();
                 let scenes: Vec<Scene> = views_of(class, &graph)
                     .iter()

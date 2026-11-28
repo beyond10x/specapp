@@ -1,33 +1,133 @@
 //! The manifest: the schema and the decoder agree, and a manifest the schema refuses is
 //! refused with the place named.
 
-use super::common::{packs, repo, schema_errors};
+use super::common::{manifest_of, packs, repo, schema_errors};
 use serde_json::Value;
-use specapp_core::manifest::{self, Contain, PALETTE, parse};
+use specapp_core::known;
+use specapp_core::manifest::{self, Contain, PALETTE, Visibility, parse};
 
 fn minimal() -> String {
     String::from(
-        "format: specapp-pack/1\npack: sample\ntitle: Sample\nvisibility: public\nblocks: { path: b }\n",
+        "format: specapp-pack/2\npack: sample\ntitle: Sample\nvisibility: public\nblocks: { path: b }\n",
     )
 }
 
 #[test]
 fn every_fixture_manifest_follows_the_schema_and_decodes() {
     for (name, dir) in packs() {
-        let text = std::fs::read_to_string(dir.join("specapp.yaml")).unwrap();
+        let text = std::fs::read_to_string(manifest_of(&dir)).unwrap();
         let value: Value = serde_yaml_ng::from_str(&text).unwrap();
         assert_eq!(
-            schema_errors("specapp-pack-1.schema.json", &value),
+            schema_errors("specapp-pack-2.schema.json", &value),
             Vec::<String>::new(),
             "{name}"
         );
-        assert!(parse(&text).is_ok(), "{name}");
+        let m = parse(&text).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert_eq!(m.pack, name);
     }
 }
 
 #[test]
+fn every_manifest_under_packs_is_known_public_and_named_after_its_pack() {
+    let mut files: Vec<String> = std::fs::read_dir(repo().join("packs"))
+        .unwrap()
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    files.sort();
+    let names: Vec<String> = files
+        .iter()
+        .map(|f| {
+            f.strip_suffix(".yaml")
+                .unwrap_or_else(|| panic!("packs/ holds manifests only: {f}"))
+                .to_string()
+        })
+        .collect();
+    assert!(!names.is_empty());
+    assert_eq!(names, known::names());
+    for name in &names {
+        let text = std::fs::read_to_string(repo().join(format!("packs/{name}.yaml"))).unwrap();
+        assert_eq!(known::manifest(name), Some(text.as_str()), "{name}");
+        let m = parse(&text).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert_eq!(&m.pack, name);
+        assert_eq!(
+            m.visibility,
+            Visibility::Public,
+            "{name}: packs/ holds public packs only"
+        );
+    }
+    assert_eq!(known::manifest("no-such-pack"), None);
+}
+
+#[test]
+fn a_check_adapter_takes_each_subject_rule_alone() {
+    let with = |subject: &str| {
+        format!(
+            "{}tool:\n  run: [t]\n  verbs:\n    check:\n      findings:\n        - {{ at: /f, rule: \"{{/r}}\", gate: true, message: m, subject: {subject} }}\n",
+            minimal()
+        )
+    };
+    assert!(parse(&with("document")).is_ok());
+    assert!(parse(&with("{ id: \"{/s}\" }")).is_ok());
+    assert!(
+        parse(&with(
+            "{ id: \"{/s}\", link_when_contains: \"->\", unknown: document }"
+        ))
+        .is_ok()
+    );
+    assert!(
+        parse(&with(
+            "{ id: \"{/s}\", kind: \"{/k}\", kinds: { a: part, b: link } }"
+        ))
+        .is_ok()
+    );
+    assert!(
+        parse(&with("part")).is_err(),
+        "a fixed subject is the document"
+    );
+    assert!(
+        parse(&with(
+            "{ id: \"{/s}\", link_when_contains: \"->\", kind: \"{/k}\", kinds: { a: part } }"
+        ))
+        .is_err(),
+        "two rules at once"
+    );
+    assert!(
+        parse(&with("{ id: \"{/s}\", kind: \"{/k}\" }")).is_err(),
+        "kind without kinds"
+    );
+    assert!(parse(&with("{ id: \"{/s}\", kinds: { a: elsewhere } }")).is_err());
+    assert!(parse(&with("{ id: \"{/s}\", unknown: drop }")).is_err());
+    let m = parse(&format!(
+        "{}tool:\n  run: [t]\n  verbs:\n    check: {{}}\n",
+        minimal()
+    ))
+    .unwrap();
+    assert_eq!(m.level(), "L3");
+    assert_eq!(m.tool.unwrap().verbs.check.unwrap().exit_codes(), vec![0]);
+    let m = parse(&format!("{}tool:\n  run: [t]\n", minimal())).unwrap();
+    assert_eq!(m.level(), "L0", "a tool without a verb adds no level");
+    assert!(
+        parse(&format!(
+            "{}tool:\n  run: [t]\n  verbs:\n    describe: {{}}\n",
+            minimal()
+        ))
+        .is_err(),
+        "a verb specapp does not offer"
+    );
+    assert!(
+        parse(&format!(
+            "{}tool:\n  run: [t]\n  verbs:\n    check: {{ at: \"0\" }}\n",
+            minimal()
+        ))
+        .is_err(),
+        "a pointer starts with a slash"
+    );
+}
+
+#[test]
 fn the_embedded_schema_is_the_file_in_schema() {
-    let file = std::fs::read_to_string(repo().join("schema/specapp-pack-1.schema.json")).unwrap();
+    let file = std::fs::read_to_string(repo().join("schema/specapp-pack-2.schema.json")).unwrap();
     assert_eq!(file, manifest::SCHEMA);
 }
 
@@ -119,7 +219,7 @@ fn a_refusal_names_the_place_and_every_violation() {
 
 #[test]
 fn another_format_version_is_refused_with_both_versions_named() {
-    let text = minimal().replace("specapp-pack/1", "specapp-pack/2");
+    let text = minimal().replace("specapp-pack/2", "specapp-pack/1");
     let issues = parse(&text).unwrap_err();
     assert_eq!(issues.len(), 1);
     assert!(issues[0].message.contains("specapp-pack/2"));

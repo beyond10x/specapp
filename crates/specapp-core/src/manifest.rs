@@ -1,7 +1,11 @@
-//! The manifest of a pack, format `specapp-pack/1`.
+//! The manifest of a pack, format `specapp-pack/2`.
+//!
+//! A manifest is specapp's description of a pack; the pack knows nothing of it. The manifests
+//! of public packs are specapp's `packs/<name>.yaml` (see [`crate::known`]); the manifest of a
+//! private pack is given by its path at run time.
 //!
 //! A manifest is read in two steps: its YAML is validated against the JSON Schema in
-//! `schema/specapp-pack-1.schema.json`, then decoded into [`Manifest`]. The schema is the
+//! `schema/specapp-pack-2.schema.json`, then decoded into [`Manifest`]. The schema is the
 //! contract; the types below decode exactly what it allows.
 
 use crate::report::Issue;
@@ -10,10 +14,10 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 /// The format name a manifest carries.
-pub const FORMAT: &str = "specapp-pack/1";
+pub const FORMAT: &str = "specapp-pack/2";
 
 /// The schema of the manifest.
-pub const SCHEMA: &str = include_str!("../../../schema/specapp-pack-1.schema.json");
+pub const SCHEMA: &str = include_str!("../../../schema/specapp-pack-2.schema.json");
 
 /// The colours of specapp's palette, the only colour names a pack may write.
 pub const PALETTE: &[&str] = &[
@@ -190,22 +194,151 @@ pub struct Table {
     pub columns: Vec<String>,
 }
 
+/// The pack's own tool and, per verb specapp offers, the adapter that runs it and maps its
+/// answer. The tool knows nothing of specapp; the adapter is specapp's.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tool {
+    /// The argv prefix of the tool. A first element with a slash is a path inside the pack.
     pub run: Vec<String>,
-    pub verbs: Vec<Verb>,
+    #[serde(default)]
+    pub verbs: Verbs,
 }
 
-/// A verb of the tool protocol beside `describe`, which every tool answers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+/// The verbs a pack's tool is used for, each with its adapter.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Verbs {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub check: Option<CheckAdapter>,
+}
+
+impl Verbs {
+    /// The names of the declared verbs.
+    pub fn names(&self) -> Vec<&'static str> {
+        let mut names = Vec::new();
+        if self.check.is_some() {
+            names.push("check");
+        }
+        names
+    }
+}
+
+/// How specapp runs the tool to check one document and reads its answer.
+///
+/// specapp runs `<tool.run> <args> <document>` in the pack directory and reads stdout as JSON.
+/// `at` points at the document's result in that answer; every other pointer is relative to it.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckAdapter {
+    /// The arguments after `tool.run`; the document's path is appended.
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// The exit codes that come with an answer. Default: 0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit: Option<Vec<i32>>,
+    /// A JSON pointer to the document's result in the answer. Default: the whole answer.
+    #[serde(default)]
+    pub at: String,
+    /// A JSON pointer to a text that, when the result has it, refuses the run with that text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Whether the document is valid. Default: valid when no finding is gated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid: Option<Test>,
+    /// A JSON pointer to the findings per rule, a mapping from a rule to a count.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub counts: Option<String>,
+    /// The lists of findings in the result, in the order the findings are shown.
+    #[serde(default)]
+    pub findings: Vec<FindingList>,
+}
+
+impl CheckAdapter {
+    /// The exit codes that come with an answer.
+    pub fn exit_codes(&self) -> Vec<i32> {
+        self.exit.clone().unwrap_or_else(|| vec![0])
+    }
+}
+
+/// A truth read from the answer: the boolean at `at`, or whether the value at `at` equals
+/// `equals`.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Test {
+    pub at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equals: Option<Value>,
+}
+
+/// Whether a finding is gated: always, never, or as a test of the finding says.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Gate {
+    Always(bool),
+    When(Test),
+}
+
+/// One list of findings in the answer and how one entry maps to a finding. `rule` and
+/// `message` are templates: `{<JSON pointer>}` stands for the text at that pointer in the entry.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FindingList {
+    /// A JSON pointer to the list; a list the answer leaves out is empty.
+    pub at: String,
+    pub rule: String,
+    pub gate: Gate,
+    pub message: String,
+    pub subject: SubjectMap,
+}
+
+/// What a finding is about: always the document, or a rule over the entry.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum SubjectMap {
+    /// Always `document` (the schema allows no other text).
+    Document(String),
+    Rule(SubjectRule),
+}
+
+/// The subject of a finding: an id, and whether it names a part or a link.
+///
+/// With `link_when_contains`, an id that contains that text is a link and any other a part.
+/// With `kind`, the template's value is looked up in `kinds`; a value not listed means the
+/// document. With neither, the id is a part.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SubjectRule {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link_when_contains: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub kinds: BTreeMap<String, SubjectKind>,
+    /// What an id the drawn graph does not have is about. Default: `keep`.
+    #[serde(default)]
+    pub unknown: Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Verb {
-    Graph,
-    Check,
-    Simulate,
-    Search,
-    Apply,
+pub enum SubjectKind {
+    Part,
+    Link,
+    Document,
+}
+
+/// What a subject the graph does not have becomes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Unknown {
+    /// It stays a part or a link; the page lists it and draws no mark.
+    #[default]
+    Keep,
+    /// It is about the document; its id is put before the message unless it is the
+    /// document's name.
+    Document,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -245,7 +378,7 @@ pub fn parse(text: &str) -> Result<Manifest, Vec<Issue>> {
     })
 }
 
-/// Validates a manifest, already read into JSON, against the schema of `specapp-pack/1`.
+/// Validates a manifest, already read into JSON, against the schema of `specapp-pack/2`.
 pub fn validate(value: &Value) -> Result<(), Vec<Issue>> {
     if let Some(format) = value.get("format").and_then(Value::as_str)
         && format != FORMAT
@@ -276,16 +409,7 @@ pub fn validate(value: &Value) -> Result<(), Vec<Issue>> {
 impl Manifest {
     /// The levels of adoption the manifest declares, cheapest first; the last is the highest.
     pub fn level(&self) -> &'static str {
-        let verbs = self
-            .tool
-            .as_ref()
-            .map(|t| t.verbs.as_slice())
-            .unwrap_or(&[]);
-        if verbs.contains(&Verb::Apply) {
-            "L5"
-        } else if verbs.contains(&Verb::Simulate) || verbs.contains(&Verb::Search) {
-            "L4"
-        } else if verbs.contains(&Verb::Check) {
+        if self.tool.as_ref().is_some_and(|t| t.verbs.check.is_some()) {
             "L3"
         } else if !self.documents.is_empty() {
             "L2"
