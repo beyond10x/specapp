@@ -37,6 +37,26 @@
   entry, and a registry measure without a row. `scripts/acceptance.sh` sources every
   `scripts/acceptance.d/*.sh` in name order after its wave rows; `Taskfile.yml` includes
   `taskfiles/slow.yml` and `taskfiles/quality.yml` when they exist.
+- `metaspec render ... --quality <REPORT>` (repeatable) writes `quality.html` beside
+  `index.html` from reports `metaspec quality kpis --json` or `metaspec quality spec --json`
+  wrote; render measures nothing itself. One section per report, in the order of the questions
+  (`kpi_catalogue`, then `specification`) whatever the order of the flags: one row per
+  measurement the report holds (`id="measure-<id>"`), with its value or gap (and the level a gap
+  needs), unit, direction and the names behind it grouped by kind, then the report's gaps. A
+  measure the page has not seen before is shown like every other. The page follows the rules of
+  render's pages (one file, CSS inline, no script that runs, no request) and carries each report
+  in `<script type="application/json" id="metaspec-quality-<question>">`. With the page written,
+  `index.html` gets one line more that links it; without `--quality` the index is unchanged. A
+  report that cannot be read, is not JSON, does not follow `metaspec-quality/1`, is the report of
+  another pack, or repeats the question of another report given is refused with exit 1 after the
+  other pages are written; no quality page is written and the index links none. Recorded reports
+  `fixtures/quality-reports/{harbor,orchard}/kpis.json` (what `quality kpis --json` printed for
+  the fixture packs; the test names the command that writes them again) and the goldens
+  `fixtures/expected/{harbor,orchard}/pages/quality.html` rendered from them, so a later measure
+  changes neither. Acceptance rows `quality:page`, `quality:page-measures` and
+  `quality:page-link` for the four packs (`scripts/acceptance.d/kpi-quality-page.sh`). Every
+  render removes a `quality.html` an earlier render left in `--out` before it writes its pages,
+  so a refused report or a render without `--quality` leaves no page with old numbers.
 
 ## 0.1.0 (2026-11-28)
 

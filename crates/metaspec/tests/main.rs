@@ -352,8 +352,12 @@ fn schema(file: &str, value: &Value) -> Vec<String> {
         .collect()
 }
 
-/// Every file under `dir`, relative, sorted.
+/// Every file under `dir`, relative, sorted; none when `dir` does not exist (the expected
+/// directory of a fixture pack before its first bless).
 fn files(dir: &Path) -> Vec<String> {
+    if !dir.is_dir() {
+        return Vec::new();
+    }
     fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
         for entry in std::fs::read_dir(dir).unwrap().flatten() {
             let path = entry.path();
@@ -392,9 +396,22 @@ fn render_of_a_trusted_fixture_pack_writes_the_committed_pages() {
         let expected = repo().join(format!("fixtures/expected/{name}/pages"));
         let bless = std::env::var("METASPEC_BLESS").as_deref() == Ok("1");
         if bless {
-            let _ = std::fs::remove_dir_all(&expected);
+            for rel in files(&expected) {
+                if rel != QUALITY_PAGE {
+                    std::fs::remove_file(expected.join(rel)).unwrap();
+                }
+            }
         }
         let got = files(&out);
+        assert!(
+            !got.iter().any(|rel| rel == QUALITY_PAGE),
+            "{name}: no quality page without a report"
+        );
+        let index = std::fs::read_to_string(out.join("index.html")).unwrap();
+        assert!(
+            !index.contains(QUALITY_PAGE),
+            "{name}: the index links the quality page only when a report is given"
+        );
         for rel in &got {
             let text = std::fs::read_to_string(out.join(rel)).unwrap();
             assert!(
@@ -418,9 +435,17 @@ fn render_of_a_trusted_fixture_pack_writes_the_committed_pages() {
                 );
             }
         }
-        assert_eq!(got, files(&expected), "{name}: the same files");
+        let want: Vec<String> = files(&expected)
+            .into_iter()
+            .filter(|rel| rel != QUALITY_PAGE)
+            .collect();
+        assert_eq!(got, want, "{name}: the same files");
     }
 }
+
+/// The page `render --quality` writes beside index.html; its golden is
+/// `fixtures/expected/<pack>/pages/quality.html`.
+const QUALITY_PAGE: &str = "quality.html";
 
 #[test]
 fn every_page_carries_its_data_with_each_finding_drawn_where_its_subject_is() {
@@ -985,23 +1010,306 @@ fn quality_kpis_prints_one_line_per_measure_and_refuses_bad_usage_with_2() {
     assert_eq!(unknown.status.code(), Some(2));
 }
 
-#[test]
-fn layout_render_with_a_quality_report_reaches_the_stub_page_and_exits_2() {
-    let dir = &packs()[0];
-    let state = scratch("quality-page-state");
-    let out = scratch("quality-page");
-    let report = state.join("kpis.json");
-    let run = on_pack(&["quality", "kpis"], dir, &["--json"]);
-    assert_eq!(run.status.code(), Some(0));
-    std::fs::write(&report, &run.stdout).unwrap();
-    let run = render(&state, dir, &out, &["--quality", report.to_str().unwrap()]);
-    assert_eq!(run.status.code(), Some(2));
-    let stderr = String::from_utf8_lossy(&run.stderr);
-    assert!(stderr.contains("not built yet"), "{stderr}");
+// --- the quality page ---
+
+/// The recorded KPI report of a fixture pack, `fixtures/quality-reports/<pack>/kpis.json`: what
+/// `metaspec quality kpis` printed for it when the quality page was built. The golden quality
+/// page is rendered from it, never from the live output, so a later measure changes neither the
+/// recorded report nor the golden. It is written again, with [`regenerate`], only when the page
+/// is meant to change.
+fn recorded_report(name: &str) -> PathBuf {
+    repo().join(format!("fixtures/quality-reports/{name}/kpis.json"))
+}
+
+/// The command that writes the recorded KPI report of a fixture pack again, run in the
+/// repository root.
+fn regenerate(name: &str) -> String {
+    format!(
+        "target/debug/metaspec quality kpis --manifest fixtures/manifests/{name}.yaml --pack fixtures/packs/{name} --json > fixtures/quality-reports/{name}/kpis.json"
+    )
+}
+
+fn read_json(path: &Path) -> Value {
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+/// The report a quality page carries for one question, in its data element.
+fn quality_data(html: &str, question: &str) -> Value {
+    let start = format!("<script type=\"application/json\" id=\"metaspec-quality-{question}\">");
+    let from = html
+        .find(&start)
+        .unwrap_or_else(|| panic!("a data element of {question}"))
+        + start.len();
+    let to = from + html[from..].find("</script>").unwrap();
+    serde_json::from_str(&html[from..to]).expect("the data is JSON")
+}
+
+/// What a page must not hold: a path of this machine, a request, a script that runs.
+fn assert_self_contained(what: &str, html: &str) {
     assert!(
-        out.join("index.html").is_file(),
-        "render writes its pages before the quality page"
+        !html.contains(&*repo().to_string_lossy()),
+        "{what}: a path of this machine"
     );
+    assert!(
+        !html.contains("<link") && !html.contains("src=\""),
+        "{what}: self-contained"
+    );
+    assert_eq!(
+        html.matches("<script").count(),
+        html.matches("<script type=\"application/json\"").count(),
+        "{what}: no script that runs"
+    );
+}
+
+#[test]
+fn the_recorded_kpi_report_of_each_fixture_pack_follows_the_schema_and_holds_every_measure() {
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let path = recorded_report(&name);
+        assert!(
+            path.is_file(),
+            "{name}: no recorded report; write it with: {}",
+            regenerate(&name)
+        );
+        let report = read_json(&path);
+        assert_eq!(
+            schema("metaspec-quality-1.schema.json", &report),
+            Vec::<String>::new(),
+            "{name}: write it again with: {}",
+            regenerate(&name)
+        );
+        assert_eq!(report["pack"], name.as_str());
+        assert_eq!(report["question"], "kpi_catalogue");
+        let got: Vec<&str> = report["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["measure"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            got,
+            kpi_measures(),
+            "{name}: write it again with: {}",
+            regenerate(&name)
+        );
+    }
+}
+
+#[test]
+fn render_with_the_recorded_kpi_report_writes_the_committed_quality_page() {
+    let bless = std::env::var("METASPEC_BLESS").as_deref() == Ok("1");
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let state = scratch(&format!("quality-state-{name}"));
+        let out = scratch(&format!("quality-pages-{name}"));
+        assert_eq!(trust(&state, &dir).status.code(), Some(0), "{name}");
+        let path = recorded_report(&name);
+        let run = render(&state, &dir, &out, &["--quality", path.to_str().unwrap()]);
+        assert_eq!(
+            run.status.code(),
+            Some(0),
+            "{name}: {}",
+            String::from_utf8_lossy(&run.stderr)
+        );
+        let stdout = String::from_utf8_lossy(&run.stdout);
+        assert!(stdout.contains(QUALITY_PAGE), "{name}: {stdout}");
+
+        let html = std::fs::read_to_string(out.join(QUALITY_PAGE)).unwrap();
+        assert_self_contained(&name, &html);
+        let golden = repo().join(format!("fixtures/expected/{name}/pages/{QUALITY_PAGE}"));
+        if bless {
+            std::fs::create_dir_all(golden.parent().unwrap()).unwrap();
+            std::fs::write(&golden, &html).unwrap();
+        } else {
+            let want = std::fs::read_to_string(&golden)
+                .unwrap_or_else(|e| panic!("{name}: {e} (METASPEC_BLESS=1 writes it)"));
+            assert!(
+                want == html,
+                "{name} {QUALITY_PAGE} differs from the committed page (METASPEC_BLESS=1 rewrites it)"
+            );
+        }
+
+        let report = read_json(&path);
+        assert_eq!(quality_data(&html, "kpi_catalogue"), report, "{name}");
+        for m in report["measurements"].as_array().unwrap() {
+            let measure = m["measure"].as_str().unwrap();
+            assert!(
+                html.contains(&format!("<tr id=\"measure-{measure}\">")),
+                "{name}: a row of {measure}"
+            );
+            assert!(
+                html.contains(m["unit"].as_str().unwrap()),
+                "{name} {measure}"
+            );
+            match m["reading"]["kind"].as_str().unwrap() {
+                "value" => assert!(
+                    html.contains(&format!(">{}<", m["reading"]["value"])),
+                    "{name}: the value of {measure}"
+                ),
+                _ => assert!(
+                    html.contains(m["reading"]["gap"].as_str().unwrap()),
+                    "{name}: the gap of {measure}"
+                ),
+            }
+            for b in m["behind"].as_array().unwrap() {
+                let behind = format!("<code>{}</code>", b["name"].as_str().unwrap());
+                assert!(html.contains(&behind), "{name} {measure}: {behind}");
+            }
+        }
+
+        let index = std::fs::read_to_string(out.join("index.html")).unwrap();
+        assert!(
+            index.contains(&format!("<a href=\"{QUALITY_PAGE}\">")),
+            "{name}: the index links the quality page"
+        );
+        let without: String = index
+            .lines()
+            .filter(|l| !l.contains(&format!("href=\"{QUALITY_PAGE}\"")))
+            .map(|l| format!("{l}\n"))
+            .collect();
+        // Under bless the committed index is written by the render golden test, maybe not yet.
+        if !bless {
+            let committed = std::fs::read_to_string(
+                repo().join(format!("fixtures/expected/{name}/pages/index.html")),
+            )
+            .unwrap();
+            assert!(
+                without == committed,
+                "{name}: but for the line of its link, the index is the committed one"
+            );
+        }
+    }
+}
+
+#[test]
+fn every_measure_of_every_report_given_is_shown_and_the_questions_keep_their_order() {
+    let dir = &packs()[0];
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let state = scratch("quality-more-state");
+    let out = scratch("quality-more-pages");
+    let mut kpis = read_json(&recorded_report(&name));
+    kpis["measurements"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "measure": "invented.later",
+            "unit": "count",
+            "direction": "lower_is_better",
+            "reading": {"kind": "value", "value": 3},
+            "behind": [{"kind": "file", "name": "invented-file"}]
+        }));
+    let mut spec = kpis.clone();
+    spec["question"] = "specification".into();
+    spec["measurements"] = serde_json::json!([{
+        "measure": "invented.spec",
+        "unit": "share",
+        "direction": "higher_is_better",
+        "reading": {"kind": "gap", "gap": "the pack has no invented input"},
+        "behind": []
+    }]);
+    spec["gaps"] = serde_json::json!([{
+        "kind": "measure",
+        "feature": "invented.spec",
+        "needs": "L3",
+        "summary": "the pack has no invented input"
+    }]);
+    for report in [&kpis, &spec] {
+        assert_eq!(
+            schema("metaspec-quality-1.schema.json", report),
+            Vec::<String>::new()
+        );
+    }
+    let kpis_file = state.join("kpis.json");
+    let spec_file = state.join("spec.json");
+    std::fs::write(&kpis_file, kpis.to_string()).unwrap();
+    std::fs::write(&spec_file, spec.to_string()).unwrap();
+    let run = render(
+        &state,
+        dir,
+        &out,
+        &[
+            "--quality",
+            spec_file.to_str().unwrap(),
+            "--quality",
+            kpis_file.to_str().unwrap(),
+        ],
+    );
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let html = std::fs::read_to_string(out.join(QUALITY_PAGE)).unwrap();
+    assert_self_contained(&name, &html);
+    for want in [
+        "<tr id=\"measure-invented.later\">",
+        "<code>invented-file</code>",
+        "<tr id=\"measure-invented.spec\">",
+        "the pack has no invented input",
+        "L3",
+    ] {
+        assert!(html.contains(want), "{want}");
+    }
+    let first = html
+        .find("id=\"question-kpi_catalogue\"")
+        .expect("the KPI section");
+    let second = html
+        .find("id=\"question-specification\"")
+        .expect("the specification section");
+    assert!(
+        first < second,
+        "the questions in the order of the catalogue"
+    );
+    assert_eq!(quality_data(&html, "kpi_catalogue"), kpis);
+    assert_eq!(quality_data(&html, "specification"), spec);
+}
+
+#[test]
+fn render_refuses_a_report_it_cannot_use_with_1_and_writes_no_quality_page() {
+    let all = packs();
+    let (dir, other) = (&all[0], &all[1]);
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let other_name = other.file_name().unwrap().to_string_lossy().into_owned();
+    let state = scratch("quality-refused-state");
+    let not_json = state.join("not-json.json");
+    std::fs::write(&not_json, "not json").unwrap();
+    let not_a_report = state.join("empty.json");
+    std::fs::write(&not_a_report, "{}").unwrap();
+    let own = recorded_report(&name);
+    let cases: Vec<(&str, Vec<PathBuf>)> = vec![
+        ("a file that is not JSON", vec![not_json]),
+        ("JSON that is no report", vec![not_a_report]),
+        (
+            "a file that does not exist",
+            vec![state.join("missing.json")],
+        ),
+        (
+            "the report of another pack",
+            vec![recorded_report(&other_name)],
+        ),
+        ("two reports of one question", vec![own.clone(), own]),
+    ];
+    for (i, (case, reports)) in cases.into_iter().enumerate() {
+        let out = scratch(&format!("quality-refused-{i}"));
+        let mut extra = Vec::new();
+        for report in &reports {
+            extra.push("--quality");
+            extra.push(report.to_str().unwrap());
+        }
+        let run = render(&state, dir, &out, &extra);
+        let stderr = String::from_utf8_lossy(&run.stderr);
+        assert_eq!(run.status.code(), Some(1), "{case}: {stderr}");
+        assert!(stderr.contains("quality"), "{case}: {stderr}");
+        assert!(!out.join(QUALITY_PAGE).exists(), "{case}: no quality page");
+        let index = std::fs::read_to_string(out.join("index.html"))
+            .unwrap_or_else(|e| panic!("{case}: the pages are written first: {e}"));
+        assert!(
+            !index.contains(QUALITY_PAGE),
+            "{case}: the index links nothing"
+        );
+    }
 }
 
 #[test]
@@ -1071,4 +1379,133 @@ fn copy(from: &Path, to: &Path) {
             std::fs::copy(&path, &target).unwrap();
         }
     }
+}
+
+/// Adversarial pass (story:kpi-quality-page): render into a directory an earlier render with a
+/// report already wrote. A refused report must leave no quality page, not the earlier one with
+/// the earlier report's numbers beside an index that no longer links it.
+#[test]
+fn adversary_a_refused_report_leaves_no_quality_page_of_an_earlier_render() {
+    let all = packs();
+    let (dir, other) = (&all[0], &all[1]);
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let other_name = other.file_name().unwrap().to_string_lossy().into_owned();
+    let state = scratch("adversary-quality-reuse-refused-state");
+    let out = scratch("adversary-quality-reuse-refused-pages");
+    let own = recorded_report(&name);
+    let first = render(&state, dir, &out, &["--quality", own.to_str().unwrap()]);
+    assert_eq!(first.status.code(), Some(0), "the first render");
+    assert!(
+        out.join(QUALITY_PAGE).is_file(),
+        "the first render wrote the page"
+    );
+    let foreign = recorded_report(&other_name);
+    let second = render(&state, dir, &out, &["--quality", foreign.to_str().unwrap()]);
+    assert_eq!(
+        second.status.code(),
+        Some(1),
+        "the report of another pack is refused"
+    );
+    assert!(
+        !out.join(QUALITY_PAGE).exists(),
+        "a refused report leaves no quality page in the directory, yet the earlier one is still there"
+    );
+}
+
+/// Adversarial pass (story:kpi-quality-page): render without a report into a directory an
+/// earlier render with a report wrote. The index links no quality page; the earlier page with
+/// the earlier report's numbers must not stay behind it.
+#[test]
+fn adversary_render_without_a_report_leaves_no_quality_page_of_an_earlier_render() {
+    let dir = &packs()[0];
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let state = scratch("adversary-quality-reuse-none-state");
+    let out = scratch("adversary-quality-reuse-none-pages");
+    let own = recorded_report(&name);
+    let first = render(&state, dir, &out, &["--quality", own.to_str().unwrap()]);
+    assert_eq!(first.status.code(), Some(0), "the first render");
+    let second = render(&state, dir, &out, &[]);
+    assert_eq!(
+        second.status.code(),
+        Some(0),
+        "the second render, without a report"
+    );
+    let index = std::fs::read_to_string(out.join("index.html")).unwrap();
+    assert!(
+        !index.contains(QUALITY_PAGE),
+        "the index links no quality page"
+    );
+    assert!(
+        !out.join(QUALITY_PAGE).exists(),
+        "no report given, yet the quality page of the earlier render is still there"
+    );
+}
+
+/// Adversarial pass (story:kpi-quality-page): what a report carries as the pack writes it (a
+/// name behind a value, a gap, a summary, the digest) is escaped in the HTML, and `</script>`
+/// in it does not end the data element early.
+#[test]
+fn adversary_the_quality_page_escapes_what_a_report_carries() {
+    let dir = &packs()[0];
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let state = scratch("adversary-quality-escape-state");
+    let out = scratch("adversary-quality-escape-pages");
+    let evil = "</script><script>alert(1)</script><!--";
+    let mut report = read_json(&recorded_report(&name));
+    report["source_digest"] = format!("sha256:{evil}").into();
+    let measurements = report["measurements"].as_array_mut().unwrap();
+    measurements.push(serde_json::json!({
+        "measure": "invented.evil",
+        "unit": "count",
+        "direction": "lower_is_better",
+        "reading": {"kind": "value", "value": 2},
+        "behind": [{"kind": "kpi", "name": evil}, {"kind": "file", "name": "a&b\"c'd"}]
+    }));
+    measurements.push(serde_json::json!({
+        "measure": "invented.evilgap",
+        "unit": "share",
+        "direction": "higher_is_better",
+        "reading": {"kind": "gap", "gap": evil},
+        "behind": []
+    }));
+    report["gaps"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "kind": "measure",
+            "feature": "invented.evilgap",
+            "needs": "L2",
+            "summary": evil
+        }));
+    assert_eq!(
+        schema("metaspec-quality-1.schema.json", &report),
+        Vec::<String>::new()
+    );
+    let file = state.join("evil.json");
+    std::fs::write(&file, report.to_string()).unwrap();
+    let run = render(&state, dir, &out, &["--quality", file.to_str().unwrap()]);
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let html = std::fs::read_to_string(out.join(QUALITY_PAGE)).unwrap();
+    assert_self_contained(&name, &html);
+    assert!(!html.contains("<script>alert"), "a script that runs");
+    assert!(!html.contains("<!--"), "a comment opened by the report");
+    assert!(
+        html.contains("&lt;/script&gt;&lt;script&gt;alert(1)"),
+        "the name, escaped"
+    );
+    assert!(
+        html.contains("<code>a&amp;b&quot;c&#39;d</code>"),
+        "the name, escaped"
+    );
+    assert_eq!(
+        html.matches("</script>").count(),
+        1,
+        "one data element, closed once"
+    );
+    assert_eq!(quality_data(&html, "kpi_catalogue"), report);
 }

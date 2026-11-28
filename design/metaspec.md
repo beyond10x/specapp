@@ -1075,6 +1075,17 @@ metaspec", "or navigation". One site holds every pack; this replaces the site pe
 - A name behind a value is never blank: a KPI row without an id, or with an empty or blank one,
   is named `#<index>` by its place; a block with a blank name (a `strip_prefix` that takes the
   whole domain) by its domain.
+- The quality page (`story:kpi-quality-page`): `render --quality` writes `quality.html` from the
+  reports given, one section per report in the order of the questions (`kpi_catalogue`, then
+  `specification`), one row per measurement the report holds, so a later measure needs no change
+  of the page. The page carries each report as it is, format `metaspec-quality/1`, in its own
+  data element `metaspec-quality-<question>`; no new format. The index links the page only when
+  a report is given (one `<nav aria-label="Pages">` line after `<main>`), so the index goldens
+  stay as they are. A report that is unreadable, not of the format, of another pack, or a second
+  report of one question is refused with exit 1 and no page; every render first removes a
+  `quality.html` an earlier render left. The goldens read recorded reports
+  `fixtures/quality-reports/<pack>/kpis.json`, never the live output of `quality kpis`; they are
+  written again only when the page is meant to change.
 
 ## Open questions
 
