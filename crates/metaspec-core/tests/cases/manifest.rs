@@ -242,3 +242,24 @@ fn a_manifest_path_with_dot_dot_is_refused_by_the_schema() {
     let text = minimal().replace("path: b", "path: a..b/c");
     assert!(parse(&text).is_ok());
 }
+
+#[test]
+fn exclude_takes_globs_inside_the_pack() {
+    let class = |extra: &str| {
+        format!(
+            "{}documents:\n  - {{ class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n{extra} }}\n",
+            minimal()
+        )
+    };
+    let m = parse(&class("")).unwrap();
+    assert!(m.documents[0].exclude.is_empty(), "no exclude by default");
+    let m = parse(&class(", exclude: [d/*.side.yaml, d/other.yaml]")).unwrap();
+    assert_eq!(
+        m.documents[0].exclude,
+        vec!["d/*.side.yaml", "d/other.yaml"]
+    );
+    assert!(parse(&class(", exclude: [../d/*.yaml]")).is_err());
+    assert!(parse(&class(", exclude: [/d/*.yaml]")).is_err());
+    assert!(parse(&class(", exclude: d/*.yaml")).is_err());
+    assert!(parse(&class(", exclude: ['']")).is_err());
+}

@@ -97,18 +97,19 @@ fn class_index(
     );
     p.set("source", class.paths.join(", "));
     let mut s = String::from(ctx.banner());
+    let globs = |list: &[String]| list.iter().map(|g| code(g)).collect::<Vec<_>>().join(", ");
+    let except = if class.exclude.is_empty() {
+        String::new()
+    } else {
+        format!(" except {}", globs(&class.exclude))
+    };
     let _ = writeln!(
         s,
-        "{} of the class {} ({}), read from {}.\n",
+        "{} of the class {} ({}), read from {}{except}.\n",
         plural(documents.len(), "document", "documents"),
         code(&class.class),
         code(class.shape.as_str()),
-        class
-            .paths
-            .iter()
-            .map(|g| code(g))
-            .collect::<Vec<_>>()
-            .join(", ")
+        globs(&class.paths)
     );
     match class.shape {
         Shape::PartsLinks => {

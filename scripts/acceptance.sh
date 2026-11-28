@@ -1,8 +1,8 @@
 #!/bin/sh
 # acceptance.sh: the acceptance of waves 1 ("Contract"), 2 ("Graph") and 3 ("Docs") on both fixture
-# packs and both real packs.
+# packs and the three real packs.
 #
-#   scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>
+#   scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <cloudspec-dir>
 #
 # metaspec knows the packs; a pack knows nothing of metaspec. The real packs are read with their
 # manifests under packs/, by name (`metaspec pack check orgspec --pack <dir>`); the fixture packs
@@ -26,6 +26,12 @@
 #                  of the catalogue at the manifest's kpis.path);
 #                  architectures: the pages its generator wrote, docs/architectures/*.md
 #                  without index.md.
+#   cloudspec      level: L3 (blocks, documents and the verb check); blocks: the domains of
+#                  blocks/system.yaml and those `ess specify compile` prints; layers: the
+#                  numbered directories under blocks/; architectures and broken architectures:
+#                  the files `cloudspec check --json` reads as an architecture (an entry with
+#                  `architecture`) among architectures/*.yaml and architectures/broken/*.yaml,
+#                  which leaves out its bindings and contracts.
 #
 # Wave 2: `metaspec render` draws every parts-links/1 document of every pack, with the tools
 # trusted in a state directory of this run (target/acceptance/state): one page per document
@@ -39,11 +45,16 @@
 # fixtures/answers/agenticspec/architecture (copied into the pack's target/acceptance-cases,
 # through a manifest of this run made from packs/agenticspec.yaml), against
 # `agenticspec sim check --json`, mapped by the adapter in packs/agenticspec.yaml; its tool is
-# built first. Pages are under target/acceptance/pages-<pack>/.
+# built first. The same for cloudspec: every architecture and every broken architecture (the
+# classes architecture and broken-architecture of packs/cloudspec.yaml), against
+# `cloudspec check --json`, and every finding whose subject names a part or a link of the
+# document (a key of `parts`, or `<from>-><to>:<carries>` of `links`, read with yq) is drawn in a
+# scene, and each graph has the parts and links cloudspec counts. Pages are under
+# target/acceptance/pages-<pack>/.
 #
 # Wave 3: `metaspec docs build` writes a site of each pack alone under target/acceptance/docs-<pack>;
 # its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and the
-# one site of both fixture packs equals the committed one (--check). The one site of both real
+# one site of both fixture packs equals the committed one (--check). The one site of the three real
 # packs is written to target/acceptance/docs-site, and the site shell of web/site builds it
 # (target/acceptance/site; needs `task web:install web:build`): per pack its HTML pages equal its
 # pages, and the site has its page /. The parity of the generated agenticspec site with its own
@@ -52,7 +63,7 @@
 # Then the rows of every story of the quality initiative: each scripts/acceptance.d/*.sh, in name
 # order, sourced after the rows above; reports land under target/acceptance/quality/.
 #
-# Then runs scripts/check-vocabulary.sh with all four packs.
+# Then runs scripts/check-vocabulary.sh with all five packs.
 #
 # Not part of `task check` and not run in CI: it needs local checkouts of the real packs.
 # The pack scripts write into their pack's target/ directory. Needs ess, jq, yq (for the
@@ -64,9 +75,10 @@
 
 set -eu
 
-[ $# -eq 2 ] || { echo "usage: scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>" >&2; exit 2; }
+[ $# -eq 3 ] || { echo "usage: scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <cloudspec-dir>" >&2; exit 2; }
 org=$(CDPATH= cd -- "$1" && pwd)
 agentic=$(CDPATH= cd -- "$2" && pwd)
+cloud=$(CDPATH= cd -- "$3" && pwd)
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 work=$root/target/acceptance
@@ -75,7 +87,7 @@ mkdir -p "$work"
 
 status=0
 "$root/scripts/check-pack-dirs.sh" || status=1
-"$root/scripts/check-pack-dirs.sh" "$org" "$agentic" || status=1
+"$root/scripts/check-pack-dirs.sh" "$org" "$agentic" "$cloud" || status=1
 
 (cd "$root" && cargo build --quiet --locked -p metaspec)
 metaspec=$root/target/debug/metaspec
@@ -174,6 +186,26 @@ row agenticspec kpis "$(of agenticspec .counts.kpis)" "$own" "scripts/check-kpis
 own=$(find "$agentic/docs/architectures" -maxdepth 1 -name '*.md' ! -name index.md | wc -l | tr -d ' ')
 row agenticspec documents:architecture "$(documents agenticspec architecture)" "$own" "generated docs/architectures pages"
 
+# --- cloudspec ---
+(cd "$cloud" && cargo build --quiet --locked --bin cloudspec)
+check cloudspec "$cloud" cloudspec
+row cloudspec level "$(of cloudspec .level)" L3 "blocks, documents and the verb check"
+own=$(yq '.domains | length' "$cloud/blocks/system.yaml")
+row cloudspec blocks "$(of cloudspec .counts.blocks)" "$own" "domains of blocks/system.yaml"
+own=$(cd "$cloud/blocks" && ess specify compile --path . --format json | jq '.domains | length')
+row cloudspec blocks "$(of cloudspec .counts.blocks)" "$own" "ess specify compile"
+own=$(find "$cloud/blocks" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*-*' | wc -l | tr -d ' ')
+row cloudspec layers "$(of cloudspec .counts.layers)" "$own" "numbered directories"
+# cloud_architectures <glob>: the files among <glob> that `cloudspec check --json` reads as an
+# architecture, one per line, run in the pack's directory
+cloud_architectures() {
+  (cd "$cloud" && { target/debug/cloudspec check --json $1 || true; } | jq -r '.[] | select(has("architecture")) | .file')
+}
+cloud_architectures 'architectures/*.yaml' > "$work/cloud-architectures"
+cloud_architectures 'architectures/broken/*.yaml' > "$work/cloud-broken"
+row cloudspec documents:architecture "$(documents cloudspec architecture)" "$(wc -l < "$work/cloud-architectures" | tr -d ' ')" "cloudspec check --json architectures/*.yaml"
+row cloudspec documents:broken-architecture "$(documents cloudspec broken-architecture)" "$(wc -l < "$work/cloud-broken" | tr -d ' ')" "cloudspec check --json architectures/broken/*.yaml"
+
 # --- wave 2: pages ---
 # Every drawn document of every pack is a page; the tools run under a trust file of this run
 # only ($work/state), never the user's.
@@ -212,6 +244,11 @@ row orgspec pages:organization "$n" "$own" "orgspec check --json organizations/*
 n=$(pages agenticspec "$agentic" "$work/pages-agenticspec" agenticspec)
 own=$(find "$agentic/architectures" -maxdepth 1 -name '*.yaml' | wc -l | tr -d ' ')
 row agenticspec pages:architecture "$n" "$own" "architectures/*.yaml"
+pages cloudspec "$cloud" "$work/pages-cloudspec" cloudspec > /dev/null
+n=$(find "$work/pages-cloudspec/architecture" -name '*.html' | wc -l | tr -d ' ')
+row cloudspec pages:architecture "$n" "$(wc -l < "$work/cloud-architectures" | tr -d ' ')" "cloudspec check --json architectures/*.yaml"
+n=$(find "$work/pages-cloudspec/broken-architecture" -name '*.html' | wc -l | tr -d ' ')
+row cloudspec pages:broken "$n" "$(wc -l < "$work/cloud-broken" | tr -d ' ')" "cloudspec check --json architectures/broken/*.yaml"
 
 # The rule ids a pack's own check reports for one document, run in the pack's directory.
 theirs_orgspec() {
@@ -219,6 +256,9 @@ theirs_orgspec() {
 }
 theirs_agenticspec() {
   { target/debug/agenticspec sim check --json "$1" || true; } | jq -r '[.violations[]?.rule] | unique | join(" ")'
+}
+theirs_cloudspec() {
+  { target/debug/cloudspec check --json "$1" || true; } | jq -r '[.[0].violations[]?.rule] | unique | join(" ")'
 }
 
 # rules <pack> <pages> <class> <file...>: per document (run in the pack's directory), the rule
@@ -278,6 +318,45 @@ row agenticspec pages:cases "$n" "$own" "fixtures/answers/agenticspec/architectu
 (cd "$agentic" && rules agenticspec "$work/pages-agenticspec-cases" architecture target/acceptance-cases/*.yaml) > "$work/agentic-cases.rows"
 rule_rows agenticspec cases "$work/agentic-cases.rows" "agenticspec sim check --json"
 
+# cloudspec: every architecture and every broken architecture, against `cloudspec check --json`,
+# mapped by the adapter in packs/cloudspec.yaml.
+# named <pages> <class> <file...>: per document (run in the pack's directory), whether the
+# findings `cloudspec check --json` reports on a part or a link of the document itself (a key of
+# `parts`, or `<from>-><to>:<carries>` of `links`) are, rule and subject, the findings the page
+# draws in a scene; then whether the page's graph has as many parts and links as cloudspec counts
+# (`parts`, `links` of its answer). Prints `<file> <named equal> 1 <counts equal> 1`.
+named() {
+  out=$1 class=$2
+  shift 2
+  for f in "$@"; do
+    page=$out/$class/$(basename "$f" .yaml).html
+    [ -f "$page" ] || { echo "$f 0 1 0 1"; continue; }
+    yq -r '(.parts // {} | keys | .[]), (.links // [] | .[] | .from + "->" + .to + ":" + (.carries // ""))' "$f" > "$work/named.tmp"
+    { target/debug/cloudspec check --json "$f" || true; } > "$work/answer.tmp"
+    theirs=$(jq -r --rawfile named "$work/named.tmp" '($named | split("\n")) as $n
+          | [.[0].violations[]? | select(.subject as $s | any($n[]; . == $s)) | .rule + " " + .subject]
+          | sort | join(",")' "$work/answer.tmp")
+    page_data "$page" > "$work/page-data.tmp"
+    mine=$(jq -r '[.findings[] | select(.subject != "document") | select(.drawn_in | length > 0)
+          | .rule + " " + (.subject | sub("^(part|link):"; ""))] | sort | join(",")' "$work/page-data.tmp")
+    if [ "$mine" = "$theirs" ]; then same=1; else same=0; echo "acceptance: $f: drawn [$mine], cloudspec on its parts and links [$theirs]" >&2; fi
+    drawn=$(jq -r '"\(.graph.parts | length) \(.graph.links | length)"' "$work/page-data.tmp")
+    counted=$(jq -r '.[0] | "\(.parts) \(.links)"' "$work/answer.tmp")
+    if [ "$drawn" = "$counted" ]; then whole=1; else whole=0; echo "acceptance: $f: parts and links drawn [$drawn], cloudspec [$counted]" >&2; fi
+    echo "$f $same 1 $whole 1"
+  done
+}
+for class in architecture broken-architecture; do
+  case "$class" in architecture) list=$work/cloud-architectures name=examples ;; *) list=$work/cloud-broken name=broken ;; esac
+  (cd "$cloud" && rules cloudspec "$work/pages-cloudspec" "$class" $(cat "$list")) > "$work/cloud-$name.rows"
+  rule_rows cloudspec "$name" "$work/cloud-$name.rows" "cloudspec check --json"
+  (cd "$cloud" && named "$work/pages-cloudspec" "$class" $(cat "$list")) > "$work/cloud-$name.named"
+  row cloudspec "$name:named-drawn" "$(awk '{ s += $2 } END { print s + 0 }' "$work/cloud-$name.named")" \
+    "$(awk '{ s += $3 } END { print s + 0 }' "$work/cloud-$name.named")" "findings on a part or link of the document drawn, rule and subject"
+  row cloudspec "$name:parts-links" "$(awk '{ s += $4 } END { print s + 0 }' "$work/cloud-$name.named")" \
+    "$(awk '{ s += $5 } END { print s + 0 }' "$work/cloud-$name.named")" "parts and links of each graph = cloudspec check --json"
+done
+
 # --- wave 3: docs sites ---
 # docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of the site of one pack into
 # $work/docs-<name> (its tool trusted above under $work/state); the counts of its pages against
@@ -292,7 +371,13 @@ docs_rows() {
   part=$out/$(jq -r '.packs[0].pack' "$out/index.json")
   kinds=$(jq -r '.pages[].kind' "$part/site.json")
   row "$name" docs:block-pages "$(echo "$kinds" | grep -cx block || true)" "$(of "$name" .counts.blocks)" "pack check blocks"
-  row "$name" docs:kpi-rows "$(jq '.data.catalogue.kpis | length' "$part/pages/kpis.json")" "$(of "$name" .counts.kpis)" "pack check kpis"
+  # a pack without a KPI catalogue has no KPI page
+  if [ -f "$part/pages/kpis.json" ]; then
+    kpi_rows=$(jq '.data.catalogue.kpis | length' "$part/pages/kpis.json")
+  else
+    kpi_rows=0
+  fi
+  row "$name" docs:kpi-rows "$kpi_rows" "$(of "$name" .counts.kpis)" "pack check kpis"
   row "$name" docs:document-pages "$(echo "$kinds" | grep -cxE 'document|record' || true)" "$(of "$name" .counts.documents)" "pack check documents"
 }
 
@@ -310,18 +395,19 @@ else
 fi
 docs_rows orgspec "$org" orgspec
 docs_rows agenticspec "$agentic" agenticspec
+docs_rows cloudspec "$cloud" cloudspec
 
-# The site of both real packs: metaspec docs build into $work/docs-site and the site shell of
+# The site of the three real packs: metaspec docs build into $work/docs-site and the site shell of
 # web/site over it, built into $work/site. Needs `task web:install` and `task web:build`. The job
 # stays on this host (slot --here): a build node does not have the pages under target/.
-"$metaspec" docs build --pack "orgspec=$org" --pack "agenticspec=$agentic" --out "$work/docs-site" > "$work/docs-site.log" \
-  || { echo "acceptance: docs build of the site of both real packs failed" >&2; cat "$work/docs-site.log" >&2; exit 1; }
+"$metaspec" docs build --pack "orgspec=$org" --pack "agenticspec=$agentic" --pack "cloudspec=$cloud" --out "$work/docs-site" > "$work/docs-site.log" \
+  || { echo "acceptance: docs build of the site of the three real packs failed" >&2; cat "$work/docs-site.log" >&2; exit 1; }
 if [ -d "$root/web/node_modules" ] && [ -f "$root/web/docusaurus/dist/index.js" ]; then
   if (cd "$root/web/site" && METASPEC_SITE_OUT="$work/docs-site" slot --here --timeout 15m npx docusaurus build --out-dir "$work/site") > "$work/site.log" 2>&1; then
-    row site docs:site-builds 1 1 "docusaurus build of web/site over both real packs"
+    row site docs:site-builds 1 1 "docusaurus build of web/site over the three real packs"
     # A page is <route>.html; <route>/index.html is the redirect docs-system writes beside it.
     # A pack's own page is <pack>.html beside its directory.
-    for name in orgspec agenticspec; do
+    for name in orgspec agenticspec cloudspec; do
       n=$(find "$work/site/$name" -name '*.html' ! -name index.html | wc -l | tr -d ' ')
       [ -f "$work/site/$name.html" ] && n=$((n + 1))
       row "$name" docs:site-pages "$n" "$(jq '.pages | length' "$work/docs-site/$name/site.json")" "built HTML pages"
@@ -343,7 +429,7 @@ grep -E '^(green|missing|expected-missing) ' "$work/parity.log" > "$work/parity.
 # --- row files ---
 # Every scripts/acceptance.d/*.sh, in name order, sourced here: one file per story of the quality
 # initiative, named after it. A row file may use row, of, check, documents, $metaspec, $work,
-# $root, $org and $agentic, and writes its reports under $work/quality/.
+# $root, $org, $agentic and $cloud, and writes its reports under $work/quality/.
 for rows_file in "$root"/scripts/acceptance.d/*.sh; do
   [ -f "$rows_file" ] || continue
   . "$rows_file"
@@ -370,7 +456,7 @@ for manifest in "$root"/fixtures/manifests/*.yaml; do
   set -- "$@" --pack "$root/fixtures/packs/$(basename "$manifest" .yaml)" --manifest "$manifest"
 done
 "$root/scripts/check-vocabulary.sh" "$@" \
-  --pack "$org" --name orgspec --pack "$agentic" --name agenticspec || status=1
+  --pack "$org" --name orgspec --pack "$agentic" --name agenticspec --pack "$cloud" --name cloudspec || status=1
 
 if [ "$status" = 0 ]; then
   echo "acceptance: every count equal, no word of a pack in the code, no pack holds a manifest of metaspec"

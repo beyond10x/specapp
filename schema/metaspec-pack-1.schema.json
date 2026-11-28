@@ -235,6 +235,11 @@
           "minItems": 1,
           "items": { "$ref": "#/$defs/path" }
         },
+        "exclude": {
+          "description": "Globs of files that `paths` match and that are no documents of the class: such a file is not read. Each glob is matched against the whole path relative to the pack; `*` does not cross a slash.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/path" }
+        },
         "shape": { "enum": ["parts-links/1", "records/1"] },
         "name": {
           "description": "The key of a document that holds its name.",

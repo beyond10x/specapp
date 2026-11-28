@@ -108,6 +108,10 @@ pub struct DocumentClass {
     pub class: String,
     pub title: String,
     pub paths: Vec<String>,
+    /// Globs of files that `paths` match and that are no documents of the class: such a file
+    /// is not read. Each glob is matched against the whole path relative to the pack.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub exclude: Vec<String>,
     pub shape: Shape,
     pub name: String,
     #[serde(default)]

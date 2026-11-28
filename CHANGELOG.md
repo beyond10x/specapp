@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- `packs/cloudspec.yaml`: metaspec knows cloudspec, at levels L0, L2 and L3. Blocks from
+  `blocks` (prefix `cloud.`), two classes of `parts-links/1` documents contained by `in` and
+  `per`, `architecture` (`architectures/*.yaml`) and `broken-architecture`
+  (`architectures/broken/*.yaml`), and the verb `check` (`cloudspec check --json`: `valid`,
+  `kpis` as the counts per rule, `violations` as findings, a subject with `->` a link, one that
+  names no part or link the document). No `kpis:` until cloudspec has a KPI catalogue.
+- A document class takes `exclude: [<glob>]` (`metaspec-pack/1`): a file its `paths` match and
+  an `exclude` glob matches is not read. A glob is matched against the whole path in the pack,
+  and `*` does not cross a slash; like `paths` it stays inside the pack (`path_leaves_pack`). The
+  page of the class says `read from <paths> except <exclude>`; a class without `exclude` reads
+  and says what it did before. In `spec/`, `DocumentClass` has the field `exclude`.
+- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <cloudspec-dir>` takes cloudspec as the
+  third real pack: its level, blocks (the domains of `blocks/system.yaml` and of `ess specify
+  compile`), layers and documents (the files `cloudspec check --json` reads as an architecture)
+  against metaspec's counts, one page per architecture and per broken architecture, the rule ids
+  of each page against `cloudspec check --json`, every finding on a part or link of the
+  document drawn with its rule and subject, the parts and links of each graph equal to those
+  `cloudspec check --json` counts, its docs site (a pack without a KPI catalogue has
+  no KPI rows) and the site of the three real packs, and its words in the vocabulary check.
+- `scripts/check-vocabulary.sh` leaves out the words of ESS's compiled model as it leaves out
+  those of metaspec's schemas: every key without a dot of `ess specify compile --format json` of
+  the fixture packs' blocks is a field name of the format metaspec reads, not a pack's word
+  (cloudspec's blocks `actors` and `identity` are such fields). Blocks that ess refuses exit 2.
+  `scripts/check-vocabulary.test.sh` holds a field name left out, a word under a dotted key
+  still reported, and the refusal.
+
 - One document class may hold parts contained by `in` and by `per` at once: the manifest's
   `contain` takes `{ in: <field> }`, `{ per: <field> }` or both (`metaspec-pack/1` drops
   `maxProperties: 1`; `manifest::Contain` is a struct of two optional fields, serialized as
