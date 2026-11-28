@@ -1,6 +1,6 @@
 /**
  * Renders every component tag of every committed page of both fixture packs
- * (fixtures/expected/<pack>/site, written by `specapp docs build`) with the data and presentation
+ * (fixtures/expected/<pack>/site, written by `metaspec docs build`) with the data and presentation
  * the page's MDX hands it, and checks what each draws against that data.
  */
 import {cleanup, render} from '@testing-library/react';
@@ -15,7 +15,7 @@ const expected = resolve(process.cwd(), '../../fixtures/expected');
 const packs = readdirSync(expected)
   .filter((n) => existsSync(join(expected, n, 'site', 'site.json')))
   .sort();
-if (packs.length < 2) throw new Error(`fixtures/expected holds ${packs.length} built sites; specapp docs build writes them`);
+if (packs.length < 2) throw new Error(`fixtures/expected holds ${packs.length} built sites; metaspec docs build writes them`);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

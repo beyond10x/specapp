@@ -1,13 +1,13 @@
 #!/bin/sh
-# check-pack-dirs.sh: fail when a pack directory holds a manifest of specapp.
+# check-pack-dirs.sh: fail when a pack directory holds a manifest of metaspec.
 #
 #   scripts/check-pack-dirs.sh [--strict] [DIR...]
 #
-# specapp knows the packs; a pack knows nothing of specapp. A pack's manifest is specapp's
+# metaspec knows the packs; a pack knows nothing of metaspec. A pack's manifest is metaspec's
 # (packs/<name>.yaml, fixtures/manifests/<name>.yaml, or a file given at run time), never a
-# file in the pack. This check fails when a file under DIR is named like a manifest of specapp
-# (specapp*.yaml, specapp*.yml, specapp*.json, any case). With --strict it also fails when a
-# file under DIR names specapp at all, in its name or its text: the fixture packs are held to
+# file in the pack. This check fails when a file under DIR is named like a manifest of metaspec
+# (metaspec*.yaml, metaspec*.yml, metaspec*.json, any case). With --strict it also fails when a
+# file under DIR names metaspec at all, in its name or its text: the fixture packs are held to
 # that. Without DIR the directories are the fixture packs under fixtures/packs/, strictly.
 # .git, target and node_modules are skipped.
 #
@@ -32,16 +32,16 @@ found=0
 for dir in "$@"; do
   [ -d "$dir" ] || { echo "check-pack-dirs: no directory $dir" >&2; exit 2; }
   named=$(find "$dir" \( -name .git -o -name target -o -name node_modules \) -prune -o \
-    -type f \( -iname 'specapp*.yaml' -o -iname 'specapp*.yml' -o -iname 'specapp*.json' \) -print)
+    -type f \( -iname 'metaspec*.yaml' -o -iname 'metaspec*.yml' -o -iname 'metaspec*.json' \) -print)
   if [ -n "$named" ]; then
-    printf '%s\n' "$named" | sed 's/^/check-pack-dirs: a manifest of specapp in a pack: /'
+    printf '%s\n' "$named" | sed 's/^/check-pack-dirs: a manifest of metaspec in a pack: /'
     found=1
   fi
   if [ "$strict" = yes ]; then
     mentions=$(find "$dir" \( -name .git -o -name target -o -name node_modules \) -prune -o \
-      -type f \( -iname '*specapp*' -o -exec grep -qi specapp {} \; \) -print)
+      -type f \( -iname '*metaspec*' -o -exec grep -qi metaspec {} \; \) -print)
     if [ -n "$mentions" ]; then
-      printf '%s\n' "$mentions" | sed 's/^/check-pack-dirs: names specapp: /'
+      printf '%s\n' "$mentions" | sed 's/^/check-pack-dirs: names metaspec: /'
       found=1
     fi
   fi
@@ -50,4 +50,4 @@ done
 if [ "$found" = 1 ]; then
   exit 1
 fi
-echo "check-pack-dirs: $# pack director(y/ies), no file of specapp"
+echo "check-pack-dirs: $# pack director(y/ies), no file of metaspec"

@@ -1,7 +1,7 @@
-format: specapp-pack/2
+format: metaspec-pack/1
 pack: orchard
 title: Orchard
-summary: An invented pack of an orchard, for the tests of specapp.
+summary: An invented pack of an orchard, for the tests of metaspec.
 visibility: private
 
 blocks:

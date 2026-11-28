@@ -1,11 +1,11 @@
 #!/bin/sh
-# parity.sh: compare the docs site specapp generates for agenticspec with the pages agenticspec
+# parity.sh: compare the docs site metaspec generates for agenticspec with the pages agenticspec
 # writes itself (its docs/ directory), page by page, section by section and component by
 # component.
 #
 #   scripts/parity.sh <agenticspec-dir> [<manifest>]
 #
-# Generates the site with `specapp docs build agenticspec --pack <dir>` (the manifest specapp
+# Generates the site with `metaspec docs build agenticspec --pack <dir>` (the manifest metaspec
 # knows, packs/agenticspec.yaml), or with `--manifest <manifest>` when one is given, into
 # target/parity/site (the pack's tool, if the manifest names one, trusted under
 # target/parity/state only), then checks:
@@ -18,7 +18,7 @@
 #   sections          every ## and ### heading of each page agenticspec writes, on the generated
 #                     page of the same name (a "Graph" section is a drawn view, GraphView)
 #   components        every component agenticspec's pages draw, by its counterpart in
-#                     @beyond10x/specapp-ui
+#                     @beyond10x/metaspec-ui
 #
 # Expected to be missing, and listed as such: the catalog (docs/catalog: downloads, deployment and
 # the results of a run of the pack's tool, which the docs build does not run) and the sections
@@ -26,7 +26,7 @@
 #
 # Prints one line per item, `green <item> ...` or `missing <item>: ...` or `expected-missing ...`,
 # then a summary line. Exit 0: nothing is missing beyond the expected. Exit 1: an item is
-# missing. Exit 2: bad usage, or specapp failed. Not part of `task check`: it needs a checkout
+# missing. Exit 2: bad usage, or metaspec failed. Not part of `task check`: it needs a checkout
 # of agenticspec. Needs jq and cargo.
 
 set -eu
@@ -45,11 +45,11 @@ work=$root/target/parity
 rm -rf "$work"
 mkdir -p "$work/state"
 
-(cd "$root" && cargo build --quiet --locked -p specapp)
-specapp=$root/target/debug/specapp
-XDG_STATE_HOME=$work/state "$specapp" trust "$@" --pack "$pack" > /dev/null 2>&1 || true
-XDG_STATE_HOME=$work/state "$specapp" docs build "$@" --pack "$pack" --out "$work/site" \
-  || { echo "parity: specapp docs build failed" >&2; exit 2; }
+(cd "$root" && cargo build --quiet --locked -p metaspec)
+metaspec=$root/target/debug/metaspec
+XDG_STATE_HOME=$work/state "$metaspec" trust "$@" --pack "$pack" > /dev/null 2>&1 || true
+XDG_STATE_HOME=$work/state "$metaspec" docs build "$@" --pack "$pack" --out "$work/site" \
+  || { echo "parity: metaspec docs build failed" >&2; exit 2; }
 site=$work/site
 theirs=$pack/docs
 

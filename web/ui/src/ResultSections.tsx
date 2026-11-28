@@ -8,7 +8,7 @@ function number(v: number | null | undefined): string {
 }
 
 /**
- * The result of a run of the pack's tool (specapp-result/1): the fitness and every KPI as built
+ * The result of a run of the pack's tool (metaspec-result/1): the fitness and every KPI as built
  * and for the best variant. The docs build runs no simulation; a page shows a result committed
  * beside its document, or says that there is none.
  */

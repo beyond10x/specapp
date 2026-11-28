@@ -1,18 +1,18 @@
 [workspace]
 resolver = "3"
-members = ["crates/specapp-core", "crates/specapp-layout", "crates/specapp-docs", "crates/specapp"]
+members = ["crates/metaspec-core", "crates/metaspec-layout", "crates/metaspec-docs", "crates/metaspec"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/beyond10x/specapp"
+repository = "https://github.com/beyond10x/metaspec"
 publish = false
 
 [workspace.dependencies]
-specapp-core = { path = "crates/specapp-core" }
-specapp-layout = { path = "crates/specapp-layout" }
-specapp-docs = { path = "crates/specapp-docs" }
+metaspec-core = { path = "crates/metaspec-core" }
+metaspec-layout = { path = "crates/metaspec-layout" }
+metaspec-docs = { path = "crates/metaspec-docs" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 serde_yaml_ng = "0.10"

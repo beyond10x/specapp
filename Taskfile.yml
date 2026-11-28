@@ -18,7 +18,7 @@ tasks:
       - task: check:vocabulary
 
   check:public:
-    desc: Refuse content that does not belong in a public repository (home paths, e-mail addresses, IP addresses, terms of the deny list SPECAPP_DENYLIST names, in file contents and file names). Without SPECAPP_DENYLIST (CI, a build node) the deny check is skipped.
+    desc: Refuse content that does not belong in a public repository (home paths, e-mail addresses, IP addresses, terms of the deny list METASPEC_DENYLIST names, in file contents and file names). Without METASPEC_DENYLIST (CI, a build node) the deny check is skipped.
     cmds:
       - scripts/check-public.sh
 
@@ -37,7 +37,7 @@ tasks:
         echo "check:scripts: $n script test(s) passed"
 
   check:fixtures:
-    desc: Validate the blocks of every fixture pack (fixtures/packs/*/blocks) with ess, and fail when a fixture pack holds anything of specapp, a manifest above all (scripts/check-pack-dirs.sh); its manifest is fixtures/manifests/<name>.yaml.
+    desc: Validate the blocks of every fixture pack (fixtures/packs/*/blocks) with ess, and fail when a fixture pack holds anything of metaspec, a manifest above all (scripts/check-pack-dirs.sh); its manifest is fixtures/manifests/<name>.yaml.
     cmds:
       - |
         set -eu
@@ -53,7 +53,7 @@ tasks:
       - cargo clippy --locked --all-targets -- -D warnings
 
   test:
-    desc: Run the Rust tests under cargo-nextest, among them the schema validation of the manifests (packs/, fixtures/manifests/), of the report of `specapp pack check` and of what the adapters read from the fixture tools' own answers. A test is killed at 60 s and the step fails over 120 s (.config/nextest.toml). Prints the ten slowest tests.
+    desc: Run the Rust tests under cargo-nextest, among them the schema validation of the manifests (packs/, fixtures/manifests/), of the report of `metaspec pack check` and of what the adapters read from the fixture tools' own answers. A test is killed at 60 s and the step fails over 120 s (.config/nextest.toml). Prints the ten slowest tests.
     cmds:
       - cargo nextest run --workspace --locked --no-run
       - silent: true
@@ -68,21 +68,21 @@ tasks:
   check:vocabulary:
     desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/, web/src/ or web/*/src/ (scripts/check-vocabulary.sh). The manifests under packs/ and fixtures/manifests/ are not searched. scripts/acceptance.sh runs it with the real packs too.
     cmds:
-      - cargo build --quiet --locked -p specapp
+      - cargo build --quiet --locked -p metaspec
       - scripts/check-vocabulary.sh
 
   check:docs:
-    desc: Generate the docs site of each fixture pack (fixtures/packs/<pack> with fixtures/manifests/<pack>.yaml) with specapp docs build --check and compare it byte for byte with the committed fixtures/expected/<pack>/site. The fixture tools are trusted in target/docs-state, apart from the user's trust.
+    desc: Generate the docs site of each fixture pack (fixtures/packs/<pack> with fixtures/manifests/<pack>.yaml) with metaspec docs build --check and compare it byte for byte with the committed fixtures/expected/<pack>/site. The fixture tools are trusted in target/docs-state, apart from the user's trust.
     cmds:
-      - cargo build --quiet --locked -p specapp
+      - cargo build --quiet --locked -p metaspec
       - |
         set -eu
         state=target/docs-state
         mkdir -p "$state"
         for manifest in fixtures/manifests/*.yaml; do
           pack=$(basename "$manifest" .yaml)
-          XDG_STATE_HOME="$state" target/debug/specapp trust --manifest "$manifest" --pack "fixtures/packs/$pack" > /dev/null
-          XDG_STATE_HOME="$state" target/debug/specapp docs build --manifest "$manifest" --pack "fixtures/packs/$pack" --out "fixtures/expected/$pack/site" --check
+          XDG_STATE_HOME="$state" target/debug/metaspec trust --manifest "$manifest" --pack "fixtures/packs/$pack" > /dev/null
+          XDG_STATE_HOME="$state" target/debug/metaspec docs build --manifest "$manifest" --pack "fixtures/packs/$pack" --out "fixtures/expected/$pack/site" --check
         done
 
   web:install:

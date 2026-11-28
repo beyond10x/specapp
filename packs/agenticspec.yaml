@@ -1,4 +1,4 @@
-format: specapp-pack/2
+format: metaspec-pack/1
 pack: agenticspec
 title: agenticspec
 summary: Building blocks of agentic development, architectures that compose them, and their simulation.

@@ -1,5 +1,5 @@
 {
-  "format": "specapp-page/1",
+  "format": "metaspec-page/1",
   "id": "plan/reef",
   "kind": "document",
   "front_matter": {
@@ -17,7 +17,7 @@
   ],
   "data": {
     "scene-1": {
-      "format": "specapp-scene/1",
+      "format": "metaspec-scene/1",
       "document": "harbors/reef.yaml",
       "view": {
         "id": "layout",
@@ -165,7 +165,7 @@
       ]
     },
     "scene-2": {
-      "format": "specapp-scene/1",
+      "format": "metaspec-scene/1",
       "document": "harbors/reef.yaml",
       "view": {
         "id": "guidance",

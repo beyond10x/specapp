@@ -1,0 +1,24 @@
+[package]
+name = "metaspec"
+description = "One docs site and one studio for every specification pack: the command line."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "metaspec"
+path = "src/main.rs"
+test = false
+
+[dependencies]
+metaspec-core.workspace = true
+metaspec-layout.workspace = true
+metaspec-docs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+
+[dev-dependencies]
+jsonschema.workspace = true

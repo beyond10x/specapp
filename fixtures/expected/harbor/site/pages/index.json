@@ -1,12 +1,12 @@
 {
-  "format": "specapp-page/1",
+  "format": "metaspec-page/1",
   "id": "index",
   "kind": "pack",
   "front_matter": {
     "title": "Harbor",
     "sidebar_label": "Overview",
-    "description": "An invented pack of a small harbor, for the tests of specapp.",
-    "lede": "An invented pack of a small harbor, for the tests of specapp.",
+    "description": "An invented pack of a small harbor, for the tests of metaspec.",
+    "lede": "An invented pack of a small harbor, for the tests of metaspec.",
     "hide_table_of_contents": true
   },
   "markdown": "| part of the pack | count |\n|---|---|\n| [Building blocks](./blocks/index.mdx) | 5 blocks in 3 layers |\n| [Planned blocks](./blocks/planned.mdx) | 1 |\n| [KPI catalogue](./kpis.mdx) | 4 KPIs |\n| [Harbor plans](./plan/index.mdx) | 3 documents |\n| [Bylaws](./bylaw/index.mdx) | 1 document |\n| [Rules](./rules.mdx) | 4 rules broken in the documents |\n\nLevel of adoption: `L3`. The pack's tool answers `check`; the findings on these pages are its answers.\n\nSource: [https://example.org/harbor](https://example.org/harbor).\n",

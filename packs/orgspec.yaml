@@ -1,4 +1,4 @@
-format: specapp-pack/2
+format: metaspec-pack/1
 pack: orgspec
 title: orgspec
 summary: Building blocks of an organization, organization types and invented example designs.

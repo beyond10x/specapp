@@ -1,11 +1,11 @@
-# specapp
+# metaspec
 
-One docs site and one studio for every specification pack.
+The meta model of every specification pack in ESS, and one docs site and studio over all packs.
 
 A pack is a repository built like agenticspec or orgspec: an ESS system of building blocks in
 numbered layers, a KPI catalogue, documents that compose the blocks into a graph of parts and
-links, and a tool that checks such a document. specapp knows the packs; a pack knows nothing of
-specapp. specapp keeps a manifest of each pack it knows under `packs/` (a private pack's
+links, and a tool that checks such a document. metaspec knows the packs; a pack knows nothing of
+metaspec. metaspec keeps a manifest of each pack it knows under `packs/` (a private pack's
 manifest stays outside this repository), runs the pack's own tool through an adapter in that
 manifest, and gives the pack:
 
@@ -16,46 +16,46 @@ manifest, and gives the pack:
 
 ## Status
 
-Waves 1 to 3 of 8 ("Contract", "Graph", "Docs") are built: the manifest format `specapp-pack/2`
-with its JSON Schema, the manifests of the packs specapp knows (`packs/`), two invented fixture
-packs, `specapp pack check`, a static page per document drawn with the findings of the pack's
+Waves 1 to 3 of 8 ("Contract", "Graph", "Docs") are built: the manifest format `metaspec-pack/1`
+with its JSON Schema, the manifests of the packs metaspec knows (`packs/`), two invented fixture
+packs, `metaspec pack check`, a static page per document drawn with the findings of the pack's
 own tool, and the docs site. There is no studio yet.
 
 ```sh
-cargo build -p specapp
-target/debug/specapp pack known
-target/debug/specapp pack check orgspec --pack <orgspec-checkout>
-target/debug/specapp pack check --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --json
-target/debug/specapp trust --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor
-target/debug/specapp render --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/pages
-target/debug/specapp docs build --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/docs
+cargo build -p metaspec
+target/debug/metaspec pack known
+target/debug/metaspec pack check orgspec --pack <orgspec-checkout>
+target/debug/metaspec pack check --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --json
+target/debug/metaspec trust --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor
+target/debug/metaspec render --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/pages
+target/debug/metaspec docs build --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/docs
 ```
 
 `docs build` writes the pages of a pack's docs site (MDX with their data, `site.json`,
 `palette.css`); `--check` compares them with a directory. The site itself is Docusaurus on
-`@beyond10x/docs-system` with the two packages of `web/`: `@beyond10x/specapp-ui` (the
-components) and `@beyond10x/specapp-docusaurus` (the preset). To build and open the site of
+`@beyond10x/docs-system` with the two packages of `web/`: `@beyond10x/metaspec-ui` (the
+components) and `@beyond10x/metaspec-docusaurus` (the preset). To build and open the site of
 the docs build above:
 
 ```sh
 task web:install web:build
 cd web/site
-SPECAPP_SITE_OUT=../../target/docs npx docusaurus build --out-dir build/local
+METASPEC_SITE_OUT=../../target/docs npx docusaurus build --out-dir build/local
 npx docusaurus serve --dir build/local --host 127.0.0.1 --port 3000
 ```
 
-A pack is named by its name when specapp knows it (`packs/<name>.yaml`); any other pack, such
+A pack is named by its name when metaspec knows it (`packs/<name>.yaml`); any other pack, such
 as a private one, is read with `--manifest <file>`. The pack directory is always `--pack`.
 `pack check` compiles the pack's blocks with `ess specify compile` (the `ess` CLI on PATH),
 reads its KPI catalogue and documents, and prints counts and warnings. It runs nothing of the
 pack. `render` writes one self-contained HTML page per drawn document (`target/pages/index.html`
 lists them): each view of the document as a graph, and the findings of the pack's tool as
-numbered marks and a list. The tool runs only after `specapp trust`, which records the digest of
-the manifest's `tool` section in `~/.local/state/specapp`; the manifest's adapter maps the
+numbered marks and a list. The tool runs only after `metaspec trust`, which records the digest of
+the manifest's `tool` section in `~/.local/state/metaspec`; the manifest's adapter maps the
 tool's own answer. `task check` is the gate; `scripts/acceptance.sh` compares the counts and the
 drawn findings on real packs with what their own tooling prints.
 
-- [design/specapp.md](design/specapp.md): the design, the manifest, the neutral formats, the
+- [design/metaspec.md](design/metaspec.md): the design, the manifest, the neutral formats, the
   tool adapter, the gaps per pack, the build order and the open questions.
 - [schema/](schema/): the JSON Schemas of the formats.
 - [CHANGELOG.md](CHANGELOG.md): what changed.

@@ -18,7 +18,7 @@ start=$(date +%s)
 slot sh -c 'npm run build --workspace ui && npm run build --workspace docusaurus'
 for pack in harbor orchard; do
   rm -rf "site/build/$pack"
-  (cd site && SPECAPP_SITE_PACK=$pack slot --timeout 15m npx docusaurus build --out-dir "build/$pack")
+  (cd site && METASPEC_SITE_PACK=$pack slot --timeout 15m npx docusaurus build --out-dir "build/$pack")
 done
 built=$(date +%s)
 echo "ux: sites built in $((built - start)) s"

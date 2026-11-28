@@ -1,11 +1,11 @@
 /**
- * The data the components draw. It is written by `specapp docs build` (site.json,
+ * The data the components draw. It is written by `metaspec docs build` (site.json,
  * pages/<id>.json) and later served by the studio; the shapes follow the schemas in schema/ of
- * specapp: specapp-site/1 (Presentation), specapp-page/1 (the data of each component),
- * specapp-scene/1 (Scene) and specapp-kpis/1 (KpiRow).
+ * metaspec: metaspec-site/1 (Presentation), metaspec-page/1 (the data of each component),
+ * metaspec-scene/1 (Scene) and metaspec-kpis/1 (KpiRow).
  */
 
-/** How one block is drawn, from the pack's manifest through specapp. */
+/** How one block is drawn, from the pack's manifest through metaspec. */
 export interface BlockStyle {
   label: string;
   colour: string;
@@ -26,7 +26,7 @@ export interface Group {
 export interface Presentation {
   blocks: Record<string, BlockStyle>;
   groups: Group[];
-  /** The 14 by 14 stroke path of each icon specapp draws; any other icon is its first letter. */
+  /** The 14 by 14 stroke path of each icon metaspec draws; any other icon is its first letter. */
   icons: Record<string, string>;
   vocabulary: Record<string, string>;
 }
@@ -183,7 +183,7 @@ export interface LegendEntry {
   blocks: string[];
 }
 
-/** A laid-out view of a document, specapp-scene/1. */
+/** A laid-out view of a document, metaspec-scene/1. */
 export interface Scene {
   format: string;
   document: string;
@@ -219,7 +219,7 @@ export interface RecordTableData {
   rows: string[][];
 }
 
-/** A run of the pack's tool, specapp-result/1: baseline and best with their KPI values. */
+/** A run of the pack's tool, metaspec-result/1: baseline and best with their KPI values. */
 export interface ResultData {
   baseline?: {fitness?: number; kpis?: Record<string, {value?: number | null; kind?: string}>};
   best?: {fitness?: number; kpis?: Record<string, {value?: number | null; kind?: string}>} | null;

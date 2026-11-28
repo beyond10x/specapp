@@ -1,6 +1,6 @@
 /*
- * The styles of @beyond10x/specapp-ui. Colours are variables: a site's palette.css (written by
- * specapp docs build) sets --sa-fill and --sa-stroke per colour class (.sa-c-<name>) and the page
+ * The styles of @beyond10x/metaspec-ui. Colours are variables: a site's palette.css (written by
+ * metaspec docs build) sets --sa-fill and --sa-stroke per colour class (.sa-c-<name>) and the page
  * variables --sa-bg, --sa-fg, --sa-muted, --sa-line, --sa-band, --sa-finding, --sa-finding-fg and
  * --sa-link, light and dark. Fonts follow the shell's variables when it has them.
  */

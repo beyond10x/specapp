@@ -1,8 +1,8 @@
 /**
- * @beyond10x/specapp-docusaurus: adds the pages `specapp docs build` writes to a Docusaurus site
- * built on @beyond10x/docs-system. `withSpecappSite(config, {out})` adds one docs plugin instance
+ * @beyond10x/metaspec-docusaurus: adds the pages `metaspec docs build` writes to a Docusaurus site
+ * built on @beyond10x/docs-system. `withMetaspecSite(config, {out})` adds one docs plugin instance
  * over `<out>/docs` with the generated sidebar, and a plugin that loads the styles of
- * @beyond10x/specapp-ui and the pack's palette and tells the components how the site links. The
+ * @beyond10x/metaspec-ui and the pack's palette and tells the components how the site links. The
  * site wraps the result with docs-system's `withProductSite`, which draws every page's header.
  */
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -12,18 +12,18 @@ import type {LoadContext, Plugin} from '@docusaurus/types';
 
 const require = createRequire(import.meta.url);
 
-export interface SpecappSiteOptions {
-  /** The output directory of `specapp docs build`, absolute or relative to `siteDir`. */
+export interface MetaspecSiteOptions {
+  /** The output directory of `metaspec docs build`, absolute or relative to `siteDir`. */
   out: string;
   /** The directory of the site, where `docusaurus.config.ts` is. */
   siteDir: string;
   /** The route of the pack's pages below `baseUrl`. Default `docs`. */
   routeBasePath?: string;
-  /** The id of the docs plugin instance. Default `specapp`. */
+  /** The id of the docs plugin instance. Default `metaspec`. */
   id?: string;
 }
 
-/** The parts of site.json (specapp-site/1) the preset reads. */
+/** The parts of site.json (metaspec-site/1) the preset reads. */
 export interface SiteFile {
   format: string;
   title: string;
@@ -35,7 +35,7 @@ export interface SiteFile {
   pages: {id: string; kind: string; slug: string; title: string}[];
 }
 
-export const SITE_FORMAT = 'specapp-site/1';
+export const SITE_FORMAT = 'metaspec-site/1';
 
 /** Reads and checks `<out>/site.json`. */
 export function readSite(out: string): SiteFile {
@@ -44,10 +44,10 @@ export function readSite(out: string): SiteFile {
   try {
     site = JSON.parse(readFileSync(file, 'utf8')) as SiteFile;
   } catch (error) {
-    throw new Error(`specapp-docusaurus: ${file} cannot be read (${(error as Error).message}); run specapp docs build first`);
+    throw new Error(`metaspec-docusaurus: ${file} cannot be read (${(error as Error).message}); run metaspec docs build first`);
   }
   if (site.format !== SITE_FORMAT) {
-    throw new Error(`specapp-docusaurus: ${file} has format ${site.format}, not ${SITE_FORMAT}`);
+    throw new Error(`metaspec-docusaurus: ${file} has format ${site.format}, not ${SITE_FORMAT}`);
   }
   return site;
 }
@@ -70,21 +70,21 @@ interface PluginOptions {
 /**
  * The plugin of the preset: the client modules (the components' styles, the pack's palette and
  * the configuration of the links) and the alias that lets generated pages outside the site
- * import @beyond10x/specapp-ui.
+ * import @beyond10x/metaspec-ui.
  */
-export function specappPlugin(context: LoadContext, options: PluginOptions): Plugin {
+export function metaspecPlugin(context: LoadContext, options: PluginOptions): Plugin {
   const out = path.resolve(context.siteDir, options.out);
-  const dir = path.join(context.generatedFilesDir, 'specapp');
+  const dir = path.join(context.generatedFilesDir, 'metaspec');
   mkdirSync(dir, {recursive: true});
   const client = path.join(dir, 'client.js');
   const base = `/${options.routeBasePath.replace(/^\/+|\/+$/g, '')}`;
   writeFileSync(
     client,
     [
-      '// Written by @beyond10x/specapp-docusaurus. Do not edit.',
+      '// Written by @beyond10x/metaspec-docusaurus. Do not edit.',
       "import {createElement} from 'react';",
       "import Link from '@docusaurus/Link';",
-      "import {configure} from '@beyond10x/specapp-ui';",
+      "import {configure} from '@beyond10x/metaspec-ui';",
       'function SiteLink(props) {',
       '  return createElement(Link, props);',
       '}',
@@ -92,9 +92,9 @@ export function specappPlugin(context: LoadContext, options: PluginOptions): Plu
       '',
     ].join('\n'),
   );
-  const ui = path.dirname(require.resolve('@beyond10x/specapp-ui/package.json'));
+  const ui = path.dirname(require.resolve('@beyond10x/metaspec-ui/package.json'));
   return {
-    name: 'specapp-docusaurus',
+    name: 'metaspec-docusaurus',
     getClientModules() {
       return [path.join(ui, 'dist/styles.css'), path.join(out, 'palette.css'), client];
     },
@@ -102,7 +102,7 @@ export function specappPlugin(context: LoadContext, options: PluginOptions): Plu
       return [path.join(out, '**/*')];
     },
     configureWebpack() {
-      return {resolve: {alias: {'@beyond10x/specapp-ui$': path.join(ui, 'dist/index.js')}}};
+      return {resolve: {alias: {'@beyond10x/metaspec-ui$': path.join(ui, 'dist/index.js')}}};
     },
   };
 }
@@ -111,18 +111,18 @@ export function specappPlugin(context: LoadContext, options: PluginOptions): Plu
  * Adds the pack's pages to a Docusaurus config. A pack that is not public is refused unless the
  * site's `url` is this machine (localhost or 127.0.0.1): its pages are not published.
  */
-export function withSpecappSite<T extends Record<string, unknown>>(config: T, options: SpecappSiteOptions): T {
+export function withMetaspecSite<T extends Record<string, unknown>>(config: T, options: MetaspecSiteOptions): T {
   const out = path.resolve(options.siteDir, options.out);
   const site = readSite(out);
   const url = String(config.url ?? '');
   if (site.visibility !== 'public' && !isLoopback(url)) {
     throw new Error(
-      `specapp-docusaurus: the pack "${site.title}" is ${site.visibility}; its site is served only from this machine (url http://127.0.0.1 or http://localhost), not ${url || 'an unset url'}`,
+      `metaspec-docusaurus: the pack "${site.title}" is ${site.visibility}; its site is served only from this machine (url http://127.0.0.1 or http://localhost), not ${url || 'an unset url'}`,
     );
   }
   const routeBasePath = options.routeBasePath ?? 'docs';
-  const id = options.id ?? 'specapp';
-  const generated = path.join(options.siteDir, '.docusaurus', 'specapp');
+  const id = options.id ?? 'metaspec';
+  const generated = path.join(options.siteDir, '.docusaurus', 'metaspec');
   mkdirSync(generated, {recursive: true});
   const sidebarPath = path.join(generated, `sidebars-${id}.json`);
   writeFileSync(sidebarPath, `${JSON.stringify({[id]: site.sidebar}, null, 2)}\n`);
@@ -140,9 +140,9 @@ export function withSpecappSite<T extends Record<string, unknown>>(config: T, op
         showLastUpdateAuthor: false,
       },
     ],
-    [specappPlugin, {out: path.relative(options.siteDir, out), routeBasePath} satisfies PluginOptions],
+    [metaspecPlugin, {out: path.relative(options.siteDir, out), routeBasePath} satisfies PluginOptions],
   );
   return {...config, plugins};
 }
 
-export default withSpecappSite;
+export default withMetaspecSite;

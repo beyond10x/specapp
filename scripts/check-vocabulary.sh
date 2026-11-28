@@ -1,11 +1,11 @@
 #!/bin/sh
-# check-vocabulary.sh: fail when a word of a pack appears in specapp's code.
+# check-vocabulary.sh: fail when a word of a pack appears in metaspec's code.
 #
 #   scripts/check-vocabulary.sh [--pack DIR (--manifest FILE | --name NAME)]...
 #
-# The words come from each pack's own files at check time, through `specapp pack words`: its
+# The words come from each pack's own files at check time, through `metaspec pack words`: its
 # block names, layer names, link names, KPI ids and rule ids. A pack is its directory and its
-# manifest: a file (--manifest) or the name of a pack specapp knows (--name, its manifest is
+# manifest: a file (--manifest) or the name of a pack metaspec knows (--name, its manifest is
 # packs/<NAME>.yaml). Without --pack the packs are the fixture packs: fixtures/packs/<name>
 # with fixtures/manifests/<name>.yaml. The acceptance script adds the real packs.
 #
@@ -19,15 +19,15 @@
 #     literal, "word", which is how a table of block names in the code is written.
 #
 # Exit 0: no word found. Exit 1: at least one, listed as `<file>:<line>: <kind> <word>`.
-# Exit 2: bad usage, or a pack that specapp refuses.
+# Exit 2: bad usage, or a pack that metaspec refuses.
 #
-# Needs the specapp binary: $SPECAPP, or target/debug/specapp.
+# Needs the metaspec binary: $METASPEC, or target/debug/metaspec.
 
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-specapp=${SPECAPP:-$root/target/debug/specapp}
-[ -x "$specapp" ] || { echo "check-vocabulary: no specapp binary at $specapp (cargo build -p specapp)" >&2; exit 2; }
+metaspec=${METASPEC:-$root/target/debug/metaspec}
+[ -x "$metaspec" ] || { echo "check-vocabulary: no metaspec binary at $metaspec (cargo build -p metaspec)" >&2; exit 2; }
 
 work=$root/target/check-vocabulary
 rm -rf "$work"
@@ -65,9 +65,9 @@ fi
 npacks=0
 while IFS="$(printf '\t')" read -r dir how value; do
   if [ "$how" = manifest ]; then
-    "$specapp" pack words --manifest "$value" --pack "$dir" > "$work/one" || { echo "check-vocabulary: specapp refused the pack $dir" >&2; exit 2; }
+    "$metaspec" pack words --manifest "$value" --pack "$dir" > "$work/one" || { echo "check-vocabulary: metaspec refused the pack $dir" >&2; exit 2; }
   else
-    "$specapp" pack words "$value" --pack "$dir" > "$work/one" || { echo "check-vocabulary: specapp refused the pack $dir" >&2; exit 2; }
+    "$metaspec" pack words "$value" --pack "$dir" > "$work/one" || { echo "check-vocabulary: metaspec refused the pack $dir" >&2; exit 2; }
   fi
   cat "$work/one" >> "$work/words"
   npacks=$((npacks + 1))

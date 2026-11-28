@@ -1,5 +1,5 @@
 {
-  "format": "specapp-page/1",
+  "format": "metaspec-page/1",
   "id": "kpis",
   "kind": "kpis",
   "front_matter": {
@@ -15,7 +15,7 @@
   ],
   "data": {
     "catalogue": {
-      "format": "specapp-kpis/1",
+      "format": "metaspec-kpis/1",
       "measure": "sort",
       "modes": "seasons",
       "kpis": [

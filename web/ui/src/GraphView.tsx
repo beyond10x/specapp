@@ -3,7 +3,7 @@ import {Icon} from './Icon.js';
 import {useScrollRegion} from './scroll.js';
 import type {Presentation, Scene} from './types.js';
 
-/** The geometry of a box's text, the same as specapp's layout measures it. */
+/** The geometry of a box's text, the same as metaspec's layout measures it. */
 const PAD = 10;
 const LABEL_H = 18;
 const LINE_H = 15;
@@ -37,7 +37,7 @@ function polyline(points: [number, number][]): string {
 }
 
 /**
- * A laid-out view of a document (specapp-scene/1) drawn as SVG in the page, at its own size: the
+ * A laid-out view of a document (metaspec-scene/1) drawn as SVG in the page, at its own size: the
  * drawing scrolls sideways in its box rather than shrinking its text. Each box and edge names its
  * identifiers on hover; a finding is a numbered mark (filled: gated; outlined: not gated) that
  * links to its row in the list of findings; the legend says what each colour and icon stands for.

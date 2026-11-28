@@ -1,16 +1,16 @@
 {
-  "name": "specapp-fixture-site",
+  "name": "metaspec-fixture-site",
   "version": "0.0.0",
   "private": true,
-  "description": "The docs site of a fixture pack, built with @beyond10x/specapp-docusaurus for the UX gates of specapp.",
+  "description": "The docs site of a fixture pack, built with @beyond10x/metaspec-docusaurus for the UX gates of metaspec.",
   "scripts": {
     "build": "docusaurus build",
     "serve": "docusaurus serve",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@beyond10x/specapp-docusaurus": "0.1.0",
-    "@beyond10x/specapp-ui": "0.1.0",
+    "@beyond10x/metaspec-docusaurus": "0.1.0",
+    "@beyond10x/metaspec-ui": "0.1.0",
     "@docusaurus/core": "3.10.2",
     "@docusaurus/faster": "3.10.2",
     "@docusaurus/preset-classic": "3.10.2",

@@ -23,7 +23,7 @@ export function word(presentation: Presentation | undefined, name: string): stri
 
 /**
  * An icon of the presentation table in a 14 by 14 box: its stroke path, or the first letter of
- * its name for an icon specapp does not draw. No icon: a small circle.
+ * its name for an icon metaspec does not draw. No icon: a small circle.
  */
 export function Icon({
   name,

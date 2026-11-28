@@ -1,5 +1,5 @@
 /**
- * @beyond10x/specapp-ui: the components of specapp's docs site and studio. Each takes the data of
+ * @beyond10x/metaspec-ui: the components of metaspec's docs site and studio. Each takes the data of
  * a generated page (`data`) and the pack's presentation table (`presentation`) and knows no pack.
  */
 export {BlockHeader} from './BlockHeader.js';
