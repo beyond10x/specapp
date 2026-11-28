@@ -1,4 +1,5 @@
 //! The layout `nested`: a part is drawn inside the part that contains it (`in` or `per`).
+//! A part that has both is drawn inside its `in` container, and its box says `per <part>`.
 //!
 //! The parts of one container, and the parts that no shown part contains, flow left to right
 //! in the order of the document and wrap at a fixed width. An edge is a straight segment between
@@ -84,12 +85,13 @@ pub fn layout(
         });
     }
 
-    // The container of each shown part; a cycle of containment is cut where it closes.
+    // The container of each shown part: the part it sits `in`, else the part it exists `per`;
+    // a cycle of containment is cut where it closes.
     let mut parent: Vec<Option<usize>> = (0..nodes.len())
         .map(|k| {
             let p = &parts[nodes[k].part?];
-            let holder = p.inside.as_deref().or(p.per.as_deref())?;
-            index(holder).filter(|&h| h != k)
+            let shown = |holder: Option<&str>| index(holder?).filter(|&h| h != k);
+            shown(p.inside.as_deref()).or_else(|| shown(p.per.as_deref()))
         })
         .collect();
     for k in 0..nodes.len() {
@@ -103,6 +105,24 @@ pub fn layout(
             cur = parent[c];
             steps += 1;
         }
+    }
+    // A part that sits in one part and exists per another says which of the two its box is
+    // not drawn inside.
+    for k in 0..nodes.len() {
+        let Some(i) = nodes[k].part else { continue };
+        let p = &parts[i];
+        let (Some(inside), Some(per)) = (&p.inside, &p.per) else {
+            continue;
+        };
+        let drawn_in = parent[k].map(|h| nodes[h].id.as_str());
+        let mut noted = Vec::new();
+        if drawn_in != Some(inside.as_str()) {
+            noted.push(format!("in {inside}"));
+        }
+        if drawn_in != Some(per.as_str()) {
+            noted.push(format!("per {per}"));
+        }
+        nodes[k].card = card(p, style, &noted);
     }
     for (k, holder) in parent.iter().enumerate() {
         if let Some(p) = *holder {

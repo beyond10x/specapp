@@ -31,11 +31,12 @@ fn the_fixture_packs_differ_in_containment_and_kpi_fields() {
     let contains: Vec<_> = manifests
         .iter()
         .flat_map(|m| m.documents.iter().filter_map(|c| c.contain.clone()))
-        .map(|c| std::mem::discriminant(&c))
+        .map(|c| (c.inside.is_some(), c.per.is_some()))
         .collect();
     assert!(
-        contains.windows(2).any(|w| w[0] != w[1]),
-        "one pack contains with `in`, another with `per`"
+        contains.iter().any(|&(inside, _)| inside)
+            && contains.iter().any(|&(inside, per)| !inside && per),
+        "one pack contains with `in`, another with `per` only: {contains:?}"
     );
     let measures: Vec<_> = manifests
         .iter()

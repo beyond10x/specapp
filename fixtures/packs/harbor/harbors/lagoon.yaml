@@ -1,0 +1,15 @@
+format: harbor-plan/1
+harbor: lagoon
+summary: An invented lagoon whose quay keeps one berth per ferry.
+
+parts:
+  east_quay:   { block: quay }
+  ferry:       { block: vessel, draught: 2m }
+  ferry_berth: { block: berth, within: east_quay, one_per: ferry }
+  escort:      { block: tug }
+
+links:
+  - { from: ferry,  to: ferry_berth, carries: moors_at }
+  - { from: escort, to: ferry,       carries: guides }
+
+border: [ferry]

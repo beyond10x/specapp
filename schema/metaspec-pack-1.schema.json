@@ -241,11 +241,10 @@
           "$ref": "#/$defs/key"
         },
         "contain": {
-          "description": "How one part contains another: `in` names the field of a part that names the part it sits in; `per` names the field of a part that names the part it exists once per instance of.",
+          "description": "How one part contains another: `in` names the field of a part that names the part it sits in; `per` names the field of a part that names the part it exists once per instance of. One of them or both.",
           "type": "object",
           "additionalProperties": false,
           "minProperties": 1,
-          "maxProperties": 1,
           "properties": {
             "in": { "$ref": "#/$defs/key" },
             "per": { "$ref": "#/$defs/key" }

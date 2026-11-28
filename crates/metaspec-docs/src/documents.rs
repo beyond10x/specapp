@@ -343,9 +343,10 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
                 None => String::from("–"),
             };
             let contained = match (&part.inside, &part.per) {
-                (Some(i), _) => format!("in {}", code(i)),
-                (_, Some(per)) => format!("per {}", code(per)),
-                _ => String::from("–"),
+                (Some(i), Some(per)) => format!("in {}, per {}", code(i), code(per)),
+                (Some(i), None) => format!("in {}", code(i)),
+                (None, Some(per)) => format!("per {}", code(per)),
+                (None, None) => String::from("–"),
             };
             let fields: Vec<String> = part
                 .fields

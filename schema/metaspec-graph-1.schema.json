@@ -23,7 +23,7 @@
           "kind": { "description": "The part's field `kind`, when it is one text.", "type": "string" },
           "fields": { "description": "Every field but `block`, a marked place read as its value.", "type": "object" },
           "inside": { "description": "The part it sits in (contain: in).", "type": "string" },
-          "per": { "description": "The part it exists once per instance of (contain: per).", "type": "string" },
+          "per": { "description": "The part it exists once per instance of (contain: per). A part may have both inside and per.", "type": "string" },
           "on_border": { "type": "boolean" },
           "markers": { "type": "array", "items": { "$ref": "#/$defs/marker" } }
         }
@@ -47,6 +47,7 @@
       }
     },
     "groups": {
+      "description": "One group per containing part and word: a part that holds parts by `in` and by `per` has an `in` group and a `per` group, the `in` group first.",
       "type": "array",
       "items": {
         "type": "object",

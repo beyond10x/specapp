@@ -16,12 +16,12 @@
         "layers": 3,
         "kpis": 4,
         "planned_blocks": 1,
-        "documents": 4,
-        "pages": 16
+        "documents": 5,
+        "pages": 17
       },
       "check": {
         "status": "refused",
-        "valid": 1,
+        "valid": 2,
         "refused": 2,
         "not_checked": 0
       }

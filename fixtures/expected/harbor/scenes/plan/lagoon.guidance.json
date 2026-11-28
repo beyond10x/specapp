@@ -1,0 +1,158 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/lagoon.yaml",
+  "view": {
+    "id": "guidance",
+    "title": "Who guides whom",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 394.0,
+  "height": 275.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 38.0,
+      "h": 122.0
+    },
+    {
+      "title": "1 shore",
+      "y": 178.0,
+      "h": 77.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "escort",
+      "block": "tug",
+      "label": "escort",
+      "lines": [
+        "tug"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 16.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "escort (block tug), craft"
+    },
+    {
+      "id": "ferry",
+      "block": "vessel",
+      "label": "ferry",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 160.0,
+      "y": 62.0,
+      "w": 218.0,
+      "h": 94.0,
+      "container": true,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "ferry (block vessel), craft\ndraught: 2m"
+    },
+    {
+      "id": "ferry_berth",
+      "block": "berth",
+      "label": "ferry_berth · berth · in east_quay",
+      "lines": [],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 170.0,
+      "y": 124.0,
+      "w": 198.0,
+      "h": 24.0,
+      "parent": "ferry",
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "ferry_berth (block berth), shore\nwithin: east_quay\none_per: ferry"
+    },
+    {
+      "id": "east_quay",
+      "block": "quay",
+      "label": "east_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 202.0,
+      "w": 112.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "east_quay (block quay), shore"
+    }
+  ],
+  "edges": [
+    {
+      "id": "escort->ferry:guides",
+      "from": "escort",
+      "to": "ferry",
+      "carries": "guides",
+      "label": "guides",
+      "points": [
+        [
+          72.0,
+          62.0
+        ],
+        [
+          171.0,
+          25.0
+        ],
+        [
+          269.0,
+          62.0
+        ]
+      ],
+      "label_at": {
+        "x": 146.4,
+        "y": 16.0,
+        "w": 49.2,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "escort->ferry:guides"
+    }
+  ],
+  "marks": [],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "tug",
+        "vessel"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "berth",
+        "quay"
+      ]
+    }
+  ]
+}

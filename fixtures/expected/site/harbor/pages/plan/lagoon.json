@@ -1,0 +1,302 @@
+{
+  "format": "metaspec-page/1",
+  "id": "plan/lagoon",
+  "kind": "document",
+  "front_matter": {
+    "title": "lagoon",
+    "sidebar_label": "lagoon",
+    "description": "An invented lagoon whose quay keeps one berth per ferry.",
+    "lede": "An invented lagoon whose quay keeps one berth per ferry.",
+    "kicker": "Harbor plans",
+    "source": "harbors/lagoon.yaml"
+  },
+  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 3 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 4 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `east_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `ferry` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 2m |\n| `ferry_berth` | [berth](../blocks/1-shore/berth.mdx) | in `east_quay`, per `ferry` | `within` east\\_quay; `one_per` ferry |\n| `escort` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `ferry` | `moors at` | `ferry_berth` | – |\n| `escort` | `guides` | `ferry` | – |\n\n## Border\n\nThe parts on the border of the document: `ferry`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
+  "components": [
+    "GraphView"
+  ],
+  "data": {
+    "scene-1": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/lagoon.yaml",
+      "view": {
+        "id": "layout",
+        "title": "Layout",
+        "layout": "nested",
+        "implicit": false
+      },
+      "width": 330.0,
+      "height": 155.0,
+      "rows": [],
+      "boxes": [
+        {
+          "id": "east_quay",
+          "block": "quay",
+          "label": "east_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 16.0,
+          "w": 138.0,
+          "h": 123.0,
+          "container": true,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "east_quay (block quay), shore"
+        },
+        {
+          "id": "ferry_berth",
+          "block": "berth",
+          "label": "ferry_berth",
+          "lines": [
+            "berth",
+            "per ferry"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 26.0,
+          "y": 65.0,
+          "w": 118.0,
+          "h": 64.0,
+          "parent": "east_quay",
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "ferry_berth (block berth), shore\nwithin: east_quay\none_per: ferry"
+        },
+        {
+          "id": "ferry",
+          "block": "vessel",
+          "label": "ferry",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 202.0,
+          "y": 16.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [],
+          "title": "ferry (block vessel), craft\ndraught: 2m"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ferry->ferry_berth:moors_at",
+          "from": "ferry",
+          "to": "ferry_berth",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              202.0,
+              63.9
+            ],
+            [
+              144.0,
+              80.3
+            ]
+          ],
+          "label_at": {
+            "x": 151.0,
+            "y": 80.6,
+            "w": 61.3,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "ferry->ferry_berth:moors_at"
+        }
+      ],
+      "marks": [],
+      "legend": [
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay",
+            "berth"
+          ]
+        },
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel"
+          ]
+        }
+      ]
+    },
+    "scene-2": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/lagoon.yaml",
+      "view": {
+        "id": "guidance",
+        "title": "Who guides whom",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 394.0,
+      "height": 275.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 38.0,
+          "h": 122.0
+        },
+        {
+          "title": "1 shore",
+          "y": 178.0,
+          "h": 77.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "escort",
+          "block": "tug",
+          "label": "escort",
+          "lines": [
+            "tug"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 16.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "escort (block tug), craft"
+        },
+        {
+          "id": "ferry",
+          "block": "vessel",
+          "label": "ferry",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 160.0,
+          "y": 62.0,
+          "w": 218.0,
+          "h": 94.0,
+          "container": true,
+          "on_border": true,
+          "ghost": false,
+          "findings": [],
+          "title": "ferry (block vessel), craft\ndraught: 2m"
+        },
+        {
+          "id": "ferry_berth",
+          "block": "berth",
+          "label": "ferry_berth · berth · in east_quay",
+          "lines": [],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 170.0,
+          "y": 124.0,
+          "w": 198.0,
+          "h": 24.0,
+          "parent": "ferry",
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "ferry_berth (block berth), shore\nwithin: east_quay\none_per: ferry"
+        },
+        {
+          "id": "east_quay",
+          "block": "quay",
+          "label": "east_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 202.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "east_quay (block quay), shore"
+        }
+      ],
+      "edges": [
+        {
+          "id": "escort->ferry:guides",
+          "from": "escort",
+          "to": "ferry",
+          "carries": "guides",
+          "label": "guides",
+          "points": [
+            [
+              72.0,
+              62.0
+            ],
+            [
+              171.0,
+              25.0
+            ],
+            [
+              269.0,
+              62.0
+            ]
+          ],
+          "label_at": {
+            "x": 146.4,
+            "y": 16.0,
+            "w": 49.2,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "escort->ferry:guides"
+        }
+      ],
+      "marks": [],
+      "legend": [
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "tug",
+            "vessel"
+          ]
+        },
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "berth",
+            "quay"
+          ]
+        }
+      ]
+    }
+  }
+}

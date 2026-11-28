@@ -11,8 +11,8 @@
     "layers": 3,
     "kpis": 4,
     "planned_blocks": 1,
-    "documents": 4,
-    "pages": 16
+    "documents": 5,
+    "pages": 17
   },
   "sidebar": [
     "index",
@@ -66,6 +66,7 @@
       "items": [
         "plan/cove",
         "plan/inlet",
+        "plan/lagoon",
         "plan/reef"
       ]
     },
@@ -155,6 +156,12 @@
       "kind": "document",
       "slug": "/harbor/plan/inlet",
       "title": "inlet"
+    },
+    {
+      "id": "plan/lagoon",
+      "kind": "document",
+      "slug": "/harbor/plan/lagoon",
+      "title": "lagoon"
     },
     {
       "id": "plan/reef",

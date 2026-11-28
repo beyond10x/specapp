@@ -4,7 +4,7 @@
 
 use super::common::{load_pack, packs, schema_errors};
 use metaspec_core::graph::{self, Graph};
-use metaspec_core::manifest::{Contain, Shape};
+use metaspec_core::manifest::{self, Contain, Shape};
 use serde_json::Value;
 use std::collections::BTreeSet;
 
@@ -68,16 +68,19 @@ fn containment_follows_the_class_in_one_pack_and_per_in_the_other() {
         for group in &g.groups {
             for member in &group.members {
                 let part = g.part(member).unwrap();
-                match &contain {
-                    Some(Contain::In(_)) => {
+                let Some(Contain { inside, per }) = &contain else {
+                    panic!("{name}: a group without containment");
+                };
+                match group.contain.as_str() {
+                    "in" => {
+                        assert!(inside.is_some(), "{name}: an `in` group, no `in` field");
                         assert_eq!(part.inside.as_deref(), Some(group.id.as_str()), "{name}");
-                        assert_eq!(group.contain, "in");
                     }
-                    Some(Contain::Per(_)) => {
+                    "per" => {
+                        assert!(per.is_some(), "{name}: a `per` group, no `per` field");
                         assert_eq!(part.per.as_deref(), Some(group.id.as_str()), "{name}");
-                        assert_eq!(group.contain, "per");
                     }
-                    None => panic!("{name}: a group without containment"),
+                    other => panic!("{name}: a group of {other}"),
                 }
                 seen.insert(group.contain.clone());
             }
@@ -133,5 +136,81 @@ fn a_repeated_link_gets_a_number_and_a_missing_end_a_question_mark() {
     assert_eq!(
         g.name, "x",
         "the file stem when the class's name key is missing"
+    );
+}
+
+#[test]
+fn contain_both_keeps_inside_and_per_of_a_part_and_a_group_per_holder_and_word() {
+    let text = "format: metaspec-pack/1\npack: sample\ntitle: Sample\nvisibility: public\nblocks: { path: b }\ndocuments:\n  - { class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, contain: { in: holder, per: owner } }\n";
+    let m = manifest::parse(text).unwrap_or_else(|e| panic!("{e:?}"));
+    let doc: Value = serde_yaml_ng::from_str(
+        "n: x\nparts:\n  host: { block: h }\n  log: { block: l, holder: host }\n  site: { block: s }\n  spare: { block: w, holder: site }\n  worker: { block: w, holder: site, owner: host }\nlinks: []\n",
+    )
+    .unwrap();
+    let g = graph::read(&m.documents[0], "d/x.yaml", &doc);
+    assert_eq!(
+        schema_errors(
+            "metaspec-graph-1.schema.json",
+            &serde_json::to_value(&g).unwrap()
+        ),
+        Vec::<String>::new()
+    );
+    let worker = g.part("worker").unwrap();
+    assert_eq!(
+        (worker.inside.as_deref(), worker.per.as_deref()),
+        (Some("site"), Some("host"))
+    );
+    let spare = g.part("spare").unwrap();
+    assert_eq!(
+        (spare.inside.as_deref(), spare.per.as_deref()),
+        (Some("site"), None)
+    );
+    let groups: Vec<(&str, &str, Vec<&str>)> = g
+        .groups
+        .iter()
+        .map(|grp| {
+            (
+                grp.id.as_str(),
+                grp.contain.as_str(),
+                grp.members.iter().map(String::as_str).collect(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        groups,
+        [
+            ("host", "in", vec!["log"]),
+            ("host", "per", vec!["worker"]),
+            ("site", "in", vec!["spare", "worker"]),
+        ]
+    );
+}
+
+#[test]
+fn contain_both_in_a_fixture_document_keeps_both_and_a_group_of_each() {
+    let mut both = 0;
+    for (name, contain, g, _) in graphs() {
+        for part in &g.parts {
+            let (Some(inside), Some(per)) = (&part.inside, &part.per) else {
+                continue;
+            };
+            let class = serde_json::to_value(&contain).unwrap();
+            assert!(
+                class.get("in").is_some() && class.get("per").is_some(),
+                "{name}"
+            );
+            let member_of = |id: &str, word: &str| {
+                g.groups.iter().any(|grp| {
+                    grp.id == id && grp.contain == word && grp.members.contains(&part.id)
+                })
+            };
+            assert!(member_of(inside, "in"), "{name} {}", part.id);
+            assert!(member_of(per, "per"), "{name} {}", part.id);
+            both += 1;
+        }
+    }
+    assert!(
+        both >= 1,
+        "a fixture document has a part both in and per another"
     );
 }

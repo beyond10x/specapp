@@ -109,7 +109,10 @@ entities:
         type: String
         summary: The key of a document that holds its name.
       - name: contain
-        type: Optional<metaspec.documents.Contain>
+        type: List<metaspec.documents.Contain>
+        summary: >-
+          Empty, one of `in` and `per`, or both: the manifest's `contain` takes `{in: <field>}`,
+          `{per: <field>}` or `{in: <field>, per: <field>}`.
       - name: tables
         type: List<metaspec.documents.Table>
         summary: Empty for a parts-links/1 class.
@@ -254,14 +257,11 @@ entities:
         summary: The part it sits in (contain in).
       - name: per
         type: Optional<metaspec.documents.PartId>
-        summary: The part it exists once per instance of (contain per).
+        summary: The part it exists once per instance of (contain per). A part may have both inside and per.
       - name: on_border
         type: Boolean
       - name: markers
         type: List<metaspec.documents.Marker>
-    invariants:
-      # `contain` has exactly one key, so a part sits in another part or exists per another, not both.
-      - {any: [not defined(inside), not defined(per)]}
     relations:
       - name: block
         kind: references
