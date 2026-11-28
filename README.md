@@ -28,11 +28,14 @@ target/debug/metaspec pack check orgspec --pack <orgspec-checkout>
 target/debug/metaspec pack check --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --json
 target/debug/metaspec trust --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor
 target/debug/metaspec render --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/pages
-target/debug/metaspec docs build --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/docs
+target/debug/metaspec docs build --pack fixtures/manifests/harbor.yaml=fixtures/packs/harbor --pack fixtures/manifests/orchard.yaml=fixtures/packs/orchard --out target/docs
 ```
 
-`docs build` writes the pages of a pack's docs site (MDX with their data, `site.json`,
-`palette.css`); `--check` compares them with a directory. The site itself is Docusaurus on
+`docs build` writes one docs site, titled metaspec, over every pack given with `--pack
+<name or manifest>=<dir>`: each pack's pages under `/<pack>` (MDX with their data, `site.json`)
+with its own navbar item and sidebar, and the page `/` that lists the packs with their counts and
+check status (`index.json`); `--check` compares them with a directory. `docs build <name> --pack
+<dir>` or `--manifest <file> --pack <dir>` writes a site of one pack. The site itself is Docusaurus on
 `@beyond10x/docs-system` with the two packages of `web/`: `@beyond10x/metaspec-ui` (the
 components) and `@beyond10x/metaspec-docusaurus` (the preset). To build and open the site of
 the docs build above:

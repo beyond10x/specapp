@@ -70,25 +70,27 @@ other.
   digest of its sources under `target/spec-conform/`; the scenarios that fail because the
   synthesized scenario is wrong are listed in `spec/known-failing.txt`), `cargo fmt` and
   clippy with `-D warnings`, the tests under cargo-nextest (a test is killed at 60 s, the step
-  fails over 120 s; `.config/nextest.toml`), `check:docs` (`metaspec docs build --manifest
-  fixtures/manifests/<pack>.yaml --pack fixtures/packs/<pack> --check` against
-  `fixtures/expected/<pack>/site`), `check:web` (tsc of `web/ui` and `web/docusaurus`, vitest of
+  fails over 120 s; `.config/nextest.toml`), `check:docs` (`metaspec docs build --pack
+  fixtures/manifests/<pack>.yaml=fixtures/packs/<pack>` for both fixture packs `--check` against
+  the one committed site `fixtures/expected/site`), `check:web` (tsc of `web/ui` and `web/docusaurus`, vitest of
   `web/ui` on the committed pages of both fixture packs; needs `task web:install`), and
   `scripts/check-vocabulary.sh` on the fixture packs (it searches `crates/`, `web/src` and
   `web/*/src`, not the manifests). A command of the gate that is no cargo call starts with
   `{{.SLOT}}`, which is `slot` where slot is installed and empty in CI.
-- `task ux` (`scripts/ux.sh`) is the UX lane, outside `task check`: it builds both fixture sites
-  and runs the Playwright and axe-core gates (every page, 1440x900 and 1280x800, both themes, no
-  serious or critical violation, no sideways scroll; a test is killed at 60 s, the run at
-  120 s). Run it after a change under `web/` or of the generated pages.
+- `task ux` (`scripts/ux.sh`) is the UX lane, outside `task check`: it builds the one site of both
+  fixture packs and runs the Playwright and axe-core gates (`/` and every page, 1440x900 and
+  1280x800, both themes, no serious or critical violation, no sideways scroll, the navbar title
+  metaspec and one navbar item per pack, `/` lists every pack; a test is killed at 60 s, the run
+  at 120 s). Run it after a change under `web/` or of the generated pages.
 - `web/` is one npm workspace (`ui`, `docusaurus`, `site`). Its packages are private and never
   published. `@beyond10x/docs-system` is a git dependency of the workspace root, pinned at the
   commit agenticspec uses; `.npmrc` allows git for the root only. `npm ci` runs without slot;
   builds and tests run through it.
-- A pack's site is built from here, never from the pack: `metaspec docs build [NAME | --manifest
-  <file>] --pack <dir> --out <dir>` and a site shell over the output (`web/site` with
-  `METASPEC_SITE_OUT` today). A pack carries no site shell, no dependency on these packages and
-  no task of metaspec.
+- One site, titled metaspec, holds every pack, each under `/<pack>` with its own navbar item and
+  sidebar. It is built from here, never from a pack: `metaspec docs build --pack
+  <NAME|FILE>=<dir> [--pack ...] --out <dir>` (or `[NAME | --manifest <file>] --pack <dir>` for
+  one pack) and a site shell over the output (`web/site` with `METASPEC_SITE_OUT`). A pack
+  carries no site shell, no dependency on these packages and no task of metaspec.
 - `.github/workflows/gate.yml` runs `task check` (job `gate`) with the toolchain
   `rust-toolchain.toml` names, `ess` 0.99.2 and cargo-nextest 0.9.143. A pull request that
   changes only planning or prose files passes it without `task check`; the path list is
@@ -108,8 +110,8 @@ other.
 - Tests read `fixtures/expected/<pack>.json` for what a fixture pack must count, so no test
   names a word of a pack. The compiled model of a fixture's blocks is made once per digest of
   its sources under the target directory (`tests/cases/common.rs`).
-- The scenes, pages and docs sites (`site/`) of the fixture packs are committed under
-  `fixtures/expected/<pack>/` and compared byte for byte. A change of the layout or the page rewrites them with
+- The scenes and pages of the fixture packs are committed under `fixtures/expected/<pack>/`, the
+  one docs site of both under `fixtures/expected/site/`, and compared byte for byte. A change of the layout or the page rewrites them with
   `METASPEC_BLESS=1 cargo nextest run`; the diff of those files is part of the review.
 - A test or script that runs a pack's tool trusts it in a state directory of its own
   (`XDG_STATE_HOME`), never in the user's.

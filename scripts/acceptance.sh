@@ -40,11 +40,13 @@
 # `agenticspec sim check --json`, mapped by the adapter in packs/agenticspec.yaml; its tool is
 # built first. Pages are under target/acceptance/pages-<pack>/.
 #
-# Wave 3: `metaspec docs build` writes the docs site of every pack under target/acceptance/docs-<pack>;
-# its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and each
-# fixture pack's site equals the committed one (--check). The site shell of web/site builds the
-# orgspec site (target/acceptance/site-orgspec; needs `task web:install web:build`). The parity
-# of the generated agenticspec site with its own pages is printed as a summary (scripts/parity.sh).
+# Wave 3: `metaspec docs build` writes a site of each pack alone under target/acceptance/docs-<pack>;
+# its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and the
+# one site of both fixture packs equals the committed one (--check). The one site of both real
+# packs is written to target/acceptance/docs-site, and the site shell of web/site builds it
+# (target/acceptance/site; needs `task web:install web:build`): per pack its HTML pages equal its
+# pages, and the site has its page /. The parity of the generated agenticspec site with its own
+# pages is printed as a summary (scripts/parity.sh).
 #
 # Then runs scripts/check-vocabulary.sh with all four packs.
 #
@@ -259,7 +261,7 @@ row agenticspec pages:cases "$n" "$own" "fixtures/answers/agenticspec/architectu
 rule_rows agenticspec cases "$work/agentic-cases.rows" "agenticspec sim check --json"
 
 # --- wave 3: docs sites ---
-# docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of a pack into
+# docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of the site of one pack into
 # $work/docs-<name> (its tool trusted above under $work/state); the counts of its pages against
 # the counts of metaspec pack check
 docs_rows() {
@@ -269,41 +271,51 @@ docs_rows() {
     *) set -- "$3" ;;
   esac
   "$metaspec" docs build "$@" --pack "$dir" --out "$out" > "$out.log" || { echo "acceptance: docs build $name failed" >&2; cat "$out.log" >&2; exit 1; }
-  kinds=$(jq -r '.pages[].kind' "$out/site.json")
+  part=$out/$(jq -r '.packs[0].pack' "$out/index.json")
+  kinds=$(jq -r '.pages[].kind' "$part/site.json")
   row "$name" docs:block-pages "$(echo "$kinds" | grep -cx block || true)" "$(of "$name" .counts.blocks)" "pack check blocks"
-  row "$name" docs:kpi-rows "$(jq '.data.catalogue.kpis | length' "$out/pages/kpis.json")" "$(of "$name" .counts.kpis)" "pack check kpis"
+  row "$name" docs:kpi-rows "$(jq '.data.catalogue.kpis | length' "$part/pages/kpis.json")" "$(of "$name" .counts.kpis)" "pack check kpis"
   row "$name" docs:document-pages "$(echo "$kinds" | grep -cxE 'document|record' || true)" "$(of "$name" .counts.documents)" "pack check documents"
 }
 
+set --
 for manifest in "$root"/fixtures/manifests/*.yaml; do
   name=$(basename "$manifest" .yaml)
   dir=$root/fixtures/packs/$name
   docs_rows "$name" "$dir" "$manifest"
-  if "$metaspec" docs build --manifest "$manifest" --pack "$dir" --out "$root/fixtures/expected/$name/site" --check > "$work/docs-check-$name.log"; then
-    row "$name" docs:committed-site 1 1 "metaspec docs build --check"
-  else
-    row "$name" docs:committed-site 0 1 "metaspec docs build --check"
-  fi
+  set -- "$@" --pack "$manifest=$dir"
 done
+if "$metaspec" docs build "$@" --out "$root/fixtures/expected/site" --check > "$work/docs-check.log"; then
+  row fixtures docs:committed-site 1 1 "metaspec docs build --check of both fixture packs"
+else
+  row fixtures docs:committed-site 0 1 "metaspec docs build --check of both fixture packs"
+fi
 docs_rows orgspec "$org" orgspec
 docs_rows agenticspec "$agentic" agenticspec
 
-# The orgspec site: the site shell of web/site over its pages, built into $work/site-orgspec.
-# Needs `task web:install` and `task web:build`. The job stays on this host (slot --here): a
-# build node does not have the pages under target/.
+# The site of both real packs: metaspec docs build into $work/docs-site and the site shell of
+# web/site over it, built into $work/site. Needs `task web:install` and `task web:build`. The job
+# stays on this host (slot --here): a build node does not have the pages under target/.
+"$metaspec" docs build --pack "orgspec=$org" --pack "agenticspec=$agentic" --out "$work/docs-site" > "$work/docs-site.log" \
+  || { echo "acceptance: docs build of the site of both real packs failed" >&2; cat "$work/docs-site.log" >&2; exit 1; }
 if [ -d "$root/web/node_modules" ] && [ -f "$root/web/docusaurus/dist/index.js" ]; then
-  if (cd "$root/web/site" && METASPEC_SITE_OUT="$work/docs-orgspec" slot --here --timeout 15m npx docusaurus build --out-dir "$work/site-orgspec") > "$work/site-orgspec.log" 2>&1; then
-    row orgspec docs:site-builds 1 1 "docusaurus build of web/site over the orgspec pages"
-    # A page is <route>.html; <route>/index.html is the redirect docs-system writes beside it,
-    # and the pack's own page is the site's index.html.
-    n=$(find "$work/site-orgspec" -mindepth 2 -name '*.html' ! -name index.html | wc -l | tr -d ' ')
-    n=$((n + $(find "$work/site-orgspec" -maxdepth 1 -name '*.html' ! -name 404.html | wc -l | tr -d ' ')))
-    row orgspec docs:site-pages "$n" "$(jq '.pages | length' "$work/docs-orgspec/site.json")" "built HTML pages"
+  if (cd "$root/web/site" && METASPEC_SITE_OUT="$work/docs-site" slot --here --timeout 15m npx docusaurus build --out-dir "$work/site") > "$work/site.log" 2>&1; then
+    row site docs:site-builds 1 1 "docusaurus build of web/site over both real packs"
+    # A page is <route>.html; <route>/index.html is the redirect docs-system writes beside it.
+    # A pack's own page is <pack>.html beside its directory.
+    for name in orgspec agenticspec; do
+      n=$(find "$work/site/$name" -name '*.html' ! -name index.html | wc -l | tr -d ' ')
+      [ -f "$work/site/$name.html" ] && n=$((n + 1))
+      row "$name" docs:site-pages "$n" "$(jq '.pages | length' "$work/docs-site/$name/site.json")" "built HTML pages"
+    done
+    n=0
+    [ -f "$work/site/index.html" ] && n=1
+    row site docs:site-index "$n" 1 "the page / of the site"
   else
-    row orgspec docs:site-builds 0 1 "docusaurus build of web/site ($work/site-orgspec.log)"
+    row site docs:site-builds 0 1 "docusaurus build of web/site ($work/site.log)"
   fi
 else
-  row orgspec docs:site-builds - 1 "web/ not installed and built (task web:install web:build)"
+  row site docs:site-builds - 1 "web/ not installed and built (task web:install web:build)"
 fi
 
 # agenticspec parity: scripts/parity.sh, its summary line

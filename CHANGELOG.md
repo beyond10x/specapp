@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- One docs site for every pack, on the owner's word about the orgspec site ("the header says
+  orgspec all the time, but this is now about metaspec"). The title and header are `metaspec`
+  on every page; the navbar has one item per pack with its title, each pack has its own sidebar
+  (one docs plugin instance per pack), and its pages are under `/<pack>`. The page `/` lists the
+  packs: title, summary, block, document and KPI counts and the check of its documents (valid,
+  refused or not checked).
+- `metaspec docs build --pack <NAME|FILE>=<dir> [--pack ...] --out <dir>` writes the site of
+  every pack given; `[NAME | --manifest <file>] --pack <dir>` still writes a site of one pack.
+  The output: per pack `<pack>/docs`, `<pack>/pages` and `<pack>/site.json` (`metaspec-site/1`,
+  the `slug` of a page and every `route` in the components' data now carry `/<pack>`; the MDX is
+  unchanged), and for the site `index.json` (new format `metaspec-index/1`,
+  `schema/metaspec-index-1.schema.json`), `_index/index.mdx` (the page `/`) and one
+  `palette.css`. Two packs of one name are bad usage.
+- `@beyond10x/metaspec-docusaurus`: `withMetaspecSite(config, {out, siteDir})` reads
+  `index.json` and adds a docs plugin instance per pack and a pages plugin instance for `/`;
+  new `packNavbarItems`, `readIndex`, and `readSite(out, pack)`. The `routeBasePath` and `id`
+  options are gone. `web/site` drops `METASPEC_SITE_PACK`.
+- The fixture sites `fixtures/expected/<pack>/site` are replaced by one committed site of both
+  fixture packs, `fixtures/expected/site`, held by `task check:docs` and the tests. `task ux`
+  builds and serves it once and also checks that the navbar title is metaspec, every pack is a
+  navbar item, and `/` lists every pack; a page loads once per theme and is resized for the
+  second viewport. `scripts/acceptance.sh` builds the one site of both real packs and compares
+  its HTML pages per pack; `scripts/parity.sh` reads the pack's part of its site.
+
 - agenticspec reaches L3: `packs/agenticspec.yaml` declares the `check` adapter of
   `agenticspec sim check --json <architecture>` (`agenticspec-check/1`: `valid`, `counts`, and
   per violation its rule, its gate, its message and a subject that is a link when it contains

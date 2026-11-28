@@ -87,97 +87,97 @@
     {
       "id": "index",
       "kind": "pack",
-      "slug": "/",
+      "slug": "/harbor",
       "title": "Harbor"
     },
     {
       "id": "blocks/index",
       "kind": "layer-map",
-      "slug": "/blocks",
+      "slug": "/harbor/blocks",
       "title": "Building blocks"
     },
     {
       "id": "blocks/0-bedrock/ledger",
       "kind": "block",
-      "slug": "/blocks/0-bedrock/ledger",
+      "slug": "/harbor/blocks/0-bedrock/ledger",
       "title": "ledger"
     },
     {
       "id": "blocks/1-shore/quay",
       "kind": "block",
-      "slug": "/blocks/1-shore/quay",
+      "slug": "/harbor/blocks/1-shore/quay",
       "title": "quay"
     },
     {
       "id": "blocks/1-shore/berth",
       "kind": "block",
-      "slug": "/blocks/1-shore/berth",
+      "slug": "/harbor/blocks/1-shore/berth",
       "title": "berth"
     },
     {
       "id": "blocks/2-craft/vessel",
       "kind": "block",
-      "slug": "/blocks/2-craft/vessel",
+      "slug": "/harbor/blocks/2-craft/vessel",
       "title": "vessel"
     },
     {
       "id": "blocks/2-craft/tug",
       "kind": "block",
-      "slug": "/blocks/2-craft/tug",
+      "slug": "/harbor/blocks/2-craft/tug",
       "title": "tug"
     },
     {
       "id": "blocks/planned",
       "kind": "planned",
-      "slug": "/blocks/planned",
+      "slug": "/harbor/blocks/planned",
       "title": "Planned blocks"
     },
     {
       "id": "kpis",
       "kind": "kpis",
-      "slug": "/kpis",
+      "slug": "/harbor/kpis",
       "title": "KPI catalogue"
     },
     {
       "id": "plan/index",
       "kind": "class",
-      "slug": "/plan",
+      "slug": "/harbor/plan",
       "title": "Harbor plans"
     },
     {
       "id": "plan/cove",
       "kind": "document",
-      "slug": "/plan/cove",
+      "slug": "/harbor/plan/cove",
       "title": "cove"
     },
     {
       "id": "plan/inlet",
       "kind": "document",
-      "slug": "/plan/inlet",
+      "slug": "/harbor/plan/inlet",
       "title": "inlet"
     },
     {
       "id": "plan/reef",
       "kind": "document",
-      "slug": "/plan/reef",
+      "slug": "/harbor/plan/reef",
       "title": "reef"
     },
     {
       "id": "bylaw/index",
       "kind": "class",
-      "slug": "/bylaw",
+      "slug": "/harbor/bylaw",
       "title": "Bylaws"
     },
     {
       "id": "bylaw/mooring",
       "kind": "record",
-      "slug": "/bylaw/mooring",
+      "slug": "/harbor/bylaw/mooring",
       "title": "mooring"
     },
     {
       "id": "rules",
       "kind": "rules",
-      "slug": "/rules",
+      "slug": "/harbor/rules",
       "title": "Rules"
     }
   ],
@@ -190,7 +190,7 @@
         "group": "shore",
         "layer": 0,
         "layer_name": "bedrock",
-        "route": "/blocks/0-bedrock/ledger"
+        "route": "/harbor/blocks/0-bedrock/ledger"
       },
       "quay": {
         "label": "quay",
@@ -199,7 +199,7 @@
         "group": "shore",
         "layer": 1,
         "layer_name": "shore",
-        "route": "/blocks/1-shore/quay"
+        "route": "/harbor/blocks/1-shore/quay"
       },
       "berth": {
         "label": "berth",
@@ -208,7 +208,7 @@
         "group": "shore",
         "layer": 1,
         "layer_name": "shore",
-        "route": "/blocks/1-shore/berth"
+        "route": "/harbor/blocks/1-shore/berth"
       },
       "vessel": {
         "label": "vessel",
@@ -217,7 +217,7 @@
         "group": "craft",
         "layer": 2,
         "layer_name": "craft",
-        "route": "/blocks/2-craft/vessel"
+        "route": "/harbor/blocks/2-craft/vessel"
       },
       "tug": {
         "label": "tug",
@@ -226,7 +226,7 @@
         "group": "craft",
         "layer": 2,
         "layer_name": "craft",
-        "route": "/blocks/2-craft/tug"
+        "route": "/harbor/blocks/2-craft/tug"
       },
       "crane": {
         "label": "crane",
@@ -235,7 +235,7 @@
         "group": "planned",
         "layer": null,
         "layer_name": null,
-        "route": "/blocks/planned#crane"
+        "route": "/harbor/blocks/planned#crane"
       }
     },
     "groups": [

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-site-1.schema.json",
   "title": "metaspec-site/1",
-  "description": "site.json of `metaspec docs build`: the pack's identity, its counts, the sidebar of the generated pages, the list of pages, and the presentation table every component reads. One producer: metaspec. Read by @beyond10x/metaspec-docusaurus.",
+  "description": "<pack>/site.json of `metaspec docs build`: the part of one pack of the site, its identity, its counts, the sidebar of the generated pages, the list of pages with their routes in the site (below /<pack>), and the presentation table every component reads. One producer: metaspec. Read by @beyond10x/metaspec-docusaurus.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "pack", "title", "summary", "visibility", "source_url", "level", "counts", "sidebar", "pages", "presentation"],
@@ -41,7 +41,7 @@
         "properties": {
           "id": { "type": "string" },
           "kind": { "type": "string" },
-          "slug": { "type": "string", "pattern": "^/" },
+          "slug": { "description": "The route of the page in the site: /<pack>, or /<pack>/<id> without a trailing index.", "type": "string", "pattern": "^/" },
           "title": { "type": "string" }
         }
       }

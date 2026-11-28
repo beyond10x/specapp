@@ -1,0 +1,54 @@
+{
+  "format": "metaspec-index/1",
+  "title": "metaspec",
+  "packs": [
+    {
+      "pack": "harbor",
+      "title": "Harbor",
+      "summary": "An invented pack of a small harbor, for the tests of metaspec.",
+      "visibility": "public",
+      "source_url": "https://example.org/harbor",
+      "level": "L3",
+      "route": "/harbor",
+      "site": "harbor/site.json",
+      "counts": {
+        "blocks": 5,
+        "layers": 3,
+        "kpis": 4,
+        "planned_blocks": 1,
+        "documents": 4,
+        "pages": 16
+      },
+      "check": {
+        "status": "refused",
+        "valid": 1,
+        "refused": 2,
+        "not_checked": 0
+      }
+    },
+    {
+      "pack": "orchard",
+      "title": "Orchard",
+      "summary": "An invented pack of an orchard, for the tests of metaspec.",
+      "visibility": "private",
+      "source_url": null,
+      "level": "L3",
+      "route": "/orchard",
+      "site": "orchard/site.json",
+      "counts": {
+        "blocks": 6,
+        "layers": 4,
+        "kpis": 3,
+        "planned_blocks": 0,
+        "documents": 2,
+        "pages": 15
+      },
+      "check": {
+        "status": "valid",
+        "valid": 1,
+        "refused": 0,
+        "not_checked": 0
+      }
+    }
+  ]
+}

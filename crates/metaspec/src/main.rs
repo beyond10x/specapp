@@ -63,20 +63,43 @@ enum Command {
 
 #[derive(Subcommand)]
 enum DocsCommand {
-    /// Write the generated pages of a pack's docs site: one MDX page and its data
-    /// (metaspec-page/1) per page, site.json (metaspec-site/1: the sidebar, the pages, the
-    /// presentation table) and palette.css.
+    /// Write the generated pages of one docs site over one or more packs.
     ///
-    /// Pages: the pack, the layer map, one per block, planned blocks, the KPI catalogue, per
-    /// document class an index and one per document, the rules. The tool's `check` runs only
-    /// for a trusted pack (`metaspec trust`). OUT is metaspec's: a file there that the build does
-    /// not write is removed, and a directory that holds other files is refused. With --check
-    /// nothing is written: exit 1 lists every file that differs, is missing or is not owned.
-    /// Exit 0 when written or equal, 1 when the pack is refused or a file differs, 2 on bad
-    /// usage.
+    /// One pack: `[NAME | --manifest FILE] --pack DIR`. Several: `--pack NAME=DIR` or
+    /// `--pack FILE=DIR` once per pack, where FILE is a manifest (a path with a `/`, or ending
+    /// in `.yaml` or `.yml`) and NAME a pack metaspec knows.
+    ///
+    /// Per pack under OUT/<pack>/ (routed below /<pack>): one MDX page and its data
+    /// (metaspec-page/1) per page and site.json (metaspec-site/1: the sidebar, the pages, the
+    /// presentation table). For the site: index.json (metaspec-index/1: per pack its counts and
+    /// the check of its documents), _index/index.mdx (the page /, the packs in a table) and
+    /// palette.css.
+    ///
+    /// Pages of a pack: the pack, the layer map, one per block, planned blocks, the KPI
+    /// catalogue, per document class an index and one per document, the rules. The tool's
+    /// `check` runs only for a trusted pack (`metaspec trust`). OUT is metaspec's: a file there
+    /// that the build does not write is removed, and a directory that holds other files is
+    /// refused. With --check nothing is written: exit 1 lists every file that differs, is
+    /// missing or is not owned. Exit 0 when written or equal, 1 when a pack is refused or a
+    /// file differs, 2 on bad usage.
     Build {
-        #[command(flatten)]
-        pack: PackArgs,
+        /// The name of a pack metaspec knows, when the site holds one pack.
+        #[arg(value_name = "NAME", conflicts_with = "manifest")]
+        name: Option<String>,
+        /// The manifest of the one pack of the site, when metaspec does not know it.
+        #[arg(long, value_name = "FILE")]
+        manifest: Option<PathBuf>,
+        /// The pack directory, after NAME or --manifest; else NAME=DIR or FILE=DIR, once per
+        /// pack of the site.
+        #[arg(
+            long = "pack",
+            value_name = "DIR | NAME=DIR | FILE=DIR",
+            required = true
+        )]
+        packs: Vec<String>,
+        /// The manifest the one pack's manifest `extends`, when metaspec does not know it.
+        #[arg(long, value_name = "FILE")]
+        extends: Option<PathBuf>,
         /// The output directory.
         #[arg(long, value_name = "DIR")]
         out: PathBuf,
@@ -182,6 +205,54 @@ impl PackArgs {
     }
 }
 
+/// The packs of one docs site: the one pack of `[NAME | --manifest FILE] --pack DIR`, or one per
+/// `--pack NAME=DIR` and `--pack FILE=DIR`.
+fn site_packs(
+    name: Option<String>,
+    manifest: Option<PathBuf>,
+    packs: Vec<String>,
+    extends: Option<PathBuf>,
+) -> Result<Vec<PackArgs>, String> {
+    if name.is_some() || manifest.is_some() {
+        let [dir] = <[String; 1]>::try_from(packs).map_err(|_| {
+            String::from(
+                "after a pack name or --manifest, --pack takes the one pack's directory; for several packs give --pack NAME=DIR or --pack FILE=DIR for each",
+            )
+        })?;
+        return Ok(vec![PackArgs {
+            name,
+            manifest,
+            dir: PathBuf::from(dir),
+            extends,
+        }]);
+    }
+    if extends.is_some() {
+        return Err(String::from(
+            "--extends is for one pack, named by NAME or --manifest",
+        ));
+    }
+    packs
+        .iter()
+        .map(|spec| {
+            let Some((which, dir)) = spec.split_once('=') else {
+                return Err(format!(
+                    "--pack {spec}: give NAME=DIR or FILE=DIR, or name the one pack of the site by NAME or --manifest"
+                ));
+            };
+            if which.is_empty() || dir.is_empty() {
+                return Err(format!("--pack {spec}: give NAME=DIR or FILE=DIR"));
+            }
+            let is_file = which.contains('/') || which.ends_with(".yaml") || which.ends_with(".yml");
+            Ok(PackArgs {
+                name: (!is_file).then(|| which.to_string()),
+                manifest: is_file.then(|| PathBuf::from(which)),
+                dir: PathBuf::from(dir),
+                extends: None,
+            })
+        })
+        .collect()
+}
+
 fn usage(why: NotRead) -> ExitCode {
     match why {
         NotRead::Usage(message) => eprintln!("metaspec: {message}"),
@@ -244,7 +315,10 @@ fn main() -> ExitCode {
         Command::Docs {
             command:
                 DocsCommand::Build {
-                    pack,
+                    name,
+                    manifest,
+                    packs,
+                    extends,
                     out,
                     check,
                     deadline,
@@ -255,14 +329,22 @@ fn main() -> ExitCode {
                 return ExitCode::from(2);
             }
             let started = Instant::now();
-            let (report, loaded) = match pack.load() {
-                Ok(loaded) => loaded,
-                Err(why) => return usage(why),
+            let args = match site_packs(name, manifest, packs, extends) {
+                Ok(args) => args,
+                Err(why) => return usage(NotRead::Usage(why)),
             };
-            let Some(loaded) = loaded else {
-                eprint!("{}", report.text());
-                return ExitCode::from(1);
-            };
+            let mut loaded = Vec::new();
+            for pack in &args {
+                let (report, one) = match pack.load() {
+                    Ok(one) => one,
+                    Err(why) => return usage(why),
+                };
+                let Some(one) = one else {
+                    eprint!("{}", report.text());
+                    return ExitCode::from(1);
+                };
+                loaded.push(one);
+            }
             docs::build(&loaded, &out, check, deadline, started)
         }
         Command::Render {

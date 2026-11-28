@@ -584,22 +584,41 @@ fn a_tool_without_the_verb_check_is_drawn_without_a_check() {
 
 // --- docs build ---
 
-/// `metaspec docs build --manifest <the fixture's manifest> --pack <pack> --out <out> <extra>`.
-fn docs(state: &Path, pack: &Path, out: &Path, extra: &[&str]) -> Output {
+/// `<manifest of the fixture>=<dir>`, a pack of a site of several packs.
+fn site_pack(dir: &Path) -> OsString {
+    let mut spec = OsString::from(manifest_of(dir));
+    spec.push("=");
+    spec.push(dir);
+    spec
+}
+
+/// `metaspec docs build --pack <manifest>=<dir> ... --out <out> <extra>`: one site over the packs.
+fn docs(state: &Path, packs: &[PathBuf], out: &Path, extra: &[&str]) -> Output {
     let mut args: Vec<OsString> = vec!["docs".into(), "build".into()];
-    args.extend(pack_args(pack));
+    for dir in packs {
+        args.push("--pack".into());
+        args.push(site_pack(dir));
+    }
     args.push("--out".into());
     args.push(out.into());
     args.extend(extra.iter().map(OsString::from));
     metaspec_with(state, &args)
 }
 
-/// Builds the docs of a trusted fixture pack into a scratch directory.
-fn docs_of(name: &str, dir: &Path) -> PathBuf {
+/// Trusts every fixture pack in a state directory of its own.
+fn trusted_state(name: &str) -> PathBuf {
     let state = scratch(&format!("docs-state-{name}"));
-    assert_eq!(trust(&state, dir).status.code(), Some(0), "{name}");
+    for dir in packs() {
+        assert_eq!(trust(&state, &dir).status.code(), Some(0), "{name}");
+    }
+    state
+}
+
+/// Builds the site of both trusted fixture packs into a scratch directory.
+fn site_of(name: &str) -> PathBuf {
+    let state = trusted_state(name);
     let out = scratch(&format!("docs-{name}"));
-    let run = docs(&state, dir, &out, &[]);
+    let run = docs(&state, &packs(), &out, &[]);
     assert_eq!(
         run.status.code(),
         Some(0),
@@ -609,58 +628,119 @@ fn docs_of(name: &str, dir: &Path) -> PathBuf {
     out
 }
 
-#[test]
-fn docs_build_of_a_trusted_fixture_pack_writes_the_committed_site() {
-    for dir in packs() {
-        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
-        let out = docs_of(&name, &dir);
-        let expected = repo().join(format!("fixtures/expected/{name}/site"));
-        let bless = std::env::var("METASPEC_BLESS").as_deref() == Ok("1");
-        if bless {
-            let _ = std::fs::remove_dir_all(&expected);
-        }
-        let got = files(&out);
-        for rel in &got {
-            let text = std::fs::read_to_string(out.join(rel)).unwrap();
-            assert!(
-                !text.contains(&*repo().to_string_lossy()),
-                "{name} {rel}: a path of this machine"
-            );
-            if bless {
-                let path = expected.join(rel);
-                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-                std::fs::write(&path, &text).unwrap();
-            } else {
-                let want = std::fs::read_to_string(expected.join(rel))
-                    .unwrap_or_else(|e| panic!("{name} {rel}: {e} (METASPEC_BLESS=1 writes it)"));
-                assert!(
-                    want == text,
-                    "{name} {rel} differs from the committed site (METASPEC_BLESS=1 rewrites it)"
-                );
-            }
-        }
-        assert_eq!(got, files(&expected), "{name}: the same files");
-    }
+fn committed_site() -> PathBuf {
+    repo().join("fixtures/expected/site")
 }
 
 #[test]
-fn every_page_and_the_site_follow_their_schemas_and_the_counts_of_the_pack() {
+fn docs_build_of_both_trusted_fixture_packs_writes_the_committed_site() {
+    let out = site_of("both");
+    let expected = committed_site();
+    let bless = std::env::var("METASPEC_BLESS").as_deref() == Ok("1");
+    if bless {
+        let _ = std::fs::remove_dir_all(&expected);
+    }
+    let got = files(&out);
+    for rel in &got {
+        let text = std::fs::read_to_string(out.join(rel)).unwrap();
+        assert!(
+            !text.contains(&*repo().to_string_lossy()),
+            "{rel}: a path of this machine"
+        );
+        if bless {
+            let path = expected.join(rel);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &text).unwrap();
+        } else {
+            let want = std::fs::read_to_string(expected.join(rel))
+                .unwrap_or_else(|e| panic!("{rel}: {e} (METASPEC_BLESS=1 writes it)"));
+            assert!(
+                want == text,
+                "{rel} differs from the committed site (METASPEC_BLESS=1 rewrites it)"
+            );
+        }
+    }
+    assert_eq!(got, files(&expected), "the same files");
+}
+
+#[test]
+fn the_one_pack_form_writes_that_pack_as_the_site_of_two_packs_holds_it() {
+    let dir = &packs()[0];
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let state = trusted_state("one");
+    let out = scratch("docs-one");
+    let mut args: Vec<OsString> = vec!["docs".into(), "build".into()];
+    args.extend(pack_args(dir));
+    args.extend(["--out".into(), out.clone().into_os_string()]);
+    let run = metaspec_with(&state, &args);
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let mine = files(&out.join(&name));
+    assert_eq!(mine, files(&committed_site().join(&name)), "{name}");
+    for rel in &mine {
+        assert_eq!(
+            std::fs::read(out.join(&name).join(rel)).unwrap(),
+            std::fs::read(committed_site().join(&name).join(rel)).unwrap(),
+            "{name} {rel}"
+        );
+    }
+    let index: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("index.json")).unwrap()).unwrap();
+    assert_eq!(index["packs"].as_array().unwrap().len(), 1);
+    assert_eq!(index["packs"][0]["pack"], name.as_str());
+}
+
+#[test]
+fn every_page_the_index_and_each_pack_site_follow_their_schemas_and_the_counts_of_the_pack() {
+    let root = committed_site();
+    let index: Value =
+        serde_json::from_str(&std::fs::read_to_string(root.join("index.json")).unwrap()).unwrap();
+    assert_eq!(
+        schema("metaspec-index-1.schema.json", &index),
+        Vec::<String>::new(),
+        "index.json"
+    );
+    assert_eq!(index["title"], "metaspec");
+    let landing = std::fs::read_to_string(root.join("_index/index.mdx")).unwrap();
+    let entries = index["packs"].as_array().unwrap();
+    assert_eq!(entries.len(), packs().len(), "one entry per fixture pack");
     for dir in packs() {
         let name = dir.file_name().unwrap().to_string_lossy().into_owned();
-        let root = repo().join(format!("fixtures/expected/{name}/site"));
+        let pack_root = root.join(&name);
         let site: Value =
-            serde_json::from_str(&std::fs::read_to_string(root.join("site.json")).unwrap())
+            serde_json::from_str(&std::fs::read_to_string(pack_root.join("site.json")).unwrap())
                 .unwrap();
         assert_eq!(
             schema("metaspec-site-1.schema.json", &site),
             Vec::<String>::new(),
             "{name}"
         );
+        let entry = entries
+            .iter()
+            .find(|e| e["pack"] == name.as_str())
+            .unwrap_or_else(|| panic!("{name} in index.json"));
+        assert_eq!(entry["counts"], site["counts"], "{name}: counts");
+        assert_eq!(entry["route"], format!("/{name}"), "{name}");
+        assert!(
+            landing.contains(&format!("]({})", entry["route"].as_str().unwrap())),
+            "{name}: / links the pack"
+        );
+        for page in site["pages"].as_array().unwrap() {
+            let slug = page["slug"].as_str().unwrap();
+            assert!(
+                slug == format!("/{name}") || slug.starts_with(&format!("/{name}/")),
+                "{name}: {slug} is below /{name}"
+            );
+        }
         let mut kinds: std::collections::BTreeMap<String, usize> = Default::default();
         let mut pages = 0;
-        for rel in files(&root.join("pages")) {
+        for rel in files(&pack_root.join("pages")) {
             let page: Value = serde_json::from_str(
-                &std::fs::read_to_string(root.join("pages").join(&rel)).unwrap(),
+                &std::fs::read_to_string(pack_root.join("pages").join(&rel)).unwrap(),
             )
             .unwrap();
             assert_eq!(
@@ -671,7 +751,7 @@ fn every_page_and_the_site_follow_their_schemas_and_the_counts_of_the_pack() {
             let id = rel.trim_end_matches(".json");
             assert_eq!(page["id"], id, "{name} {rel}");
             assert!(
-                root.join("docs").join(format!("{id}.mdx")).is_file(),
+                pack_root.join("docs").join(format!("{id}.mdx")).is_file(),
                 "{name} {id}.mdx"
             );
             *kinds
@@ -699,9 +779,20 @@ fn every_page_and_the_site_follow_their_schemas_and_the_counts_of_the_pack() {
             "{name}"
         );
         assert_eq!(site["counts"]["pages"].as_u64().unwrap(), pages, "{name}");
-        let catalogue: Value =
-            serde_json::from_str(&std::fs::read_to_string(root.join("pages/kpis.json")).unwrap())
-                .unwrap();
+        let checked = &entry["check"];
+        let sum = ["valid", "refused", "not_checked"]
+            .iter()
+            .map(|k| checked[k].as_u64().unwrap())
+            .sum::<u64>();
+        assert_eq!(
+            sum,
+            n("document"),
+            "{name}: every drawn document is counted once"
+        );
+        let catalogue: Value = serde_json::from_str(
+            &std::fs::read_to_string(pack_root.join("pages/kpis.json")).unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             catalogue["data"]["catalogue"]["kpis"]
                 .as_array()
@@ -714,53 +805,106 @@ fn every_page_and_the_site_follow_their_schemas_and_the_counts_of_the_pack() {
 }
 
 #[test]
-fn docs_build_check_names_changed_missing_and_foreign_files_and_exits_1() {
+fn an_untrusted_site_says_its_documents_are_not_checked() {
+    let state = scratch("docs-state-untrusted");
+    let out = scratch("docs-untrusted");
+    let run = docs(&state, &packs(), &out, &[]);
+    assert_eq!(run.status.code(), Some(0));
+    let index: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("index.json")).unwrap()).unwrap();
+    for entry in index["packs"].as_array().unwrap() {
+        assert_eq!(entry["check"]["status"], "not checked", "{}", entry["pack"]);
+        assert_eq!(entry["check"]["valid"], 0);
+        assert_eq!(entry["check"]["refused"], 0);
+    }
+}
+
+#[test]
+fn docs_build_refuses_bad_pack_arguments_and_two_packs_of_one_name_with_2() {
+    let state = scratch("docs-state-usage");
+    let out = scratch("docs-usage");
     let dir = &packs()[0];
-    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
-    let out = docs_of(&format!("check-{name}"), dir);
-    let state = scratch(&format!("docs-state-check-{name}"));
-    trust(&state, dir);
-    let equal = docs(&state, dir, &out, &["--check"]);
+    let plain: Vec<OsString> = vec![
+        "docs".into(),
+        "build".into(),
+        "--pack".into(),
+        dir.into(),
+        "--out".into(),
+        out.clone().into(),
+    ];
+    let run = metaspec_with(&state, &plain);
+    assert_eq!(run.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&run.stderr).contains("NAME=DIR"));
+    let mut two: Vec<OsString> = vec!["docs".into(), "build".into()];
+    two.extend(pack_args(dir));
+    two.extend([
+        "--pack".into(),
+        dir.into(),
+        "--out".into(),
+        out.clone().into(),
+    ]);
+    assert_eq!(metaspec_with(&state, &two).status.code(), Some(2));
+    let run = docs(&state, &[dir.clone(), dir.clone()], &out, &[]);
+    assert_eq!(run.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&run.stderr).contains("two packs are named"));
+    assert!(files(&out).is_empty(), "nothing written");
+}
+
+#[test]
+fn docs_build_check_names_changed_missing_and_foreign_files_and_exits_1() {
+    let name = packs()[0]
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let out = site_of("check");
+    let state = trusted_state("check-again");
+    let equal = docs(&state, &packs(), &out, &["--check"]);
     assert_eq!(equal.status.code(), Some(0));
-    let again = docs(&state, dir, &out, &[]);
+    let again = docs(&state, &packs(), &out, &[]);
     assert!(String::from_utf8_lossy(&again.stdout).contains("0 written, 0 removed"));
-    std::fs::write(out.join("rules.json.extra"), "x").unwrap();
-    std::fs::write(out.join("site.json"), "{}").unwrap();
+    std::fs::write(out.join(&name).join("rules.json.extra"), "x").unwrap();
+    std::fs::write(out.join(&name).join("site.json"), "{}").unwrap();
     std::fs::remove_file(out.join("palette.css")).unwrap();
-    let run = docs(&state, dir, &out, &["--check"]);
+    let run = docs(&state, &packs(), &out, &["--check"]);
     assert_eq!(run.status.code(), Some(1));
     let text = String::from_utf8_lossy(&run.stdout);
     for line in [
-        "docs: changed: site.json",
-        "docs: missing: palette.css",
-        "docs: not owned: rules.json.extra",
+        format!("docs: changed: {name}/site.json"),
+        String::from("docs: missing: palette.css"),
+        format!("docs: not owned: {name}/rules.json.extra"),
     ] {
-        assert!(text.contains(line), "{line} in:\n{text}");
+        assert!(text.contains(&line), "{line} in:\n{text}");
     }
 }
 
 #[test]
 fn docs_build_refuses_a_directory_it_did_not_write_and_removes_its_stale_files() {
-    let dir = &packs()[0];
+    let dir = packs()[0].clone();
     let state = scratch("docs-state-foreign");
-    trust(&state, dir);
+    trust(&state, &dir);
     let foreign = scratch("docs-foreign");
     std::fs::write(foreign.join("notes.md"), "mine").unwrap();
-    let run = docs(&state, dir, &foreign, &[]);
+    let run = docs(&state, std::slice::from_ref(&dir), &foreign, &[]);
     assert_eq!(run.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&run.stderr).contains("no site.json of a docs build"));
+    assert!(String::from_utf8_lossy(&run.stderr).contains("no index.json of a docs build"));
     assert_eq!(
         std::fs::read_to_string(foreign.join("notes.md")).unwrap(),
         "mine"
     );
     let own = scratch("docs-own");
-    assert_eq!(docs(&state, dir, &own, &[]).status.code(), Some(0));
-    std::fs::create_dir_all(own.join("docs/gone")).unwrap();
-    std::fs::write(own.join("docs/gone/old.mdx"), "old").unwrap();
-    let run = docs(&state, dir, &own, &[]);
+    assert_eq!(
+        docs(&state, std::slice::from_ref(&dir), &own, &[])
+            .status
+            .code(),
+        Some(0)
+    );
+    std::fs::create_dir_all(own.join("gone")).unwrap();
+    std::fs::write(own.join("gone/old.mdx"), "old").unwrap();
+    let run = docs(&state, std::slice::from_ref(&dir), &own, &[]);
     assert_eq!(run.status.code(), Some(0));
-    assert!(String::from_utf8_lossy(&run.stdout).contains("docs: removed: docs/gone/old.mdx"));
-    assert!(!own.join("docs/gone").exists());
+    assert!(String::from_utf8_lossy(&run.stdout).contains("docs: removed: gone/old.mdx"));
+    assert!(!own.join("gone").exists());
 }
 
 fn copy(from: &Path, to: &Path) {
