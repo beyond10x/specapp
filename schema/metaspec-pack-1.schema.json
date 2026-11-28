@@ -272,14 +272,14 @@
               "blocks": { "type": "array", "items": { "$ref": "#/$defs/key" } },
               "carries": { "type": "array", "items": { "$ref": "#/$defs/key" } },
               "hubs": {
-                "description": "The parts the view draws apart, once, each link to them from a part that is no hub a badge on its caller and not an edge: the parts with at least `in_degree` incoming links shown in the view, the parts `parts` names and the parts of the blocks `blocks` names. One of them or more. A view with hubs is drawn twice: `<id>` with the badges and `<id>/edges` with every link an edge.",
+                "description": "The parts the view draws apart, once, each link to them from a part that is no hub a badge on its caller and not an edge: the parts with at least `in_degree` incoming links shown in the view, the parts `parts` names and the parts of the blocks `blocks` names. One of them or more; a list names one entry or more. A view with hubs that elides a link of a document is drawn twice for it: `<id>` with the badges and `<id>/edges` with every link an edge.",
                 "type": "object",
                 "additionalProperties": false,
                 "minProperties": 1,
                 "properties": {
                   "in_degree": { "type": "integer", "minimum": 1 },
-                  "parts": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-                  "blocks": { "type": "array", "items": { "$ref": "#/$defs/key" } }
+                  "parts": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+                  "blocks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/key" } }
                 }
               }
             }

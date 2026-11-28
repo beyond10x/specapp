@@ -933,6 +933,64 @@ fn hub_page_draws_badges_with_their_marks_and_the_edges_view_without_a_script() 
 }
 
 #[test]
+fn hub_edges_view_svg_ids_stay_apart_from_a_declared_view_of_the_same_prefix() {
+    let dir = packs()
+        .into_iter()
+        .find(|d| d.file_name().is_some_and(|n| n == "orchard"))
+        .expect("the fixture pack orchard");
+    let text = std::fs::read_to_string(manifest_of(&dir)).unwrap();
+    let hubs = "        hubs: { in_degree: 3 }\n";
+    assert!(text.contains(hubs), "the fixture view with hubs");
+    let text = text.replacen(
+        hubs,
+        &format!("{hubs}      - id: work-edges\n        title: Work again\n        layout: rows\n"),
+        1,
+    );
+    let work = scratch("hub-prefix-manifest");
+    let manifest = work.join("orchard.yaml");
+    std::fs::write(&manifest, text).unwrap();
+    let state = scratch("hub-prefix-state");
+    let out = scratch("hub-prefix-pages");
+    let run = render_with(&state, &dir, &manifest, &out, &[]);
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let html = std::fs::read_to_string(out.join("layout/hillside.html")).unwrap();
+    assert!(html.contains("id=\"view-work/edges\"") && html.contains("id=\"view-work-edges\""));
+    for id in ["v-work-edges-arrow", "v-work-edges-t", "v-work-edges-d"] {
+        assert_eq!(
+            html.matches(&format!("id=\"{id}\"")).count(),
+            1,
+            "the SVG id {id} is one element of the page; the views work/edges and work-edges share it"
+        );
+    }
+}
+
+#[test]
+fn hub_docs_sentence_takes_the_singular_for_one_and_the_plural_for_more() {
+    use metaspec_docs::documents::hub_sentence;
+    assert_eq!(
+        hub_sentence(1, 1),
+        "1 more link goes to 1 hub, drawn once; the link is a badge on its caller."
+    );
+    assert_eq!(
+        hub_sentence(3, 1),
+        "3 more links go to 1 hub, drawn once; each such link is a badge on its caller."
+    );
+    assert_eq!(
+        hub_sentence(1, 2),
+        "1 more link goes to 2 hubs, each hub drawn once; the link is a badge on its caller."
+    );
+    assert_eq!(
+        hub_sentence(5, 2),
+        "5 more links go to 2 hubs, each hub drawn once; each such link is a badge on its caller."
+    );
+}
+
+#[test]
 fn hub_docs_page_shows_a_view_and_its_edges_view_as_one_view_with_a_switch() {
     let root = committed_site();
     let mut switches = 0;

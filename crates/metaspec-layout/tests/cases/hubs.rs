@@ -472,7 +472,14 @@ fn hub_caller_drawn_inside_its_per_host_carries_its_badge_in_its_own_box() {
 fn hub_views_of_a_class_add_the_edges_view_after_each_view_with_hubs() {
     let text = "format: metaspec-pack/1\npack: sample\ntitle: Sample\nvisibility: public\nblocks: { path: b }\ndocuments:\n  - { class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, views: [{ id: one, title: One, layout: rows, hubs: { in_degree: 2 } }, { id: two, title: Two, layout: nested }] }\n";
     let m = manifest::parse(text).unwrap_or_else(|e| panic!("{e:?}"));
-    let g = graph_of(json!({ "a": { "block": "kilo" } }), json!([]));
+    // `a` has two incoming links, so the view `one` elides them.
+    let g = graph_of(
+        json!({ "a": { "block": "kilo" }, "b": { "block": "lima" }, "c": { "block": "lima" } }),
+        json!([
+            { "from": "b", "to": "a", "carries": "x" },
+            { "from": "c", "to": "a", "carries": "x" },
+        ]),
+    );
     let views = views_of(&m.documents[0], &g);
     let got: Vec<(&str, bool)> = views
         .iter()
@@ -487,4 +494,41 @@ fn hub_views_of_a_class_add_the_edges_view_after_each_view_with_hubs() {
         "the edges view says what it is"
     );
     assert!(!views[1].implicit);
+}
+
+#[test]
+fn hub_view_whose_document_has_no_hub_adds_no_second_identical_drawing() {
+    let text = "format: metaspec-pack/1\npack: sample\ntitle: Sample\nvisibility: public\nblocks: { path: b }\ndocuments:\n  - { class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, views: [{ id: one, title: One, layout: rows, hubs: { in_degree: 3 } }] }\n";
+    let m = manifest::parse(text).unwrap_or_else(|e| panic!("{e:?}"));
+    let g = graph_of(
+        json!({
+            "alpha": { "block": "kilo" },
+            "bravo": { "block": "lima" },
+            "charlie": { "block": "lima" },
+        }),
+        json!([
+            { "from": "bravo", "to": "alpha", "carries": "x" },
+            { "from": "charlie", "to": "alpha", "carries": "x" },
+        ]),
+    );
+    let views = views_of(&m.documents[0], &g);
+    let with = layout(&g, &views[0], &Style::default(), &[]);
+    assert!(
+        with.badges.is_empty() && !with.boxes.iter().any(|b| b.hub),
+        "no part has 3 incoming links: the view elides nothing"
+    );
+    if let Some(sibling) = views.get(1) {
+        let without = layout(&g, sibling, &Style::default(), &[]);
+        assert_eq!(
+            (&with.boxes, &with.edges, &with.rows),
+            (&without.boxes, &without.edges, &without.rows),
+            "the sibling draws the same drawing"
+        );
+    }
+    let got: Vec<&str> = views.iter().map(|v| v.id.as_str()).collect();
+    assert_eq!(
+        got,
+        vec!["one"],
+        "a view that elides nothing in this document needs no `/edges` twin: the page would draw the same drawing twice"
+    );
 }

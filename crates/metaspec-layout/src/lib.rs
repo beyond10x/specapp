@@ -194,14 +194,15 @@ impl From<&View> for ViewSpec {
 /// and link when the declared views leave one out (or declare none). Nothing of a document is
 /// hidden.
 ///
-/// A view with `hubs` is followed by its view `<id>/edges`: the same parts and links with every
-/// link an edge. A static page has no switch, so the two are two views; the docs site shows them
-/// as one view with a switch.
+/// A view with `hubs` that elides a link of this document (draws it as a badge) is followed by
+/// its view `<id>/edges`: the same parts and links with every link an edge. A static page has no
+/// switch, so the two are two views; the docs site shows them as one view with a switch.
 pub fn views_of(class: &DocumentClass, graph: &Graph) -> Vec<ViewSpec> {
     let mut views: Vec<ViewSpec> = Vec::new();
     for view in &class.views {
         let spec = ViewSpec::from(view);
-        let edges = spec.hubs.is_some().then(|| ViewSpec {
+        let elides = !elided(graph, &spec, &select(graph, &spec)).is_empty();
+        let edges = elides.then(|| ViewSpec {
             id: format!("{}/edges", spec.id),
             title: format!("{}, every link an edge", spec.title),
             hubs: None,
@@ -380,9 +381,24 @@ pub fn badge_label(link: &metaspec_core::graph::Link, style: &Style) -> String {
     )
 }
 
-/// Splits what a view shows into the links drawn as edges and the elision: every link to a hub
-/// from a part that is no hub (or from a name no part has) is a badge on its caller. Without
-/// hubs every link is an edge.
+/// The links of what a view shows that it draws as badges: every link to a hub from a part that
+/// is no hub (or from a name no part has). None without hubs.
+pub fn elided(graph: &Graph, view: &ViewSpec, sel: &Selection) -> Vec<usize> {
+    let hubs = hubs_of(graph, view, sel);
+    let is_hub =
+        |name: Option<&str>| name.is_some_and(|n| hubs.iter().any(|&i| graph.parts[i].id == n));
+    sel.links
+        .iter()
+        .copied()
+        .filter(|&li| {
+            let link = &graph.links[li];
+            is_hub(link.to.as_deref()) && !is_hub(link.from.as_deref())
+        })
+        .collect()
+}
+
+/// Splits what a view shows into the links drawn as edges and the elision: every link
+/// [`elided`] names is a badge on its caller. Without hubs every link is an edge.
 fn elide(
     graph: &Graph,
     view: &ViewSpec,
@@ -394,14 +410,13 @@ fn elide(
     if hubs.is_empty() {
         return (sel.clone(), Elision::default());
     }
-    let is_hub =
-        |name: Option<&str>| name.is_some_and(|n| hubs.iter().any(|&i| graph.parts[i].id == n));
+    let elided = elided(graph, view, sel);
     let mut kept = sel.clone();
     kept.links.clear();
     let mut badges: BTreeMap<String, Vec<(usize, f64)>> = BTreeMap::new();
     for &li in &sel.links {
         let link = &graph.links[li];
-        if is_hub(link.to.as_deref()) && !is_hub(link.from.as_deref()) {
+        if elided.contains(&li) {
             let empty = Vec::new();
             let marks = marked.get(link.id.as_str()).unwrap_or(&empty);
             let w = label_width(&badge_label(link, style), marks).ceil();

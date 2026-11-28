@@ -304,3 +304,23 @@ fn hub_view_takes_an_in_degree_named_parts_or_blocks() {
         "a view without hubs writes none, so a manifest's digest stays"
     );
 }
+
+#[test]
+fn hub_view_refuses_hubs_that_name_no_hub() {
+    let view = |hubs: &str| {
+        format!(
+            "{}documents:\n  - {{ class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, views: [{{ id: v, title: V, layout: rows{hubs} }}] }}\n",
+            minimal()
+        )
+    };
+    for bad in [
+        ", hubs: { parts: [] }",
+        ", hubs: { blocks: [] }",
+        ", hubs: { parts: [], blocks: [] }",
+    ] {
+        assert!(
+            parse(&view(bad)).is_err(),
+            "{bad} has a key and names no hub; it is refused like `hubs: {{}}`"
+        );
+    }
+}

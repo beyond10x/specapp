@@ -148,10 +148,12 @@ pub fn document(p: &DocumentPage) -> String {
             ));
         }
         let _ = writeln!(h, "<p class=\"meta\">{}</p>", esc(&meta));
+        // A view key is `[A-Za-z_][A-Za-z0-9_-]*` (metaspec-pack-1): the `/` of `<id>/edges`
+        // becomes a `.`, which no key has, so its SVG ids meet no declared view's.
         let _ = writeln!(
             h,
             "<figure class=\"drawing\">{}</figure>",
-            svg::svg(s, &format!("v-{}", s.view.id.replace('/', "-")))
+            svg::svg(s, &format!("v-{}", s.view.id.replace('/', ".")))
         );
         h.push_str("<ul class=\"legend\" aria-label=\"Legend\">");
         for entry in &s.legend {

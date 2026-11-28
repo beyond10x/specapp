@@ -249,6 +249,26 @@ fn kpi_values(ctx: &Ctx, id: &str, kpis: &BTreeMap<String, serde_json::Number>, 
     s.push('\n');
 }
 
+/// What a view with hubs says of its badges: `links` links drawn as badges, to `hubs` hubs.
+pub fn hub_sentence(links: usize, hubs: usize) -> String {
+    format!(
+        "{} {} {}, {}; {} a badge on its caller.",
+        plural(links, "more link", "more links"),
+        if links == 1 { "goes to" } else { "go to" },
+        plural(hubs, "hub", "hubs"),
+        if hubs == 1 {
+            "drawn once"
+        } else {
+            "each hub drawn once"
+        },
+        if links == 1 {
+            "the link is"
+        } else {
+            "each such link is"
+        }
+    )
+}
+
 fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
     let id = d.page.clone();
     let mut p = Page::new(id.clone(), "document");
@@ -308,12 +328,7 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
         }
         if !scene.badges.is_empty() {
             let hubs = scene.boxes.iter().filter(|b| b.hub).count();
-            let _ = write!(
-                meta,
-                " {} go to {}, each hub drawn once; each such link is a badge on its caller.",
-                plural(scene.badges.len(), "more link", "more links"),
-                plural(hubs, "hub", "hubs")
-            );
+            let _ = write!(meta, " {}", hub_sentence(scene.badges.len(), hubs));
         }
         match edges {
             Some(edges) => {
