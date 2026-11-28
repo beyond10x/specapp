@@ -139,6 +139,6 @@ tasks:
       - scripts/parity.sh {{.CLI_ARGS}}
 
   acceptance:
-    desc: The acceptance of a wave, not part of check (it needs checkouts of the real packs; their manifests are packs/orgspec.yaml and packs/agenticspec.yaml). task acceptance -- <orgspec-dir> <agenticspec-dir>
+    desc: The acceptance of a wave, not part of check (it needs checkouts of the real packs; their manifests are packs/orgspec.yaml, packs/agenticspec.yaml and packs/cloudspec.yaml). task acceptance -- <orgspec-dir> <agenticspec-dir> <cloudspec-dir>
     cmds:
       - scripts/acceptance.sh {{.CLI_ARGS}}

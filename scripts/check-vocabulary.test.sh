@@ -3,7 +3,9 @@
 # one of metaspec's own formats (a property name, an enum or const value of
 # schema/metaspec-*.schema.json) is not reported; a pack word that is not stays reported, in
 # both forms (a string literal of letters, a whole word with a hyphen). The pack's words come
-# from a stand-in for `metaspec pack words` ($METASPEC). Work files are under target/.
+# from a stand-in for `metaspec pack words` ($METASPEC). A field name of the compiled ESS model of
+# a fixture pack (a stand-in for `ess` on PATH) is not reported, a word under a dotted key is,
+# and blocks ess refuses are refused. Work files are under target/.
 
 set -eu
 
@@ -55,5 +57,34 @@ grep -qx 'check-vocabulary: 2 word(s) of a pack in the code' "$work/out" || { ca
 d=$(tree broken)
 printf '{ not json\n' > "$d/schema/metaspec-b-1.schema.json"
 expect 2 "a schema that is no JSON is refused" "$d"
+
+# ess <dir> <exit>: a fixture pack's blocks in the tree and a stand-in for `ess` on PATH that
+# prints a compiled model with the field `identity` and the dotted key `x.seawall`, then exits
+# with <exit>
+ess() {
+  mkdir -p "$1/fixtures/packs/x/blocks" "$1/bin"
+  printf '%s\n' '#!/bin/sh' \
+    "printf '%s\\n' '{\"entities\": {\"x.berths.Berth\": {\"identity\": {\"name\": \"id\"}}}, \"x.seawall\": 1}'" \
+    "exit $2" > "$1/bin/ess"
+  chmod +x "$1/bin/ess"
+  printf '%s\n' '#!/bin/sh' 'printf "block identity\nblock seawall\n"' > "$1/metaspec"
+  printf '%s\n' 'let id = &e["identity"];' 'const WALL: &str = "seawall";' > "$1/crates/a/src/lib.rs"
+}
+old_path=$PATH
+
+d=$(tree ess-words)
+ess "$d" 0
+PATH=$d/bin:$old_path
+expect 1 "a field name of the compiled ESS model is not reported, any other pack word is" "$d"
+PATH=$old_path
+if grep -q ' identity$' "$work/out"; then cat "$work/out" >&2; fail "ess-words: a field of the compiled model is reported"; fi
+grep -qx 'crates/a/src/lib.rs:2: block seawall' "$work/out" || { cat "$work/out" >&2; fail "ess-words: a pack word under a dotted key is not reported"; }
+grep -qx 'check-vocabulary: 1 word(s) of a pack in the code' "$work/out" || { cat "$work/out" >&2; fail "ess-words: wrong count"; }
+
+d=$(tree ess-refuses)
+ess "$d" 1
+PATH=$d/bin:$old_path
+expect 2 "blocks that ess refuses to compile are refused" "$d"
+PATH=$old_path
 
 echo "check-vocabulary.test: ok"

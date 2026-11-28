@@ -109,6 +109,11 @@ entities:
         type: String
       - name: paths
         type: List<String>
+      - name: exclude
+        type: List<String>
+        summary: >-
+          Globs of files the paths match that are no documents of the class, matched against the
+          whole path in the pack; such a file is not read. Empty when the manifest names none.
       - name: shape
         type: metaspec.documents.Shape
       - name: name

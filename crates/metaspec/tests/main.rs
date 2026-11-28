@@ -845,6 +845,52 @@ fn an_untrusted_site_says_its_documents_are_not_checked() {
 }
 
 #[test]
+fn exclude_is_named_on_the_page_of_its_class() {
+    let dir = &packs()[0];
+    let mut manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(&std::fs::read_to_string(manifest_of(dir)).unwrap()).unwrap();
+    let class = &mut manifest["documents"][0];
+    let name = class["class"].as_str().unwrap().to_string();
+    let glob = class["paths"][0].as_str().unwrap().to_string();
+    let (folder, _) = glob.rsplit_once('/').unwrap();
+    let side = format!("{folder}/*.side.yaml");
+    class.as_mapping_mut().unwrap().insert(
+        "exclude".into(),
+        serde_yaml_ng::Value::Sequence(vec![side.clone().into()]),
+    );
+    let work = scratch("docs-exclude");
+    let file = work.join("manifest.yaml");
+    std::fs::write(&file, serde_yaml_ng::to_string(&manifest).unwrap()).unwrap();
+    let out = work.join("site");
+    let run = metaspec_with(
+        &work.join("state"),
+        &[
+            "docs".into(),
+            "build".into(),
+            "--manifest".into(),
+            file.into(),
+            "--pack".into(),
+            dir.into(),
+            "--out".into(),
+            out.clone().into(),
+        ],
+    );
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let pack = dir.file_name().unwrap().to_string_lossy();
+    let page = std::fs::read_to_string(out.join(&*pack).join("docs").join(&name).join("index.mdx"))
+        .unwrap();
+    assert!(
+        page.contains(&format!("read from `{glob}` except `{side}`.")),
+        "{page}"
+    );
+}
+
+#[test]
 fn docs_build_refuses_bad_pack_arguments_and_two_packs_of_one_name_with_2() {
     let state = scratch("docs-state-usage");
     let out = scratch("docs-usage");

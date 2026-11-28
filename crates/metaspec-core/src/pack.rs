@@ -173,6 +173,7 @@ pub fn load_with(
     named.extend(manifest.kpis.iter().map(|k| k.path.clone()));
     for class in &manifest.documents {
         named.extend(class.paths.iter().cloned());
+        named.extend(class.exclude.iter().cloned());
     }
     if let Some(program) = manifest.tool.as_ref().and_then(|t| t.run.first())
         && program.contains('/')
@@ -585,13 +586,31 @@ fn layer_of(dir: &str) -> Option<Layer> {
     })
 }
 
-/// The documents of one class: every file its globs match, inside the pack, read as YAML.
+/// The documents of one class: every file its globs match and no `exclude` glob matches, inside
+/// the pack, read as YAML.
 fn read_class(
     root: &Path,
     class: &DocumentClass,
     warnings: &mut Vec<Issue>,
 ) -> Result<Vec<Document>, Issue> {
     let base = glob::Pattern::escape(&root.to_string_lossy());
+    let exclude = class
+        .exclude
+        .iter()
+        .map(|pattern| {
+            glob::Pattern::new(pattern).map_err(|error| {
+                Issue::new(
+                    "path_invalid",
+                    format!("path:{pattern}"),
+                    format!("is no glob: {error}"),
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let whole_names = glob::MatchOptions {
+        require_literal_separator: true,
+        ..glob::MatchOptions::new()
+    };
     let mut files = BTreeSet::new();
     for pattern in &class.paths {
         let full = format!("{base}/{pattern}");
@@ -604,6 +623,10 @@ fn read_class(
         })?;
         for path in matches.flatten() {
             if !path.is_file() {
+                continue;
+            }
+            let rel = shown(root, &path);
+            if exclude.iter().any(|p| p.matches_with(&rel, whole_names)) {
                 continue;
             }
             resolved_inside(root, &path)
