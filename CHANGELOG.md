@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- A view may draw regions collapsed: `collapse: [<part id>]`, `collapse: all` (every region that
+  sits in no shown region) or `collapse: { blocks: [<block>] }` (every region whose block, after
+  `blocks.aliases`, is listed), optional (`metaspec-pack/1`). A region is a shown part that a
+  shown part sits `in`; a region inside a collapsed region is inside its box. A collapsed region
+  is one box, not a container, whose text adds `<n> parts inside` and, when it has, `<m>
+  findings inside`. A link from or to a part inside it (or the region) is drawn from or to the
+  box; the links with the same two ends drawn and one name are one edge, id
+  `<from>-><to>:<name>` of the ends drawn, with `count` and `links` (the ids it stands for) and
+  the label `<name> ×<n>` from two links on. A link between two parts of one region is drawn
+  only in the region's view. Each collapsed region of a document adds, after its view (and its
+  `<id>/edges`), the view `<id>/<region>` (title `<title>: region <region>`), the same view
+  without `collapse` and `hubs` that shows the region and the parts inside it; the box links it
+  (`<a href="#view-<id>/<region>">` on the static page, in `GraphView` on the docs site). A
+  finding on a part inside, or on a link between two of the region's parts, is counted on the
+  box (`collapsed.findings`) and marked in the region's view; a finding on a link the box rolls
+  up is a mark on the rolled-up edge. `metaspec-scene/1` takes a box's `collapsed` (`parts`,
+  `view`, `findings`) and an edge's `count` and `links`, written only when the view collapses a
+  region, so a scene, a page and a site of a pack without `collapse` are the same bytes as before
+  (held for the three real packs). A block of `collapse.blocks` the blocks do not have is a
+  `view_unknown_block` warning. In `spec/`, `View` has the field `collapse`
+  (`metaspec.documents.Collapse`). The fixture pack harbor has the view `quays` with `collapse:
+  { blocks: [quay] }`. The region of the view `<id>/<region>` is its id after the view's; a
+  region named `edges` in a view with hubs shares the id of its `<id>/edges`.
 - A manifest may say which block a part's block word stands for: `blocks.aliases: { <word>:
   <block> }`, optional; the format stays `metaspec-pack/1`. The graph of a document's page
   (`graph::read_with_aliases`, called where the docs read a document) carries the block of an

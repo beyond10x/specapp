@@ -40,6 +40,10 @@ svg.scene .mark.note text{fill:var(--fg)}
 /// stays as it was.
 pub const HUB_CSS: &str = "svg.scene .box.hub>rect.body{stroke-width:3}svg.scene .hublink.marked .pill{stroke:var(--finding);stroke-width:1.6}";
 
+/// The CSS of collapsed regions, inside the SVG of a scene that has one, so a page without stays
+/// as it was.
+pub const REGION_CSS: &str = "svg.scene .box.collapsed>rect.body{stroke-width:3}svg.scene .box.collapsed.inside-marked>rect.body{stroke:var(--finding)}";
+
 fn curve(points: &[[f64; 2]]) -> String {
     let mut d = String::new();
     for (i, p) in points.iter().enumerate() {
@@ -99,6 +103,14 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
             scene.badges.len()
         )
     };
+    let collapsed = scene.boxes.iter().filter(|b| b.collapsed.is_some()).count();
+    let badges = if collapsed == 0 {
+        badges
+    } else {
+        format!(
+            "{badges}; {collapsed} collapsed regions, each one box that links the view of its parts"
+        )
+    };
     let _ = write!(
         out,
         "<title id=\"{p}-t\">{} of {}</title><desc id=\"{p}-d\">{} boxes and {} edges, each edge labelled by what it carries{badges}; {} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.</desc>",
@@ -117,6 +129,11 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
     if !scene.badges.is_empty() || scene.boxes.iter().any(|b| b.hub) {
         out.push_str("<style>");
         out.push_str(HUB_CSS);
+        out.push_str("</style>");
+    }
+    if collapsed > 0 {
+        out.push_str("<style>");
+        out.push_str(REGION_CSS);
         out.push_str("</style>");
     }
 
@@ -145,11 +162,19 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
             (b.parent.is_some() && b.lines.is_empty(), "child"),
             (!b.findings.is_empty(), "marked"),
             (b.hub, "hub"),
+            (b.collapsed.is_some(), "collapsed"),
+            (
+                b.collapsed.as_ref().is_some_and(|c| !c.findings.is_empty()),
+                "inside-marked",
+            ),
         ] {
             if on {
                 class.push(' ');
                 class.push_str(name);
             }
+        }
+        if let Some(c) = &b.collapsed {
+            let _ = write!(out, "<a href=\"#view-{}\">", esc(&c.view));
         }
         let _ = write!(
             out,
@@ -234,6 +259,9 @@ pub fn svg(scene: &Scene, prefix: &str) -> String {
             }
         }
         out.push_str("</g>");
+        if b.collapsed.is_some() {
+            out.push_str("</a>");
+        }
     }
     out.push_str("</g>");
 

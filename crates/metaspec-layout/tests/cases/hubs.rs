@@ -317,6 +317,9 @@ fn view(layout_: Layout, hubs: Option<Hubs>) -> ViewSpec {
         blocks: Vec::new(),
         carries: Vec::new(),
         hubs,
+        collapse: None,
+        region: None,
+        of: None,
         implicit: false,
     }
 }

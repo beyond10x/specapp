@@ -293,7 +293,9 @@ metaspec's own formats. A pack's formats stay the pack's.
 - `metaspec-scene/1`: a laid-out view of a graph: boxes, groups, edge paths, labels, in
   coordinates. Produced by metaspec's layout, deterministic for the same input. The docs site
   and the studio draw the same scene. The badges of a view with hubs (`badges`, each a link
-  drawn on its caller's box) and a box's `hub` are written only when the view has them.
+  drawn on its caller's box) and a box's `hub` are written only when the view has them. A
+  collapsed region's box (`collapsed`: `parts`, `view`, `findings`) and a rolled-up edge's
+  `count` and `links` are written only when the view collapses a region.
 - `metaspec-result/1`: a run. Baseline and best, KPI values per document and per part, the
   marked places, variants, a trace. agenticspec's `agenticspec-sim-result/1` is the model for
   it; an adapter of the manifest maps the tool's own result to it.
@@ -395,7 +397,8 @@ in agenticspec.
 - A view of a document class says which blocks and which link names it shows and how it is laid
   out: `rows` (a part's row is its block's layer or its family's row) or `nested` (a part is
   drawn inside the part that contains it). A view may draw hubs apart (`hubs`): each hub once,
-  each link to it a badge on its caller.
+  each link to it a badge on its caller. A view may collapse regions (`collapse`): each
+  collapsed region one box, with a view of its own parts.
 - Words: a pack may rename a block or a link name for display (`vocabulary`). The identifier
   stays visible on hover and in every link.
 
@@ -1248,6 +1251,34 @@ wave 2.
   one), so neither is left out. `scripts/check-vocabulary.test.sh` holds both sides.
 - A link without `carries` is `<from>-><to>:?` in `metaspec-graph/1`; a tool that names it
   `<from>-><to>:` (the empty text) is mapped to it, so its finding is on the link.
+
+## Decided: collapsed regions (2026-11-28)
+
+`story:collapsed-regions` of `epic:cloudspec-pack`: a large architecture holds regions (parts
+other parts sit `in`) whose parts make a page too wide to read; a view draws such a region as one
+box and gives its parts a view of their own.
+
+- A view's `collapse` (`metaspec-pack/1`, optional) is a list of part ids, `all`, or `{ blocks:
+  [<block>] }` (the coordinator's D54: a consumer holds eight regions of one block per
+  environment). A region is a shown part that a shown part sits `in`; `all` takes every region
+  that sits in no shown region, `blocks` every region whose block, after `blocks.aliases`, is
+  listed. A region inside a collapsed region is inside its box. A block the pack does not have is
+  a `view_unknown_block` warning, as for `hubs.blocks`. `per` makes no region: `rows` already
+  draws a part inside its `per` host.
+- The box is the region's own box, not a container; its text adds `<n> parts inside` (at any
+  depth) and `<m> findings inside`. A link from or to the region or a part inside it is drawn
+  from or to the box, and the links with the same two drawn ends and one name are one edge
+  (`<from>-><to>:<name>` of the drawn ends, `count`, `links`, label `<name> ×<n>` from two links
+  on); its marks are the findings of its links. A link between two parts of one region is drawn
+  only in the region's view.
+- Drill-down: each collapsed region of a document adds the view `<id>/<region>` after its view
+  and its `<id>/edges`: the view without `collapse` and `hubs`, showing the region and the parts
+  inside it. The static page has no script, so it draws it as a view of its own and the box is a
+  link to it; the docs site does the same in `GraphView`. A finding on a part inside, or on a
+  link between two parts of the region, is counted on the box and marked in the region's view.
+- What is written only when a view collapses a region (a box's `collapsed`, an edge's `count`
+  and `links`, the CSS of a collapsed box inside the SVG) keeps the scenes, pages and sites of
+  packs without `collapse` byte for byte.
 
 ## Open questions
 

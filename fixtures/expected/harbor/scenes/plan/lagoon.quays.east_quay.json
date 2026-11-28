@@ -1,0 +1,76 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/lagoon.yaml",
+  "view": {
+    "id": "quays/east_quay",
+    "title": "Quays folded: region east_quay",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 294.0,
+  "height": 139.0,
+  "rows": [
+    {
+      "title": "1 shore",
+      "y": 12.0,
+      "h": 107.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "east_quay",
+      "block": "quay",
+      "label": "east_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 36.0,
+      "w": 112.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "east_quay (block quay), shore"
+    },
+    {
+      "id": "ferry_berth",
+      "block": "berth",
+      "label": "ferry_berth",
+      "lines": [
+        "berth",
+        "in east_quay",
+        "per ferry"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 160.0,
+      "y": 36.0,
+      "w": 118.0,
+      "h": 79.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "ferry_berth (block berth), shore\nwithin: east_quay\none_per: ferry"
+    }
+  ],
+  "edges": [],
+  "marks": [],
+  "legend": [
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay",
+        "berth"
+      ]
+    }
+  ]
+}

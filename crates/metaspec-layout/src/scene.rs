@@ -81,6 +81,9 @@ pub struct SceneBox {
     /// A hub of the view: drawn once, apart, and each link to it is a badge on its caller.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hub: bool,
+    /// A collapsed region: one box for the region and the parts inside it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collapsed: Option<Collapsed>,
     /// The numbers of the findings about this part.
     pub findings: Vec<usize>,
     /// The text shown on hover: the identifiers and the fields.
@@ -110,6 +113,25 @@ pub struct Edge {
     pub findings: Vec<usize>,
     /// The text shown on hover.
     pub title: String,
+    /// For an edge across the border of a collapsed region: the number of links it stands for.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<usize>,
+    /// For an edge across the border of a collapsed region: the ids of the links it stands for,
+    /// each from or to a part inside the region, with one far end and one name.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub links: Vec<String>,
+}
+
+/// What a collapsed region's box holds.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Collapsed {
+    /// The number of parts inside the region that its box stands for.
+    pub parts: usize,
+    /// The id of the view that draws the region and its parts, `<view>/<region>`.
+    pub view: String,
+    /// The numbers of the findings about a part inside the region or a link between two of its
+    /// parts; they are drawn in the region's view.
+    pub findings: Vec<usize>,
 }
 
 /// A link to a hub drawn on its caller's box: the hub's name and the link's name in a pill.

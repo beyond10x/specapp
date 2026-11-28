@@ -10,7 +10,7 @@
     "kicker": "Harbor plans",
     "source": "harbors/reef.yaml"
   },
-  "markdown": "## Check\n\nNot valid. The pack's tool reports 3 finding(s), 2 gated, 1 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 2 parts, 1 link, 2 finding marks. 1 dashed box for names that links give and no part has.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 3 parts, 1 link, 1 finding mark.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Findings\n\n<FindingsList data={page.data[\"findings\"]} presentation={site.presentation} />\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `outer_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `ketch` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 2m |\n| `pilot` | [tug](../blocks/2-craft/tug.mdx) | in `outer_quay` | `within` outer\\_quay |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `ketch` | `moors at` | `berth_x` | – |\n| `pilot` | `guides` | `ketch` | – |\n\n## Border\n\nThe parts on the border of the document: `ketch`, `sandbar`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
+  "markdown": "## Check\n\nNot valid. The pack's tool reports 3 finding(s), 2 gated, 1 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 2 parts, 1 link, 2 finding marks. 1 dashed box for names that links give and no part has.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 3 parts, 1 link, 1 finding mark.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Quays folded\n\nLayout `rows`: 2 parts, 2 links, 2 finding marks. 1 dashed box for names that links give and no part has. 1 region drawn collapsed: it is one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.\n\n<GraphView data={page.data[\"scene-3\"]} presentation={site.presentation} />\n\n## Quays folded: region outer\\_quay\n\nLayout `rows`: 2 parts, 0 links, 0 finding marks.\n\n<GraphView data={page.data[\"scene-4\"]} presentation={site.presentation} />\n\n## Findings\n\n<FindingsList data={page.data[\"findings\"]} presentation={site.presentation} />\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `outer_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `ketch` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 2m |\n| `pilot` | [tug](../blocks/2-craft/tug.mdx) | in `outer_quay` | `within` outer\\_quay |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `ketch` | `moors at` | `berth_x` | – |\n| `pilot` | `guides` | `ketch` | – |\n\n## Border\n\nThe parts on the border of the document: `ketch`, `sandbar`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
   "components": [
     "FindingsList",
     "GraphView"
@@ -315,6 +315,316 @@
         }
       ]
     },
+    "scene-3": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/reef.yaml",
+      "view": {
+        "id": "quays",
+        "title": "Quays folded",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 240.0,
+      "height": 337.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 12.0,
+          "h": 92.0
+        },
+        {
+          "title": "1 shore",
+          "y": 130.0,
+          "h": 92.0
+        },
+        {
+          "title": "names no part has",
+          "y": 240.0,
+          "h": 77.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "ketch",
+          "block": "vessel",
+          "label": "ketch",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 68.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [
+            2
+          ],
+          "title": "ketch (block vessel), craft\ndraught: 2m"
+        },
+        {
+          "id": "outer_quay",
+          "block": "quay",
+          "label": "outer_quay",
+          "lines": [
+            "quay",
+            "1 part inside"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 106.0,
+          "y": 154.0,
+          "w": 118.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "collapsed": {
+            "parts": 1,
+            "view": "quays/outer_quay",
+            "findings": []
+          },
+          "findings": [],
+          "title": "outer_quay (block quay), shore\n1 part inside, drawn in the view quays/outer_quay"
+        },
+        {
+          "id": "berth_x",
+          "label": "berth_x",
+          "lines": [
+            "no part has this name"
+          ],
+          "colour": "slate",
+          "group": "a name no part has",
+          "x": 16.0,
+          "y": 264.0,
+          "w": 136.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": true,
+          "findings": [],
+          "title": "berth_x: a link names it, and no part of the document has this name"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ketch->berth_x:moors_at",
+          "from": "ketch",
+          "to": "berth_x",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              115.0,
+              100.0
+            ],
+            [
+              86.0,
+              117.0
+            ],
+            [
+              84.0,
+              134.0
+            ],
+            [
+              84.0,
+              218.0
+            ],
+            [
+              84.0,
+              226.0
+            ],
+            [
+              84.0,
+              236.0
+            ],
+            [
+              84.0,
+              264.0
+            ]
+          ],
+          "label_at": {
+            "x": 44.0,
+            "y": 108.0,
+            "w": 83.9,
+            "h": 18.0
+          },
+          "findings": [
+            1
+          ],
+          "title": "ketch->berth_x:moors_at"
+        },
+        {
+          "id": "outer_quay->ketch:guides",
+          "from": "outer_quay",
+          "to": "ketch",
+          "carries": "guides",
+          "label": "guides",
+          "points": [
+            [
+              165.0,
+              154.0
+            ],
+            [
+              163.0,
+              117.0
+            ],
+            [
+              133.0,
+              100.0
+            ]
+          ],
+          "label_at": {
+            "x": 138.4,
+            "y": 108.0,
+            "w": 49.2,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "1 link across the border of a collapsed region:\npilot->ketch:guides",
+          "count": 1,
+          "links": [
+            "pilot->ketch:guides"
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "finding": 1,
+          "rule": "mooring_without_berth",
+          "gate": true,
+          "subject": "link:ketch->berth_x:moors_at",
+          "x": 56.8,
+          "y": 117.0,
+          "w": 19.6
+        },
+        {
+          "finding": 2,
+          "rule": "vessel_without_berth",
+          "gate": true,
+          "subject": "part:ketch",
+          "x": 164.2,
+          "y": 36.0,
+          "w": 19.6
+        }
+      ],
+      "legend": [
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel"
+          ]
+        },
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay"
+          ]
+        },
+        {
+          "label": "a name no part has",
+          "colour": "slate",
+          "blocks": []
+        }
+      ]
+    },
+    "scene-4": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/reef.yaml",
+      "view": {
+        "id": "quays/outer_quay",
+        "title": "Quays folded: region outer_quay",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 150.0,
+      "height": 219.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 12.0,
+          "h": 92.0
+        },
+        {
+          "title": "1 shore",
+          "y": 122.0,
+          "h": 77.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "outer_quay",
+          "block": "quay",
+          "label": "outer_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 146.0,
+          "w": 118.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "outer_quay (block quay), shore"
+        },
+        {
+          "id": "pilot",
+          "block": "tug",
+          "label": "pilot",
+          "lines": [
+            "tug",
+            "in outer_quay"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 16.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "pilot (block tug), craft\nwithin: outer_quay"
+        }
+      ],
+      "edges": [],
+      "marks": [],
+      "legend": [
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay"
+          ]
+        },
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "tug"
+          ]
+        }
+      ]
+    },
     "findings": {
       "findings": [
         {
@@ -324,7 +634,8 @@
           "subject": "link:ketch->berth_x:moors_at",
           "message": "The mooring names berth_x, which the plan does not have.",
           "drawn_in": [
-            "layout"
+            "layout",
+            "quays"
           ]
         },
         {
@@ -335,7 +646,8 @@
           "message": "The vessel is on the border and moors at no berth of the plan.",
           "drawn_in": [
             "layout",
-            "guidance"
+            "guidance",
+            "quays"
           ]
         },
         {
@@ -355,6 +667,14 @@
         {
           "id": "guidance",
           "title": "Who guides whom"
+        },
+        {
+          "id": "quays",
+          "title": "Quays folded"
+        },
+        {
+          "id": "quays/outer_quay",
+          "title": "Quays folded: region outer_quay"
         }
       ]
     }

@@ -23,6 +23,9 @@ fn view(layout_: Layout, blocks: &[&str]) -> ViewSpec {
         blocks: blocks.iter().map(|b| b.to_string()).collect(),
         carries: Vec::new(),
         hubs: None,
+        collapse: None,
+        region: None,
+        of: None,
         implicit: false,
     }
 }

@@ -211,6 +211,33 @@ fn hub_block_the_blocks_do_not_have_is_named_like_a_view_block() {
 }
 
 #[test]
+fn region_collapse_block_the_blocks_do_not_have_is_named_like_a_view_block() {
+    for (name, dir) in packs() {
+        let (report, _) = load_changed(&dir, |m| {
+            let view = m.documents[0].views.first_mut().expect("a view");
+            view.collapse = Some(metaspec_core::manifest::Collapse::Blocks(
+                metaspec_core::manifest::CollapseBlocks {
+                    blocks: vec![String::from("no_such_block_anywhere")],
+                },
+            ));
+        });
+        assert!(report.valid, "{name}");
+        assert_eq!(
+            codes(&report.warnings),
+            vec!["view_unknown_block"],
+            "{name}"
+        );
+        assert!(
+            report.warnings[0]
+                .message
+                .contains("no_such_block_anywhere"),
+            "{name}: {:?}",
+            report.warnings
+        );
+    }
+}
+
+#[test]
 fn a_kpi_without_the_measure_field_is_named() {
     for (name, dir) in packs() {
         let (report, _) = load_changed(&dir, |m| {

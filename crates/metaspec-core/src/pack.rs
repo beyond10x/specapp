@@ -332,7 +332,11 @@ pub fn load_with(
         }
         for view in &class.views {
             let hub_blocks = view.hubs.iter().flat_map(|h| h.blocks.iter());
-            for block in view.blocks.iter().chain(hub_blocks) {
+            let collapse_blocks = match &view.collapse {
+                Some(crate::manifest::Collapse::Blocks(c)) => c.blocks.as_slice(),
+                _ => &[],
+            };
+            for block in view.blocks.iter().chain(hub_blocks).chain(collapse_blocks) {
                 if !names.contains(block.as_str()) {
                     warnings.push(Issue::new(
                         "view_unknown_block",

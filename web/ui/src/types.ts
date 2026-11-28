@@ -151,6 +151,8 @@ export interface SceneBox extends Rect {
   ghost: boolean;
   /** A hub of the view: drawn once, apart; each link to it is a badge on its caller. */
   hub?: boolean;
+  /** A collapsed region: one box for it and its parts, linking the view `<view>/<region>`. */
+  collapsed?: {parts: number; view: string; findings: number[]};
   findings: number[];
   title: string;
 }
@@ -166,6 +168,10 @@ export interface SceneEdge {
   added_by?: string;
   findings: number[];
   title: string;
+  /** For an edge across the border of a collapsed region: how many links it stands for. */
+  count?: number;
+  /** For an edge across the border of a collapsed region: the links it stands for. */
+  links?: string[];
 }
 
 /** A link to a hub drawn as a badge inside its caller's box. */

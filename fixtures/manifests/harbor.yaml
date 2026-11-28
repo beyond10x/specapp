@@ -30,6 +30,10 @@ documents:
         title: Who guides whom
         layout: rows
         carries: [guides]
+      - id: quays
+        title: Quays folded
+        layout: rows
+        collapse: { blocks: [quay] }
   - class: bylaw
     title: Bylaws
     paths: [bylaws/*.yaml]

@@ -325,6 +325,56 @@ fn hub_view_refuses_hubs_that_name_no_hub() {
     }
 }
 
+#[test]
+fn region_collapse_takes_part_ids_all_or_blocks() {
+    use metaspec_core::manifest::{Collapse, CollapseBlocks, Every};
+    let view = |collapse: &str| {
+        format!(
+            "{}documents:\n  - {{ class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, views: [{{ id: v, title: V, layout: rows{collapse} }}] }}\n",
+            minimal()
+        )
+    };
+    let collapse_of = |collapse: &str| {
+        let m = parse(&view(collapse)).unwrap_or_else(|e| panic!("{collapse}: {e:?}"));
+        m.documents[0].views[0].collapse.clone()
+    };
+    assert_eq!(collapse_of(""), None, "nothing collapsed by default");
+    assert_eq!(
+        collapse_of(", collapse: [r1, 'r-2']"),
+        Some(Collapse::Parts(vec![
+            String::from("r1"),
+            String::from("r-2")
+        ]))
+    );
+    assert_eq!(
+        collapse_of(", collapse: all"),
+        Some(Collapse::Every(Every::All))
+    );
+    assert_eq!(
+        collapse_of(", collapse: { blocks: [b1, b2] }"),
+        Some(Collapse::Blocks(CollapseBlocks {
+            blocks: vec![String::from("b1"), String::from("b2")]
+        }))
+    );
+    for bad in [
+        ", collapse: []",
+        ", collapse: ['']",
+        ", collapse: none",
+        ", collapse: {}",
+        ", collapse: { blocks: [] }",
+        ", collapse: { blocks: ['../b'] }",
+        ", collapse: { parts: [r1] }",
+        ", collapse: 3",
+    ] {
+        assert!(parse(&view(bad)).is_err(), "{bad} is refused");
+    }
+    let m = parse(&view("")).unwrap();
+    assert!(
+        !serde_json::to_string(&m).unwrap().contains("collapse"),
+        "a view without collapse writes none, so a manifest's digest stays"
+    );
+}
+
 /// A word no fixture pack has as a block.
 const ALIAS: &str = "zz_alias_word";
 

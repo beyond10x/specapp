@@ -1,0 +1,87 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/reef.yaml",
+  "view": {
+    "id": "quays/outer_quay",
+    "title": "Quays folded: region outer_quay",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 150.0,
+  "height": 219.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 12.0,
+      "h": 92.0
+    },
+    {
+      "title": "1 shore",
+      "y": 122.0,
+      "h": 77.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "outer_quay",
+      "block": "quay",
+      "label": "outer_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 146.0,
+      "w": 118.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "outer_quay (block quay), shore"
+    },
+    {
+      "id": "pilot",
+      "block": "tug",
+      "label": "pilot",
+      "lines": [
+        "tug",
+        "in outer_quay"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 16.0,
+      "y": 36.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "pilot (block tug), craft\nwithin: outer_quay"
+    }
+  ],
+  "edges": [],
+  "marks": [],
+  "legend": [
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay"
+      ]
+    },
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "tug"
+      ]
+    }
+  ]
+}

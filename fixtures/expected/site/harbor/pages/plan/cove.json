@@ -10,7 +10,7 @@
     "kicker": "Harbor plans",
     "source": "harbors/cove.yaml"
   },
-  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 4 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 5 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## KPIs\n\n4 KPIs the pack's tool measured on the document as written, with what the [KPI catalogue](../kpis.mdx) says of each.\n\n| KPI | value | unit | what it measures |\n|---|---|---|---|\n| [`berth_idle_share`](../blocks/1-shore/berth.mdx#kpis) | 0.5 | share | Share of the day a berth holds no vessel. |\n| [`vessel_unmoored_count`](../blocks/2-craft/vessel.mdx#kpis) | 0 | count | Vessels in the harbor that are moored at no berth. |\n| [`crane_lift_rate`](../blocks/planned.mdx#crane) | 0 | count | Loads a crane lifts per hour. The crane block is planned. |\n| `pilot_boardings` | 2 | – | not in the KPI catalogue |\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `north_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `berth_a` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `berth_b` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `skiff` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 1m |\n| `tug_one` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `skiff` | `moors at` | `berth_a` | – |\n| `tug_one` | `guides` | `skiff` | – |\n\n## Border\n\nThe parts on the border of the document: `skiff`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
+  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 4 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 5 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Quays folded\n\nLayout `rows`: 3 parts, 2 links, 0 finding marks. 1 region drawn collapsed: it is one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.\n\n<GraphView data={page.data[\"scene-3\"]} presentation={site.presentation} />\n\n## Quays folded: region north\\_quay\n\nLayout `rows`: 3 parts, 0 links, 0 finding marks.\n\n<GraphView data={page.data[\"scene-4\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## KPIs\n\n4 KPIs the pack's tool measured on the document as written, with what the [KPI catalogue](../kpis.mdx) says of each.\n\n| KPI | value | unit | what it measures |\n|---|---|---|---|\n| [`berth_idle_share`](../blocks/1-shore/berth.mdx#kpis) | 0.5 | share | Share of the day a berth holds no vessel. |\n| [`vessel_unmoored_count`](../blocks/2-craft/vessel.mdx#kpis) | 0 | count | Vessels in the harbor that are moored at no berth. |\n| [`crane_lift_rate`](../blocks/planned.mdx#crane) | 0 | count | Loads a crane lifts per hour. The crane block is planned. |\n| `pilot_boardings` | 2 | – | not in the KPI catalogue |\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `north_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `berth_a` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `berth_b` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `skiff` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 1m |\n| `tug_one` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `skiff` | `moors at` | `berth_a` | – |\n| `tug_one` | `guides` | `skiff` | – |\n\n## Border\n\nThe parts on the border of the document: `skiff`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
   "components": [
     "GraphView"
   ],
@@ -330,6 +330,279 @@
             "vessel"
           ]
         },
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay",
+            "berth"
+          ]
+        }
+      ]
+    },
+    "scene-3": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/cove.yaml",
+      "view": {
+        "id": "quays",
+        "title": "Quays folded",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 288.0,
+      "height": 268.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 38.0,
+          "h": 92.0
+        },
+        {
+          "title": "1 shore",
+          "y": 156.0,
+          "h": 92.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "skiff",
+          "block": "vessel",
+          "label": "skiff",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 16.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [],
+          "title": "skiff (block vessel), craft\ndraught: 1m"
+        },
+        {
+          "id": "north_quay",
+          "block": "quay",
+          "label": "north_quay",
+          "lines": [
+            "quay",
+            "2 parts inside"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 37.0,
+          "y": 180.0,
+          "w": 118.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "collapsed": {
+            "parts": 2,
+            "view": "quays/north_quay",
+            "findings": []
+          },
+          "findings": [],
+          "title": "north_quay (block quay), shore\n2 parts inside, drawn in the view quays/north_quay"
+        },
+        {
+          "id": "tug_one",
+          "block": "tug",
+          "label": "tug_one",
+          "lines": [
+            "tug"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 160.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "tug_one (block tug), craft"
+        }
+      ],
+      "edges": [
+        {
+          "id": "skiff->north_quay:moors_at",
+          "from": "skiff",
+          "to": "north_quay",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              72.0,
+              126.0
+            ],
+            [
+              86.0,
+              143.0
+            ],
+            [
+              96.0,
+              180.0
+            ]
+          ],
+          "label_at": {
+            "x": 55.4,
+            "y": 134.0,
+            "w": 61.3,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "1 link across the border of a collapsed region:\nskiff->berth_a:moors_at",
+          "count": 1,
+          "links": [
+            "skiff->berth_a:moors_at"
+          ]
+        },
+        {
+          "id": "tug_one->skiff:guides",
+          "from": "tug_one",
+          "to": "skiff",
+          "carries": "guides",
+          "label": "guides",
+          "points": [
+            [
+              216.0,
+              62.0
+            ],
+            [
+              144.0,
+              25.0
+            ],
+            [
+              72.0,
+              62.0
+            ]
+          ],
+          "label_at": {
+            "x": 119.4,
+            "y": 16.0,
+            "w": 49.2,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "tug_one->skiff:guides"
+        }
+      ],
+      "marks": [],
+      "legend": [
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel",
+            "tug"
+          ]
+        },
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay"
+          ]
+        }
+      ]
+    },
+    "scene-4": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/cove.yaml",
+      "view": {
+        "id": "quays/north_quay",
+        "title": "Quays folded: region north_quay",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 438.0,
+      "height": 124.0,
+      "rows": [
+        {
+          "title": "1 shore",
+          "y": 12.0,
+          "h": 92.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "north_quay",
+          "block": "quay",
+          "label": "north_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 36.0,
+          "w": 118.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "north_quay (block quay), shore"
+        },
+        {
+          "id": "berth_a",
+          "block": "berth",
+          "label": "berth_a",
+          "lines": [
+            "berth",
+            "in north_quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 166.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "berth_a (block berth), shore\nwithin: north_quay"
+        },
+        {
+          "id": "berth_b",
+          "block": "berth",
+          "label": "berth_b",
+          "lines": [
+            "berth",
+            "in north_quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 310.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "berth_b (block berth), shore\nwithin: north_quay"
+        }
+      ],
+      "edges": [],
+      "marks": [],
+      "legend": [
         {
           "label": "shore",
           "colour": "teal",
