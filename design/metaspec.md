@@ -241,7 +241,9 @@ Rules of the manifest:
   colour or an icon; a pack that needs none writes none.
 - No number about the pack is written in the manifest or in any copy: counts are counted.
 - `extends` names another pack: a pack metaspec knows (`packs/<name>.yaml`), or one whose manifest
-  is given at run time (`--extends <file>`); see "Private packs".
+  is given at run time (`--extends <file>`); see "Private packs". A manifest with `extends` may
+  leave out `blocks`, `kpis` and `tool`: each is the base pack's, read in the base pack's directory
+  (`--base-pack <dir>`); see "Decided: a pack that extends inherits".
 
 ### Levels of adoption, cheapest first
 
@@ -504,7 +506,8 @@ A pack of one real organization is private. metaspec is public. The rules:
   publication target; `serve` shows a private marker in the header.
 - `extends`: a private pack's manifest names the public pack it builds on and adds documents,
   document paths (a type path) and presentation. The name resolves to `packs/<name>.yaml`, or to
-  a manifest given at run time (`--extends <file>`). The public pack never names the private
+  a manifest given at run time (`--extends <file>`). The blocks, the KPI catalogue and the tool
+  it leaves out are the public pack's, read in that pack's checkout (`--base-pack <dir>`). The public pack never names the private
   one. The studio loads both and shows which pack a document comes from.
 - The studio makes no network request of its own: fonts and scripts are served from the binary.
 - The agent channel sends what the agent reads to a model provider. For a private pack it is
@@ -1293,6 +1296,61 @@ box and gives its parts a view of their own.
 - What is written only when a view collapses a region (a box's `collapsed`, an edge's `count`
   and `links`, the CSS of a collapsed box inside the SVG) keeps the scenes, pages and sites of
   packs without `collapse` byte for byte.
+
+## Decided: a pack that extends inherits (2026-11-28)
+
+`story:extends-inherits` of `epic:cloudspec-pack`: a private pack that extends cloudspec copied
+cloudspec's `blocks` and `tool` sections into its own manifest, and a copied tool path pointed into
+the private pack's directory, where the base's tool is not.
+
+- A manifest with `extends` may leave out `blocks`, `kpis` and `tool` (the coordinator's D42 for
+  `blocks` and `tool`, D56 for `kpis`). A section it leaves out is the base pack's, whole: the
+  base's `blocks.aliases` with its blocks, and the alias target check runs against the base's
+  blocks. A section the manifest writes is its own, whole, read in its own pack; there is no merge
+  with the base's. `documents` and `presentation` are never inherited: the extending pack names
+  its own documents, which is how documents kept outside the base pack's checkout are drawn.
+- The base's manifest comes as before: the pack metaspec knows by the name, or the file of
+  `--extends <file>`. Its directory is given by `--base-pack <dir>` on the single-pack commands
+  (`pack check`, `pack words`, `trust`, `render`, and `docs build` of one pack); `docs build` of
+  several packs takes no `--base-pack`. An inherited section's paths are read in that directory and
+  stay inside it; the extending pack's paths stay inside its own. With a base in play a refused
+  path names its pack: `(a path of the pack <name>)` or `(a path of the base pack <name>, read in
+  --base-pack)`.
+- A manifest that leaves out `blocks` and is run without `--base-pack` is refused
+  (`base_pack_missing`, saying what to give). A manifest with `extends` that writes its own
+  `blocks` and is run without `--base-pack` loads as before: it inherits nothing, its omitted
+  `kpis` and `tool` stay absent, and nothing refuses it; with `--base-pack` its omitted `kpis`
+  and `tool` are the base's (the coordinator's D67). Metaspec searches no directory for the base
+  and downloads nothing. `--base-pack` given to a manifest without `extends` is a warning
+  (`base_pack_unused`).
+- A base that itself extends a pack refuses a manifest that inherits a section (`extends_chain`;
+  the coordinator's D44): metaspec reads one base pack, not a chain. A manifest that writes all
+  three sections inherits nothing and loads as before.
+- A base that cannot be read (`extends_not_found`, `extends_other_pack`, `extends_unreadable`)
+  stays a warning for a manifest with its own `blocks`; one that leaves out `blocks` is refused
+  with it.
+- The schema no longer requires `blocks`; the loader holds the rule: a manifest without `extends`
+  that leaves out `blocks` is refused (`manifest_invalid`) as before.
+- An inherited tool runs with the base pack's directory as its root and working directory; the
+  extending pack's document is handed to it by its whole path. Its trust covers the canonical base
+  directory (the coordinator's D66): the inherited tool carries that directory (`base_dir`, not
+  written in a manifest), and the digest is that of the base's `tool` section with it. `metaspec
+  trust` records the digest for the extending pack's directory and prints the base directory it
+  trusted; a changed base tool, or a run with another `--base-pack`, is `not_trusted` until
+  trusted again. `metaspec trust` needs `--base-pack` only when the tool is inherited. The digest
+  of a tool a manifest writes is the same as before.
+- A tool program inside a pack (a first element of `tool.run` with a slash) is run only where it
+  resolves, links followed, inside its tool root, the pack's own directory or the base's for an
+  inherited tool; else the check is `failed` with a message that names the pack. This held for
+  `pack check` (`tool_not_started`) and not for the run, also for a pack without `extends`.
+- A docs page of an inherited section (the blocks, a block, the KPI catalogue, planned blocks)
+  names no source file: the extending pack's `source_file_url` does not reach the base's files.
+- `spec/`: the fields of `Pack` that a section gives (`blocks_path`, `declares_kpis`, `tool_run`,
+  `tool_digest`) say that an omitted section is the base's; no new field.
+- Fixtures: an invented base pack and a private pack that extends it under `fixtures/extends/`,
+  the base's tool a POSIX sh stub that answers with its working directory and the document it was
+  given; the tests are named `inherit_<case>`. The acceptance has two cloudspec rows through a
+  manifest of its run that extends cloudspec.
 
 ## Open questions
 

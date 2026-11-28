@@ -13,7 +13,7 @@ relations:
 - depends_on: story:search-score
 - depends_on: story:search-batch-scoring
 - depends_on: story:cloudspec-warnings
-revision: 6
+revision: 7
 ---
 # cloudspec's runs: metaspec's search over cloudspec architectures, scored by check
 
@@ -36,11 +36,11 @@ story:search-batch-scoring (`batch`) and story:search-enumerate (`metaspec searc
 
 - Marked places are the `{value, vary}` fields cloudspec's architectures write, including a
   choice of block.
-- `packs/cloudspec.yaml` declares `kpis.directions` (cloudspec's direction words mapped to higher or
-  lower, story:search-score) and a `batch` entry on `check`:
+- `packs/cloudspec.yaml` declares a `batch` entry on `check`:
   `batch: {args: [check, --json, --batch], limit: 256, at: /results}`, with `exit: [0, 1]`
   (story:search-batch-scoring). The manifest lives in metaspec; cloudspec holds no manifest of
-  metaspec.
+  metaspec. The `kpis` section of that file, `kpis.directions` included, is declared by
+  story:cloudspec-simulate, not here.
 - Acceptance rows for cloudspec's runs.
 
 ## Not in this story

@@ -10,6 +10,7 @@ relations:
 - informed_by: architecture-decision-record:shared-search
 - depends_on: story:cloudspec-manifest
 - depends_on: story:extends-inherits
+- depends_on: story:band-wrap
 scope:
 - confidence: cited
   path: CHANGELOG.md
@@ -49,7 +50,7 @@ scope:
   path: scripts/replay-answers.sh
 - confidence: inferred
   path: scripts/replay-answers.test.sh
-revision: 26
+revision: 27
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T15:48:10Z", actor: "human:operator", revision: 24}
 - {from: "proposed", to: "active", at: "2026-11-28T15:48:10Z", actor: "human:operator", revision: 25}
@@ -164,3 +165,5 @@ candidates by score, so the score comes first and is shown on its own.
 `metaspec-score/1` valid against `schema/metaspec-score-1.schema.json` for both fixture packs and
 for the recorded answers of agenticspec (a valid and a refused architecture), with the direction
 `higher` or `lower` of each harbor KPI read through `kpis.directions`, without a real pack tool.
+
+It lands after story:band-wrap (D61, the consumer's gaps first): both edit `crates/metaspec-core/src/manifest.rs`, `schema/metaspec-pack-1.schema.json`, `fixtures/manifests/harbor.yaml`, `design/metaspec.md` and `CHANGELOG.md`.

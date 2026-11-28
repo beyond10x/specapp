@@ -242,7 +242,7 @@ fn alias_names_the_target_block() {
             "n: x\nparts:\n  a: {{ block: {ALIAS} }}\n  b: {{ block: {target} }}\nlinks:\n  - {{ from: a, to: b, carries: c }}\n"
         ))
         .unwrap();
-        let g = graph::read_with_aliases(class, "d/x.yaml", &doc, &pack.manifest.blocks.aliases);
+        let g = graph::read_with_aliases(class, "d/x.yaml", &doc, &pack.manifest.blocks().aliases);
         assert_eq!(
             schema_errors(
                 "metaspec-graph-1.schema.json",
@@ -281,7 +281,7 @@ fn alias_unknown_word_keeps_its_word() {
             "n: x\nparts:\n  a: {{ block: {NO_BLOCK} }}\n  b: {{ k: 1 }}\nlinks: []\n"
         ))
         .unwrap();
-        let g = graph::read_with_aliases(class, "d/x.yaml", &doc, &pack.manifest.blocks.aliases);
+        let g = graph::read_with_aliases(class, "d/x.yaml", &doc, &pack.manifest.blocks().aliases);
         assert_eq!(
             g.part("a").unwrap().block.as_deref(),
             Some(NO_BLOCK),

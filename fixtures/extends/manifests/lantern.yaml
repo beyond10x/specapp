@@ -1,0 +1,35 @@
+format: metaspec-pack/1
+pack: lantern
+title: Lantern
+summary: An invented base pack, for the tests of extends in metaspec.
+visibility: public
+
+blocks:
+  path: blocks
+  strip_prefix: lantern.
+  aliases: { glow: flame }
+
+kpis:
+  path: kpis/catalogue.yaml
+
+documents:
+  - class: lamp
+    title: Lamps
+    paths: [lamps/*.yaml]
+    shape: parts-links/1
+    name: lamp
+    contain: { in: in }
+
+tool:
+  run: [tool/stub]
+  verbs:
+    check:
+      args: [inspect]
+      error: /problem
+      valid: { at: /verdict, equals: lit }
+      findings:
+        - at: /notes
+          rule: "{/rule}"
+          gate: false
+          message: "{/text}"
+          subject: document

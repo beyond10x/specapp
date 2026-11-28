@@ -168,6 +168,24 @@ fn extends_names_another_pack() {
 }
 
 #[test]
+fn inherit_blocks_may_be_omitted_only_with_extends() {
+    let without = minimal().replace("blocks: { path: b }\n", "");
+    let issues = parse(&without).unwrap_err();
+    assert_eq!(issues.len(), 1, "{issues:?}");
+    assert_eq!(issues[0].code, "manifest_invalid");
+    assert!(issues[0].message.contains("blocks"), "{issues:?}");
+    let value: Value = serde_yaml_ng::from_str(&without).unwrap();
+    assert_eq!(
+        schema_errors("metaspec-pack-1.schema.json", &value),
+        Vec::<String>::new(),
+        "the schema leaves the rule to the loader"
+    );
+    let m = parse(&format!("{without}extends: base-pack\n")).expect("an extending manifest");
+    assert!(m.blocks.is_none());
+    assert!(m.tool.is_none() && m.kpis.is_none());
+}
+
+#[test]
 fn contain_takes_in_per_or_both() {
     let class = |contain: &str| {
         format!(

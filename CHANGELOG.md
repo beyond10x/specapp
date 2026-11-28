@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- A manifest that `extends` a pack may leave out `blocks`, `kpis` and `tool`: each is the base
+  pack's, whole (`blocks.aliases` included, the alias target check against the base's blocks), its
+  paths read in the base pack's directory, which the new flag `--base-pack <DIR>` of `pack check`,
+  `pack words`, `trust`, `render` and `docs build` of one pack gives. A section the manifest writes
+  is its own, whole; `documents` and `presentation` are never inherited. `schema/
+  metaspec-pack-1.schema.json` no longer requires `blocks`; the loader refuses a manifest without
+  `extends` and without `blocks` (`manifest_invalid`) as before, and `Manifest::blocks` is now an
+  `Option` (`Manifest::blocks()` reads it). A manifest that leaves out `blocks` and has no
+  `--base-pack` is refused (`base_pack_missing`); one that writes its own `blocks` loads as before
+  without `--base-pack` and inherits its omitted `kpis` and `tool` only with it. A base that itself
+  extends a pack refuses a manifest that inherits a section (`extends_chain`); `--base-pack` given
+  to a manifest without `extends` is a warning (`base_pack_unused`). A base that cannot be read refuses a manifest that leaves out `blocks` (for one with its own blocks it
+  stays a warning). Every path stays inside its own pack, and with a base in play a refused path
+  names its pack. An inherited tool runs in the base pack's directory and gets the extending
+  pack's document by its whole path. Its digest is that of the base's tool section with the
+  canonical base directory (`Tool::base_dir`, set by `inherit`, never read from a manifest), recorded
+  for the extending pack's directory: a changed base tool or another `--base-pack` is untrusted
+  until trusted again, and `metaspec trust` prints the base directory and needs `--base-pack` only
+  for an inherited tool. A tool program that resolves, links followed, outside its tool root (the
+  pack's own directory or the base's) is not run: the check is `failed`, naming the pack, also for
+  a pack without `extends`. A
+  docs page of an inherited section names no source file. `metaspec_core::pack` has `inherit`,
+  `load_extending`, `base_manifest`, `BaseArgs`, `Base`, `Inherited`, and `Pack` the field `base` and
+  `blocks_root()`, `kpis_root()` and `tool_root()`; `extends_issues` is gone (its warnings come
+  from `load_extending`). Fixtures: an invented base pack and a pack that extends it under
+  `fixtures/extends/`, the base's tool a POSIX sh stub; tests `inherit_<case>`. The acceptance has
+  two cloudspec rows through a manifest of its run that extends cloudspec: the graph of
+  `groups.yaml` and the findings of `journeys.yaml` equal those of `packs/cloudspec.yaml`. Pages of
+  packs without `extends` are unchanged.
 - A view may draw regions collapsed: `collapse: [<part id>]`, `collapse: all` (every region that
   sits in no shown region) or `collapse: { blocks: [<block>] }` (every region whose block, after
   `blocks.aliases`, is listed), optional (`metaspec-pack/1`). A region is a shown part that a

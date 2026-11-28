@@ -238,7 +238,11 @@ entities:
         type: Optional<String>
       - name: extends
         type: Optional<metaspec.packs.PackName>
-        summary: The public pack a private pack builds on. The public pack never names the private one.
+        summary: >-
+          The public pack a private pack builds on. The public pack never names the private one.
+          The blocks, KPI catalogue and tool the manifest leaves out are the base pack's, each
+          whole, read in the base pack's directory given at run time (--base-pack); documents and
+          presentation are never inherited. A base that itself extends a pack is refused.
       - name: manifest
         type: metaspec.packs.ManifestSource
       - name: directory
@@ -248,6 +252,7 @@ entities:
           trust of the pack's tool is the Trust row of this directory; none, not trusted.
       - name: blocks_path
         type: String
+        summary: The manifest's `blocks.path`, or the base pack's when the manifest extends a pack and leaves out `blocks`.
       - name: strip_prefix
         type: Optional<String>
       - name: block_aliases
@@ -256,15 +261,16 @@ entities:
           `blocks.aliases`: a part's block word mapped to the block of the pack it stands for,
           applied once when the graph of a document is read. Every value is a block of the pack
           and no key is one; else the manifest is refused (manifest_invalid). Empty without it.
+          Inherited with `blocks`, and then checked against the base pack's blocks.
       - name: declares_kpis
         type: Boolean
-        summary: The manifest has a `kpis` section.
+        summary: The manifest has a `kpis` section, or inherits the base pack's.
       - name: declares_documents
         type: Boolean
         summary: The manifest declares at least one document class.
       - name: tool_run
         type: List<String>
-        summary: The argv prefix of the pack's tool; empty when the manifest names no tool.
+        summary: The argv prefix of the pack's tool, or of the base pack's tool it inherits; empty when there is none.
       - name: tool_verbs
         type: List<metaspec.packs.Verb>
         summary: The verbs the manifest declares under `tool.verbs`.
@@ -273,7 +279,9 @@ entities:
         summary: The adapter of `tool.verbs.check`; present exactly when `check` is a verb of the tool.
       - name: tool_digest
         type: Optional<metaspec.packs.ToolDigest>
-        summary: The digest of the manifest's `tool` section; absent without a tool.
+        summary: >-
+          The digest of the manifest's `tool` section, or of the base pack's it inherits together
+          with the canonical base directory the tool runs in; absent without a tool.
       - name: presentation
         type: Optional<metaspec.packs.Presentation>
       - name: level

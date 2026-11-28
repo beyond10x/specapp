@@ -8,7 +8,15 @@ summary: A caller's hub badges stay within the width its box has without them; f
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:collapsed-regions
-revision: 1
+- depends_on: story:band-wrap
+scope:
+- confidence: inferred
+  path: crates/metaspec-layout/src/lib.rs
+- confidence: inferred
+  path: crates/metaspec-layout/src/nested.rs
+- confidence: inferred
+  path: crates/metaspec-layout/src/rows.rs
+revision: 2
 ---
 # Badges do not widen the scene
 

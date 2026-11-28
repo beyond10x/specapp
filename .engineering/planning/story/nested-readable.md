@@ -5,7 +5,10 @@ kind: story
 status: draft
 title: Layout nested stays readable at about 50 parts and 100 links
 summary: No link label over box text and edges routed around boxes in nested; found by a consumer at 46 parts.
-revision: 1
+scope:
+- confidence: inferred
+  path: crates/metaspec-layout/src/nested.rs
+revision: 2
 ---
 # Layout nested stays readable at about 50 parts and 100 links
 

@@ -24,7 +24,7 @@ pub fn page(ctx: &Ctx) -> Page {
         ),
     );
     if let Some(k) = &ctx.pack.manifest.kpis {
-        ctx.source(&mut p, &k.path);
+        ctx.source_in(&mut p, ctx.pack.kpis_root(), &k.path);
     }
     p.flag("hide_table_of_contents", true);
     let mut s = String::from(ctx.banner());

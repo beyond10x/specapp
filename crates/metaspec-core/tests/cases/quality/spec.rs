@@ -93,7 +93,7 @@ fn marked_copy(test: &str, name: &str, dir: &Path) -> (PathBuf, String) {
     let copy = scratch(test).join(name);
     copy_dir(dir, &copy);
     let pack = pack_of(&copy);
-    let blocks = copy.join(&pack.manifest.blocks.path);
+    let blocks = copy.join(&pack.manifest.blocks().path);
     let file = files_under(&copy, &blocks)
         .into_iter()
         .find(|f| f.ends_with(".yaml") && f.matches('/').count() >= 2)
@@ -473,7 +473,7 @@ fn honesty_counts_each_line_with_an_unmapped_marker_under_blocks_path_and_names_
     let (name, dir) = &packs()[0];
     let (copy, first) = marked_copy("spec-honesty", name, dir);
     let pack = pack_of(&copy);
-    let blocks = copy.join(&pack.manifest.blocks.path);
+    let blocks = copy.join(&pack.manifest.blocks().path);
     // Two markers on one line are one line, as grep counts; a word without the colon is no
     // marker; a hidden file and a file that is no YAML are read; a file outside the blocks is
     // not.
@@ -487,7 +487,7 @@ fn honesty_counts_each_line_with_an_unmapped_marker_under_blocks_path_and_names_
     std::fs::write(copy.join("outside.yaml"), "# UNMAPPED: not a block\n").unwrap();
     let report = spec_report(&pack, Ess::new(stub(), None));
     let m = measurement(&report, "honesty");
-    let prefix = &pack.manifest.blocks.path;
+    let prefix = &pack.manifest.blocks().path;
     let mut want = vec![
         (String::from("marker"), first.clone()),
         (
@@ -602,7 +602,7 @@ fn the_answer_is_cached_by_the_digest_of_the_blocks_in_the_cache_directory_and_r
     );
 
     // A changed block file is another digest: ess answers again.
-    let blocks = copy.join(&pack.manifest.blocks.path);
+    let blocks = copy.join(&pack.manifest.blocks().path);
     let file = files_under(&copy, &blocks)
         .into_iter()
         .find(|f| f.ends_with(".yaml"))

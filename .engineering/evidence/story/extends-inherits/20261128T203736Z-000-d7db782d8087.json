@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T20:37:36Z",
+  "actor": "human:operator",
+  "artifact": "story:extends-inherits",
+  "kind": "story",
+  "revision": 23,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "task check and three-pack acceptance on c3c5c59: 224 tests, 135 scenarios, 16 vitest, 156 rows equal"
+  }
+}

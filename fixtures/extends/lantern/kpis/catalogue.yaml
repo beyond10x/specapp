@@ -1,0 +1,13 @@
+format: lantern-kpis/1
+kpis:
+  - id: wick_burn_hours
+    block: wick
+    measure: output
+    unit: hours
+    summary: Hours one wick burns.
+
+  - id: flame_flicker_count
+    block: flame
+    measure: fault
+    unit: count
+    summary: Flickers of one flame in an hour.

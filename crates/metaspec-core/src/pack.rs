@@ -40,6 +40,9 @@ pub struct Document {
 pub struct Pack {
     /// The pack directory, resolved.
     pub root: PathBuf,
+    /// The base pack the manifest inherits sections from, when it does.
+    pub base: Option<Base>,
+    /// The manifest, with the sections it inherits filled in.
     pub manifest: Manifest,
     /// The compiled system, `ess specify compile --format json`.
     pub model: Value,
@@ -49,6 +52,31 @@ pub struct Pack {
     pub kpis: Vec<Value>,
     /// The documents of each class, in the order of `manifest.documents`.
     pub documents: Vec<Vec<Document>>,
+}
+
+impl Pack {
+    /// The directory `blocks.path` is read in: the base's when the blocks are inherited.
+    pub fn blocks_root(&self) -> &Path {
+        self.root_of(|i| i.blocks)
+    }
+
+    /// The directory `kpis.path` is read in: the base's when the catalogue is inherited.
+    pub fn kpis_root(&self) -> &Path {
+        self.root_of(|i| i.kpis)
+    }
+
+    /// The directory the tool runs in and its `tool.run` is read in: the base's when the tool is
+    /// inherited.
+    pub fn tool_root(&self) -> &Path {
+        self.root_of(|i| i.tool)
+    }
+
+    fn root_of(&self, inherited: fn(&Inherited) -> bool) -> &Path {
+        match &self.base {
+            Some(base) if inherited(&base.inherited) => &base.root,
+            _ => &self.root,
+        }
+    }
 }
 
 /// Compiles an ESS system with the `ess` program on PATH and returns its JSON. `ess` runs in the
@@ -100,41 +128,90 @@ pub fn load(
     }
 }
 
-/// What metaspec says about the pack a manifest `extends`: the name resolves to a pack metaspec
-/// knows, or to the manifest `given` at run time, which must be the manifest of that pack.
-pub fn extends_issues(manifest: &Manifest, given: Option<&Path>) -> Vec<Issue> {
-    let Some(name) = &manifest.extends else {
-        return Vec::new();
-    };
+/// Where the pack a manifest `extends` is: its manifest, a file given at run time (`--extends`)
+/// or else the pack metaspec knows by that name, and its directory (`--base-pack`).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct BaseArgs<'a> {
+    pub manifest: Option<&'a Path>,
+    pub dir: Option<&'a Path>,
+}
+
+/// The sections a manifest with `extends` leaves out and takes from its base pack. `documents`
+/// and `presentation` are never inherited.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Inherited {
+    pub blocks: bool,
+    pub kpis: bool,
+    pub tool: bool,
+}
+
+impl Inherited {
+    /// The names of the inherited sections, in the order of the manifest.
+    pub fn names(&self) -> Vec<&'static str> {
+        [
+            (self.blocks, "blocks"),
+            (self.kpis, "kpis"),
+            (self.tool, "tool"),
+        ]
+        .into_iter()
+        .filter_map(|(on, name)| on.then_some(name))
+        .collect()
+    }
+
+    pub fn any(&self) -> bool {
+        self.blocks || self.kpis || self.tool
+    }
+}
+
+/// The base pack a loaded pack inherits sections from: its name, its directory (resolved), and
+/// which sections.
+#[derive(Debug, Clone)]
+pub struct Base {
+    pub pack: String,
+    pub root: PathBuf,
+    pub inherited: Inherited,
+}
+
+/// A manifest with the sections it inherits filled in from its base.
+#[derive(Debug, Clone)]
+pub struct Inheritance {
+    pub manifest: Manifest,
+    /// The base, when the manifest inherits a section.
+    pub base: Option<Base>,
+    /// What metaspec says about `extends` that does not refuse the pack.
+    pub warnings: Vec<Issue>,
+}
+
+/// The manifest of the pack a manifest `extends`: the file given at run time, which must be the
+/// manifest of that pack, or else the pack metaspec knows by that name. `None` for a manifest
+/// without `extends`.
+pub fn base_manifest(manifest: &Manifest, given: Option<&Path>) -> Option<Result<Manifest, Issue>> {
+    let name = manifest.extends.as_ref()?;
     let subject = format!("extends:{name}");
-    let base = match given {
-        Some(path) => read_manifest(path),
-        None => match known_manifest(name) {
-            Some(base) => base,
-            None => {
-                return vec![Issue::new(
-                    "extends_not_found",
-                    subject,
-                    format!(
-                        "metaspec knows no pack {name} (packs/) and no manifest of it is given (--extends)"
-                    ),
-                )];
-            }
-        },
+    let read = match given {
+        Some(path) => Some(read_manifest(path)),
+        None => known_manifest(name),
     };
-    match base {
-        Ok(base) if base.pack == *name => Vec::new(),
-        Ok(base) => vec![Issue::new(
+    Some(match read {
+        None => Err(Issue::new(
+            "extends_not_found",
+            &subject,
+            format!(
+                "metaspec knows no pack {name} (packs/) and no manifest of it is given (--extends)"
+            ),
+        )),
+        Some(Ok(other)) if other.pack != *name => Err(Issue::new(
             "extends_other_pack",
-            subject,
+            &subject,
             format!(
                 "the manifest given for {name} is the manifest of {}",
-                base.pack
+                other.pack
             ),
-        )],
-        Err(errors) => vec![Issue::new(
+        )),
+        Some(Ok(found)) => Ok(found),
+        Some(Err(errors)) => Err(Issue::new(
             "extends_unreadable",
-            subject,
+            &subject,
             format!(
                 "the manifest of {name} is refused: {}",
                 errors
@@ -143,14 +220,173 @@ pub fn extends_issues(manifest: &Manifest, given: Option<&Path>) -> Vec<Issue> {
                     .collect::<Vec<_>>()
                     .join("; ")
             ),
-        )],
-    }
+        )),
+    })
 }
 
-/// Loads the pack in `dir` with a manifest already read.
+/// Fills in the sections a manifest with `extends` leaves out (`blocks`, `kpis`, `tool`) from
+/// the manifest of its base pack (see [`base_manifest`]), whose paths are read in the base's
+/// directory `base.dir`.
+///
+/// - A manifest that writes its own `blocks` and is given no base directory inherits nothing
+///   and loads as before; with a base directory its omitted `kpis` and `tool` are the base's.
+/// - A manifest that leaves out `blocks` needs the base directory (`base_pack_missing`).
+/// - A base that cannot be read is a warning when the manifest has its own `blocks`, and
+///   refuses it when it leaves them out.
+/// - A base that itself extends a pack refuses a manifest that inherits a section
+///   (`extends_chain`).
+/// - A base directory given to a manifest without `extends` is a warning (`base_pack_unused`).
+///
+/// An inherited tool carries the canonical base directory ([`crate::manifest::Tool::base_dir`]),
+/// so its digest, and the trust of it, covers the directory the tool runs in.
+pub fn inherit(manifest: Manifest, base: BaseArgs) -> Result<Inheritance, Vec<Issue>> {
+    let alone = |manifest, warnings| {
+        Ok(Inheritance {
+            manifest,
+            base: None,
+            warnings,
+        })
+    };
+    let Some(found) = base_manifest(&manifest, base.manifest) else {
+        let warnings = match base.dir {
+            Some(dir) => vec![Issue::new(
+                "base_pack_unused",
+                "manifest",
+                format!(
+                    "--base-pack {} is given, but the manifest extends no pack; nothing is read there",
+                    dir.display()
+                ),
+            )],
+            None => Vec::new(),
+        };
+        return alone(manifest, warnings);
+    };
+    let name = manifest.extends.clone().unwrap_or_default();
+    let subject = format!("extends:{name}");
+    let found = match found {
+        Ok(found) => found,
+        Err(issue) if manifest.blocks.is_some() => return alone(manifest, vec![issue]),
+        Err(issue) => return Err(vec![issue]),
+    };
+    // Own blocks and no base directory: nothing is inherited, as before inheritance.
+    if manifest.blocks.is_some() && base.dir.is_none() {
+        return alone(manifest, Vec::new());
+    }
+    let inherited = Inherited {
+        blocks: manifest.blocks.is_none(),
+        kpis: manifest.kpis.is_none() && found.kpis.is_some(),
+        tool: manifest.tool.is_none() && found.tool.is_some(),
+    };
+    if !inherited.any() {
+        return alone(manifest, Vec::new());
+    }
+    if let Some(other) = &found.extends {
+        return Err(vec![Issue::new(
+            "extends_chain",
+            &subject,
+            format!(
+                "the pack {name} extends {other} itself; metaspec reads one base pack, not a chain"
+            ),
+        )]);
+    }
+    let sections = inherited.names().join(", ");
+    let Some(dir) = base.dir else {
+        return Err(vec![Issue::new(
+            "base_pack_missing",
+            &subject,
+            format!(
+                "the manifest inherits {sections} from {name}; give the directory of {name} with --base-pack <DIR>"
+            ),
+        )]);
+    };
+    let root = match dir.canonicalize() {
+        Ok(root) if root.is_dir() => root,
+        _ => {
+            return Err(vec![Issue::new(
+                "base_pack_missing",
+                &subject,
+                format!(
+                    "the directory of {name} that --base-pack gives does not exist; the manifest inherits {sections} from it"
+                ),
+            )]);
+        }
+    };
+    let mut manifest = manifest;
+    if inherited.blocks {
+        manifest.blocks = found.blocks;
+    }
+    if inherited.kpis {
+        manifest.kpis = found.kpis;
+    }
+    if inherited.tool {
+        manifest.tool = found.tool.map(|mut tool| {
+            tool.base_dir = Some(root.to_string_lossy().into_owned());
+            tool
+        });
+    }
+    Ok(Inheritance {
+        manifest,
+        base: Some(Base {
+            pack: name,
+            root,
+            inherited,
+        }),
+        warnings: Vec::new(),
+    })
+}
+
+/// Loads the pack in `dir` with a manifest already read. A manifest with `extends` resolves its
+/// base as [`load_extending`] does without a base given: by the name of a pack metaspec knows,
+/// and with no directory to inherit from.
 pub fn load_with(
     dir: &Path,
     manifest: Manifest,
+    compile: &dyn Fn(&Path) -> Result<Value, String>,
+) -> (Report, Option<Pack>) {
+    load_extending(dir, manifest, BaseArgs::default(), compile)
+}
+
+/// Loads the pack in `dir` with a manifest already read and, when it `extends` a pack, the
+/// sections it inherits from that pack (see [`inherit`]). What metaspec says about `extends` is
+/// added to the warnings.
+pub fn load_extending(
+    dir: &Path,
+    manifest: Manifest,
+    base: BaseArgs,
+    compile: &dyn Fn(&Path) -> Result<Value, String>,
+) -> (Report, Option<Pack>) {
+    match inherit(manifest, base) {
+        Ok(inheritance) => {
+            let (mut report, pack) =
+                load_inherited(dir, inheritance.manifest, inheritance.base, compile);
+            report.warnings.extend(inheritance.warnings);
+            (report, pack)
+        }
+        Err(errors) => (Report::refused(errors, Vec::new()), None),
+    }
+}
+
+/// Where the paths of one section are read: a pack directory, and in a pack with a base the
+/// words a refusal of such a path ends with, which name the pack.
+struct Place<'a> {
+    root: &'a Path,
+    label: &'a Option<String>,
+}
+
+impl Place<'_> {
+    /// `issue`, its message ending with the pack the path was in when a base is in play.
+    fn name(&self, mut issue: Issue) -> Issue {
+        if let Some(label) = self.label {
+            issue.message = format!("{} ({label})", issue.message);
+        }
+        issue
+    }
+}
+
+fn load_inherited(
+    dir: &Path,
+    manifest: Manifest,
+    base: Option<Base>,
     compile: &dyn Fn(&Path) -> Result<Value, String>,
 ) -> (Report, Option<Pack>) {
     let mut errors = Vec::new();
@@ -167,26 +403,59 @@ pub fn load_with(
             return (Report::refused(errors, warnings), None);
         }
     };
+    let Some(blocks_spec) = manifest.blocks.clone() else {
+        errors.push(Issue::new(
+            "manifest_invalid",
+            "manifest",
+            "the manifest names no `blocks` and inherits none",
+        ));
+        return (Report::refused(errors, warnings), None);
+    };
+
+    // Where each section is read: its own pack, or the base it is inherited from.
+    let own_label = base
+        .as_ref()
+        .map(|_| format!("a path of the pack {}", manifest.pack));
+    let base_label = base
+        .as_ref()
+        .map(|b| format!("a path of the base pack {}, read in --base-pack", b.pack));
+    let own = Place {
+        root: &root,
+        label: &own_label,
+    };
+    let place = |inherited: fn(&Inherited) -> bool| match &base {
+        Some(b) if inherited(&b.inherited) => Place {
+            root: &b.root,
+            label: &base_label,
+        },
+        _ => Place {
+            root: &root,
+            label: &own_label,
+        },
+    };
+    let blocks_place = place(|i| i.blocks);
+    let kpis_place = place(|i| i.kpis);
+    let tool_place = place(|i| i.tool);
 
     // Every path the manifest names, before anything is read.
-    let mut named = vec![manifest.blocks.path.clone()];
-    named.extend(manifest.kpis.iter().map(|k| k.path.clone()));
+    let mut named = vec![(blocks_spec.path.clone(), &blocks_place)];
+    named.extend(manifest.kpis.iter().map(|k| (k.path.clone(), &kpis_place)));
     for class in &manifest.documents {
-        named.extend(class.paths.iter().cloned());
-        named.extend(class.exclude.iter().cloned());
+        named.extend(class.paths.iter().map(|p| (p.clone(), &own)));
+        named.extend(class.exclude.iter().map(|p| (p.clone(), &own)));
     }
     if let Some(program) = manifest.tool.as_ref().and_then(|t| t.run.first())
         && program.contains('/')
     {
-        named.push(program.clone());
+        named.push((program.clone(), &tool_place));
     }
-    for text in &named {
+    for (text, place) in &named {
         if let Err(why) = relative_inside(text) {
-            errors.push(Issue::new(
+            errors.push(place.name(Issue::new(
                 "path_leaves_pack",
                 format!("path:{text}"),
                 format!("refused: {why}"),
-            ));
+            )));
         }
     }
     let mut classes = BTreeSet::new();
@@ -204,43 +473,49 @@ pub fn load_with(
     }
 
     // The blocks.
-    let blocks_dir = match resolve(&root, &manifest.blocks.path) {
+    let blocks_dir = match resolve(blocks_place.root, &blocks_spec.path) {
         Ok(path) if path.is_dir() => path,
         Ok(_) => {
-            errors.push(Issue::new(
+            errors.push(blocks_place.name(Issue::new(
                 "blocks_missing",
-                format!("path:{}", manifest.blocks.path),
+                format!("path:{}", blocks_spec.path),
                 "blocks.path is no directory",
-            ));
+            )));
             return (Report::refused(errors, warnings), None);
         }
         Err(issue) => {
-            errors.push(issue);
+            errors.push(blocks_place.name(issue));
             return (Report::refused(errors, warnings), None);
         }
     };
     let model = match compile(&blocks_dir) {
         Ok(model) => model,
         Err(why) => {
-            errors.push(Issue::new(
+            errors.push(blocks_place.name(Issue::new(
                 "blocks_refused",
-                format!("path:{}", manifest.blocks.path),
+                format!("path:{}", blocks_spec.path),
                 why,
-            ));
+            )));
             return (Report::refused(errors, warnings), None);
         }
     };
-    let blocks = match read_blocks(&root, &blocks_dir, &manifest, &model, &mut warnings) {
+    let blocks = match read_blocks(
+        blocks_place.root,
+        &blocks_dir,
+        &blocks_spec,
+        &model,
+        &mut warnings,
+    ) {
         Ok(blocks) => blocks,
         Err(issue) => {
-            errors.push(issue);
+            errors.push(blocks_place.name(issue));
             return (Report::refused(errors, warnings), None);
         }
     };
     let names: BTreeSet<&str> = blocks.iter().map(|b| b.name.as_str()).collect();
 
     // The aliases of a part's block word: each stands for a block, and none is a block itself.
-    for (word, block) in &manifest.blocks.aliases {
+    for (word, block) in &blocks_spec.aliases {
         let subject = format!("alias:{word}");
         if names.contains(word.as_str()) {
             errors.push(Issue::new(
@@ -272,21 +547,21 @@ pub fn load_with(
     let mut kpis = Vec::new();
     let mut planned = BTreeSet::new();
     if let Some(spec) = &manifest.kpis {
-        match read_yaml(&root, &spec.path) {
+        match read_yaml(kpis_place.root, &spec.path) {
             Ok(Value::Object(catalogue)) => match catalogue.get("kpis") {
                 Some(Value::Array(rows)) => kpis = rows.clone(),
-                _ => errors.push(Issue::new(
+                _ => errors.push(kpis_place.name(Issue::new(
                     "kpis_unreadable",
                     format!("path:{}", spec.path),
                     "the catalogue has no list `kpis`",
-                )),
+                ))),
             },
-            Ok(_) => errors.push(Issue::new(
+            Ok(_) => errors.push(kpis_place.name(Issue::new(
                 "kpis_unreadable",
                 format!("path:{}", spec.path),
                 "the catalogue is no mapping",
-            )),
-            Err(issue) => errors.push(issue),
+            ))),
+            Err(issue) => errors.push(kpis_place.name(issue)),
         }
         let mut seen = BTreeSet::new();
         for (index, row) in kpis.iter().enumerate() {
@@ -334,7 +609,7 @@ pub fn load_with(
         match read_class(&root, class, &mut warnings) {
             Ok(found) => documents.push(found),
             Err(issue) => {
-                errors.push(issue);
+                errors.push(own.name(issue));
                 documents.push(Vec::new());
             }
         }
@@ -345,7 +620,7 @@ pub fn load_with(
                 _ => &[],
             };
             for block in view.blocks.iter().chain(hub_blocks).chain(collapse_blocks) {
-                if let Some(target) = manifest.blocks.aliases.get(block) {
+                if let Some(target) = manifest.blocks().aliases.get(block) {
                     warnings.push(Issue::new(
                         "view_alias_block",
                         format!("view:{}/{}", class.class, view.id),
@@ -372,7 +647,7 @@ pub fn load_with(
         let mut family_of: BTreeMap<&str, &str> = BTreeMap::new();
         for (family, spec) in &presentation.families {
             for block in &spec.blocks {
-                if let Some(target) = manifest.blocks.aliases.get(block) {
+                if let Some(target) = manifest.blocks().aliases.get(block) {
                     warnings.push(Issue::new(
                         "family_alias_block",
                         format!("family:{family}"),
@@ -413,14 +688,14 @@ pub fn load_with(
             state: ToolState::None,
         },
         Some(spec) => {
-            let state = match find_program(&root, &spec.run[0]) {
+            let state = match find_program(tool_place.root, &spec.run[0]) {
                 Ok(()) => ToolState::Found,
                 Err(why) => {
-                    warnings.push(Issue::new(
+                    warnings.push(tool_place.name(Issue::new(
                         "tool_not_started",
                         format!("tool:{}", spec.run[0]),
                         format!("the tool cannot be started: {why}"),
-                    ));
+                    )));
                     ToolState::NotFound
                 }
             };
@@ -487,6 +762,7 @@ pub fn load_with(
     };
     let pack = Pack {
         root,
+        base,
         manifest,
         model,
         blocks,
@@ -531,11 +807,11 @@ fn read_yaml(root: &Path, text: &str) -> Result<Value, Issue> {
 fn read_blocks(
     root: &Path,
     blocks_dir: &Path,
-    manifest: &Manifest,
+    spec: &manifest::Blocks,
     model: &Value,
     warnings: &mut Vec<Issue>,
 ) -> Result<Vec<Block>, Issue> {
-    let subject = format!("path:{}", manifest.blocks.path);
+    let subject = format!("path:{}", spec.path);
     let Some(domains) = model.get("domains").and_then(Value::as_object) else {
         return Err(Issue::new(
             "blocks_refused",
@@ -593,7 +869,7 @@ fn read_blocks(
         if !domains.contains_key(&domain) {
             continue;
         }
-        let name = match &manifest.blocks.strip_prefix {
+        let name = match &spec.strip_prefix {
             Some(prefix) => match domain.strip_prefix(prefix.as_str()) {
                 Some(rest) => rest.to_string(),
                 None => {
@@ -661,8 +937,12 @@ fn collapse_warnings(
         let Some(value) = &document.value else {
             continue;
         };
-        let graph =
-            crate::graph::read_with_aliases(class, &document.path, value, &manifest.blocks.aliases);
+        let graph = crate::graph::read_with_aliases(
+            class,
+            &document.path,
+            value,
+            &manifest.blocks().aliases,
+        );
         let shown: BTreeMap<&str, &crate::graph::Part> = graph
             .parts
             .iter()

@@ -297,7 +297,10 @@ fn text<'a>(value: &'a Value, field: &str) -> Option<&'a str> {
 
 /// The lines with a marker in the files under the blocks.
 fn honesty(pack: &Pack) -> Outcome {
-    let blocks = match resolved_inside(&pack.root, &pack.root.join(&pack.manifest.blocks.path)) {
+    let blocks = match resolved_inside(
+        pack.blocks_root(),
+        &pack.blocks_root().join(&pack.manifest.blocks().path),
+    ) {
         Ok(blocks) => blocks,
         Err(why) => {
             return Outcome::gap(Some("L0"), format!("the blocks cannot be read: {why}"));
@@ -308,7 +311,7 @@ fn honesty(pack: &Pack) -> Outcome {
         let Ok(bytes) = std::fs::read(&file) else {
             continue;
         };
-        let name = shown(&pack.root, &file);
+        let name = shown(pack.blocks_root(), &file);
         for (index, line) in bytes.split(|b| *b == b'\n').enumerate() {
             if line.windows(MARKER.len()).any(|w| w == MARKER) {
                 behind.push(Behind::new("marker", format!("{name}:{}", index + 1)));

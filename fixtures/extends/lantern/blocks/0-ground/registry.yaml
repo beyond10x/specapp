@@ -1,0 +1,11 @@
+domain: lantern.registry
+
+summary: Identifiers of every entity of the lantern blocks.
+
+naming:
+  wire: registry
+  display: Registry
+
+types:
+  - {name: lantern.registry.WickId, kind: newtype, of: Uuid}
+  - {name: lantern.registry.FlameId, kind: newtype, of: Uuid}

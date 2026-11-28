@@ -126,7 +126,7 @@ echo '{"valid": true, "system": "s", "version": "v1", "files_read": 1, "domains"
 "#,
     );
     let pack = first_pack();
-    let blocks = pack.root.join(&pack.manifest.blocks.path);
+    let blocks = pack.root.join(&pack.manifest.blocks().path);
     let pin = std::fs::read_to_string(blocks.join("ess-inputs.yaml")).unwrap();
     assert!(
         pin.lines()

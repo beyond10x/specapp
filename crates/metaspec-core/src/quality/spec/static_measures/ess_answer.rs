@@ -196,7 +196,9 @@ pub fn answer(
     let request = format!(
         "{}\0{}\0{}\0{}",
         ess.program.display(),
-        pack.root.join(&pack.manifest.blocks.path).display(),
+        pack.blocks_root()
+            .join(&pack.manifest.blocks().path)
+            .display(),
         words.join(" "),
         options.join(" ")
     );
@@ -217,7 +219,10 @@ fn ask(
     exit: &[i32],
 ) -> Result<Value, String> {
     let command = format!("ess {}", words.join(" "));
-    let blocks = resolved_inside(&pack.root, &pack.root.join(&pack.manifest.blocks.path))?;
+    let blocks = resolved_inside(
+        pack.blocks_root(),
+        &pack.blocks_root().join(&pack.manifest.blocks().path),
+    )?;
     let program = ess.program.to_string_lossy().into_owned();
     let version = match run(&blocks, &ess.program, &["--version"], VERSION_DEADLINE) {
         Ran::Exited(run) if run.code == Some(0) => run.stdout,
@@ -236,7 +241,7 @@ fn ask(
         }
         Ran::Failed(why) => return Err(why),
     };
-    let key = digest(&version, words, options, &pack.root, &blocks);
+    let key = digest(&version, words, options, pack.blocks_root(), &blocks);
     let file = ess
         .cache
         .as_ref()

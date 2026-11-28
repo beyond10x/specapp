@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:extends-inherits
 kind: story
-status: active
+status: implemented
 title: A manifest that extends a pack inherits its blocks and its tool
 summary: A manifest with extends may omit blocks and tool; they come from the base pack, read in --base-pack.
 relations:
@@ -38,10 +38,11 @@ scope:
   path: scripts/acceptance.sh
 - confidence: inferred
   path: spec/domains/packs.yaml
-revision: 23
+revision: 24
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T16:19:55Z", actor: "human:operator", revision: 20}
 - {from: "proposed", to: "active", at: "2026-11-28T16:19:55Z", actor: "human:operator", revision: 21}
+- {from: "active", to: "implemented", at: "2026-11-28T20:37:44Z", actor: "human:operator", revision: 24, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # A manifest that extends a pack inherits its blocks and its tool
 

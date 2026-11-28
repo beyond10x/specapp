@@ -4,7 +4,7 @@ id: story:search-simulate-adapter
 kind: story
 status: active
 title: 'The simulate adapter: KPI values of a document from the tool simulation'
-summary: tool.verbs.simulate in the manifest, score --simulate and search --simulate; names what a pack tool must accept and answer; agenticspec has no such verb yet.
+summary: tool.verbs.simulate in the manifest, score --simulate and search --simulate; names what a pack tool must accept and answer; agenticspec answers through sim score (main d34ea91).
 relations:
 - decomposes: epic:shared-search
 - informed_by: architecture-decision-record:shared-search
@@ -48,7 +48,7 @@ scope:
   path: schema/metaspec-score-1.schema.json
 - confidence: cited
   path: spec/domains/packs.yaml
-revision: 30
+revision: 32
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T15:48:11Z", actor: "human:operator", revision: 29}
 - {from: "proposed", to: "active", at: "2026-11-28T15:48:11Z", actor: "human:operator", revision: 30}
@@ -62,9 +62,12 @@ transitions:
 `simulate`". agenticspec main simulates through `agenticspec sim run <experiment> --out <dir>`: it
 takes an experiment file (an architecture, a profile, seeds, a search mode), not an architecture
 document, and writes `result.json` (`agenticspec-sim-result/1`) into a directory, not to stdout.
-The tool of the pack has no verb that simulates one architecture document and answers on stdout;
-that is a gap of agenticspec, listed per pack by `story:search-design`, and closed in the pack
-(its tool), never by code for one pack here.
+That gap is closed in the pack (its tool), never by code for one pack here: agenticspec main
+d34ea91 (agenticspec PR #47) adds `agenticspec sim score <document>`, which answers on stdout with
+`{"kpis":{...},"per_part":{...}}`, exits 3 for a refused document, 1 for bad fixed arguments and 2
+for a parse error, and with `--batch` answers `{"results":[...]}` for at most 64 documents. Of the
+KPI ids it emits, 32 are not yet in agenticspec's `kpis/catalogue.yaml`; agenticspec adds them,
+with their directions, in its next batch.
 
 ## Scope
 
@@ -102,8 +105,10 @@ that is a gap of agenticspec, listed per pack by `story:search-design`, and clos
 - Schema revision: `schema/metaspec-pack-1.schema.json` gains `tool.verbs.simulate`
   (`$defs/simulate_adapter`), optional, the format string stays `metaspec-pack/1`; a line under
   "Unreleased" in `CHANGELOG.md` names the file and the property.
-- `packs/agenticspec.yaml` declares `simulate` only when its tool has a verb as described above;
-  until then the manifest is unchanged and the acceptance row says "no simulate verb" for it.
+- `packs/agenticspec.yaml` declares `simulate` as `sim score` (agenticspec main d34ea91 or later),
+  `exit` mapping 0 to answered, 3 to refused and 1 and 2 to failed runs; the acceptance row runs it
+  on one agenticspec architecture and checks that every KPI value is a number. A KPI id the
+  simulation answers that the pack catalogue does not list is reported, not refused.
 - No standalone `metaspec simulate` command and no result of a simulate run: simulated values enter
   only through `score --simulate` and `search --simulate`.
 - Not in this story: batches (`story:search-batch-scoring`), the text of `design/metaspec.md`

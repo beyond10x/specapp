@@ -1,0 +1,11 @@
+format: ess/37
+system: lantern
+version: v1
+
+summary: >-
+  An invented base pack: the blocks of a lantern. A wick holds a flame.
+
+domains:
+  - lantern.registry
+  - lantern.wick
+  - lantern.flame
