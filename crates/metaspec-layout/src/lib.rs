@@ -216,7 +216,13 @@ pub fn views_of(class: &DocumentClass, graph: &Graph) -> Vec<ViewSpec> {
     for view in &class.views {
         let spec = ViewSpec::from(view);
         let shown = select(graph, &spec);
-        let elides = !elided(graph, &spec, &shown).is_empty();
+        // Elision is decided on the links the view draws: after the roll-up, as `layout` does.
+        let elides = if shown.collapsed.is_empty() {
+            !elided(graph, &spec, &shown).is_empty()
+        } else {
+            let folded = fold(graph, &shown);
+            !elided(&folded.graph, &spec, &folded.selection).is_empty()
+        };
         let edges = elides.then(|| ViewSpec {
             id: format!("{}/edges", spec.id),
             title: format!("{}, every link an edge", spec.title),
@@ -287,6 +293,8 @@ pub struct Selection {
     pub collapsed: Vec<Region>,
 }
 
+pub use metaspec_core::manifest::REGION_EDGES;
+
 /// One collapsed region of what a view shows.
 #[derive(Debug, Clone, Default)]
 pub struct Region {
@@ -330,6 +338,9 @@ fn ancestors(parents: &BTreeMap<usize, usize>, i: usize) -> Vec<usize> {
 /// The regions of `shown` that `collapse` collapses, each with the parts inside it. A region is
 /// a shown part that a shown part sits `in`; a region inside a collapsed region is inside its
 /// box and not a region of its own.
+///
+/// A part whose id is [`REGION_EDGES`] is not collapsed: its view would take the id of the view
+/// `<id>/edges` of a view with hubs. `metaspec pack check` names it (`view_region_edges`).
 fn regions(graph: &Graph, shown: &[usize], collapse: &Collapse) -> Vec<Region> {
     let parents = in_parents(graph, shown);
     let holders: BTreeSet<usize> = parents.values().copied().collect();
@@ -338,6 +349,9 @@ fn regions(graph: &Graph, shown: &[usize], collapse: &Collapse) -> Vec<Region> {
         .copied()
         .filter(|&r| {
             let part = &graph.parts[r];
+            if part.id == REGION_EDGES {
+                return false;
+            }
             match collapse {
                 Collapse::Every(_) => ancestors(&parents, r).is_empty(),
                 Collapse::Parts(ids) => ids.contains(&part.id),
@@ -600,11 +614,12 @@ fn draw(
             regions.push((graph.parts[r.part].id.clone(), r.inside.len(), ns));
         }
     }
-    let (kept, mut elision) = elide(graph, view, selection, style, &marked);
-    if let Some((_, f)) = folded {
-        for (&k, members) in &f.rolled {
-            elision.counts.insert(k, members.len());
-        }
+    let counts: BTreeMap<usize, usize> = folded
+        .map(|(_, f)| f.rolled.iter().map(|(&k, m)| (k, m.len())).collect())
+        .unwrap_or_default();
+    let (kept, mut elision) = elide(graph, view, selection, style, &marked, &counts);
+    elision.counts = counts;
+    if folded.is_some() {
         for (id, parts, ns) in &regions {
             elision
                 .lines
@@ -633,25 +648,33 @@ fn draw(
                 findings: ns.clone(),
             });
         }
-        for e in &mut scene.edges {
-            let Some((_, members)) = f.rolled.iter().find(|(k, _)| graph.links[**k].id == e.id)
-            else {
-                continue;
-            };
-            e.count = Some(members.len());
-            e.links = members
+        // A rolled-up link, drawn as an edge or as a badge, names the links it stands for.
+        let rolled = |id: &str| -> Option<(usize, Vec<String>, String)> {
+            let (_, members) = f.rolled.iter().find(|(k, _)| graph.links[**k].id == id)?;
+            let ids: Vec<String> = members
                 .iter()
                 .map(|&li| graph.links[li].id.clone())
                 .collect();
-            e.title = format!(
+            let title = format!(
                 "{} across the border of a collapsed region:\n{}",
-                if members.len() == 1 {
+                if ids.len() == 1 {
                     String::from("1 link")
                 } else {
-                    format!("{} links", members.len())
+                    format!("{} links", ids.len())
                 },
-                e.links.join("\n")
+                ids.join("\n")
             );
+            Some((ids.len(), ids, title))
+        };
+        for e in &mut scene.edges {
+            if let Some((n, ids, title)) = rolled(&e.id) {
+                (e.count, e.links, e.title) = (Some(n), ids, title);
+            }
+        }
+        for b in &mut scene.badges {
+            if let Some((n, ids, title)) = rolled(&b.id) {
+                (b.count, b.links, b.title) = (Some(n), ids, title);
+            }
         }
     }
     scene.format = scene::FORMAT.to_string();
@@ -687,11 +710,7 @@ impl Elision {
     /// The label of the edge of link `li`: its name in the pack's words, and `×<n>` when it
     /// stands for n links, two or more.
     pub fn label(&self, li: usize, link: &metaspec_core::graph::Link, style: &Style) -> String {
-        let label = link_label(link, style);
-        match self.counts.get(&li) {
-            Some(&n) if n > 1 => format!("{label} ×{n}"),
-            _ => label,
-        }
+        counted(link_label(link, style), self.counts.get(&li))
     }
 
     /// The lines a box's text adds: for a collapsed region, its parts and findings inside.
@@ -747,6 +766,14 @@ pub fn badge_label(link: &metaspec_core::graph::Link, style: &Style) -> String {
     )
 }
 
+/// A label with `×<n>` when it stands for n links, two or more.
+fn counted(label: String, count: Option<&usize>) -> String {
+    match count {
+        Some(&n) if n > 1 => format!("{label} ×{n}"),
+        _ => label,
+    }
+}
+
 /// The links of what a view shows that it draws as badges: every link to a hub from a part that
 /// is no hub (or from a name no part has). None without hubs.
 pub fn elided(graph: &Graph, view: &ViewSpec, sel: &Selection) -> Vec<usize> {
@@ -771,6 +798,7 @@ fn elide(
     sel: &Selection,
     style: &Style,
     marked: &BySubject<'_>,
+    counts: &BTreeMap<usize, usize>,
 ) -> (Selection, Elision) {
     let hubs = hubs_of(graph, view, sel);
     if hubs.is_empty() {
@@ -785,7 +813,8 @@ fn elide(
         if elided.contains(&li) {
             let empty = Vec::new();
             let marks = marked.get(link.id.as_str()).unwrap_or(&empty);
-            let w = label_width(&badge_label(link, style), marks).ceil();
+            let label = counted(badge_label(link, style), counts.get(&li));
+            let w = label_width(&label, marks).ceil();
             badges
                 .entry(link.from.clone().unwrap_or_else(|| String::from("?")))
                 .or_default()
@@ -870,7 +899,7 @@ fn place_badges(scene: &mut Scene, graph: &Graph, style: &Style, elision: &Elisi
                         from: caller.clone(),
                         to: link.to.clone().unwrap_or_else(|| String::from("?")),
                         carries: link.carries.clone(),
-                        label: badge_label(link, style),
+                        label: counted(badge_label(link, style), elision.counts.get(&li)),
                         at: scene::Rect {
                             x: scene::round(x),
                             y: scene::round(top + r as f64 * (BADGE_H + BADGE_GAP)),
@@ -880,6 +909,8 @@ fn place_badges(scene: &mut Scene, graph: &Graph, style: &Style, elision: &Elisi
                         added_by: link.added_by.clone(),
                         findings: Vec::new(),
                         title: link_title(link),
+                        count: None,
+                        links: Vec::new(),
                     },
                 ));
                 x += w + BADGE_GAP;
@@ -942,31 +973,13 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
         }
     }
     for e in &mut scene.edges {
-        // A rolled-up edge carries the findings of the links it stands for.
-        let rolled: Vec<usize>;
-        let ns = if e.links.is_empty() {
-            let Some(ns) = links.get(e.id.as_str()) else {
-                continue;
-            };
-            ns
-        } else {
-            let mut all: Vec<usize> = e
-                .links
-                .iter()
-                .filter_map(|l| links.get(l.as_str()))
-                .flatten()
-                .copied()
-                .collect();
-            all.sort_unstable();
-            rolled = all;
-            if rolled.is_empty() {
-                continue;
-            }
-            &rolled
-        };
+        let ns = link_findings(&links, &e.id, &e.links);
+        if ns.is_empty() {
+            continue;
+        }
         e.findings = ns.clone();
         let mut left = e.label_at.x + 3.0;
-        for &n in ns {
+        for &n in &ns {
             let w = mark_width(n);
             marks.push(Mark {
                 finding: n,
@@ -981,12 +994,13 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
         }
     }
     for badge in &mut scene.badges {
-        let Some(ns) = links.get(badge.id.as_str()) else {
+        let ns = link_findings(&links, &badge.id, &badge.links);
+        if ns.is_empty() {
             continue;
-        };
+        }
         badge.findings = ns.clone();
         let mut left = badge.at.x + 3.0;
-        for &n in ns {
+        for &n in &ns {
             let w = mark_width(n);
             marks.push(Mark {
                 finding: n,
@@ -1002,6 +1016,21 @@ fn attach(scene: &mut Scene, findings: &[Finding]) {
     }
     marks.sort_by_key(|m| m.finding);
     scene.marks = marks;
+}
+
+/// The findings of the link `id`, or, for a rolled-up link, of the links `members` it stands for.
+fn link_findings(links: &BySubject<'_>, id: &str, members: &[String]) -> Vec<usize> {
+    if members.is_empty() {
+        return links.get(id).cloned().unwrap_or_default();
+    }
+    let mut all: Vec<usize> = members
+        .iter()
+        .filter_map(|l| links.get(l.as_str()))
+        .flatten()
+        .copied()
+        .collect();
+    all.sort_unstable();
+    all
 }
 
 /// The width of an edge label with room for the marks of its findings.

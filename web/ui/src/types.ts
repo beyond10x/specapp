@@ -185,6 +185,10 @@ export interface SceneBadge {
   added_by?: string;
   findings: number[];
   title: string;
+  /** For a badge of a link across the border of a collapsed region: how many links it stands for. */
+  count?: number;
+  /** For a badge of a link across the border of a collapsed region: the links it stands for. */
+  links?: string[];
 }
 
 export interface SceneMark {

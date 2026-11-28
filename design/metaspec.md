@@ -1265,12 +1265,23 @@ box and gives its parts a view of their own.
   listed. A region inside a collapsed region is inside its box. A block the pack does not have is
   a `view_unknown_block` warning, as for `hubs.blocks`. `per` makes no region: `rows` already
   draws a part inside its `per` host.
+- An id of `collapse: [...]` that is a region of no document of the class (no part has it, or
+  parts are only `per` it) is a `view_unknown_collapse` warning naming it.
+- A part whose id is `edges` is never collapsed: its view would take the id `<id>/edges` of the
+  view of a view with hubs that draws every link as an edge. It stays expanded, with and without
+  hubs, and `metaspec pack check` names it (`view_region_edges`, with the documents where the
+  view would collapse it). Coordinator's decision, 2026-11-28.
 - The box is the region's own box, not a container; its text adds `<n> parts inside` (at any
   depth) and `<m> findings inside`. A link from or to the region or a part inside it is drawn
   from or to the box, and the links with the same two drawn ends and one name are one edge
   (`<from>-><to>:<name>` of the drawn ends, `count`, `links`, label `<name> ×<n>` from two links
   on); its marks are the findings of its links. A link between two parts of one region is drawn
   only in the region's view.
+- A rolled-up link to a hub is a badge like any link to a hub; it carries `count` and `links`
+  as an edge does, its label ends `×<n>` from two links on, and its marks are the findings of its
+  links. Whether a view draws a badge, and so has a view `<id>/edges`, is decided on the links
+  after the roll-up, where the drawing decides it: a hub by `in_degree` counts a rolled-up link
+  once.
 - Drill-down: each collapsed region of a document adds the view `<id>/<region>` after its view
   and its `<id>/edges`: the view without `collapse` and `hubs`, showing the region and the parts
   inside it. The static page has no script, so it draws it as a view of its own and the box is a

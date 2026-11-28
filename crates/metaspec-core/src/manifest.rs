@@ -192,6 +192,11 @@ pub enum Collapse {
     Blocks(CollapseBlocks),
 }
 
+/// The id of a part that `collapse` never collapses: the view of the region would take the id
+/// of the view `<id>/edges` of a view with hubs. `metaspec pack check` names such a region
+/// (`view_region_edges`).
+pub const REGION_EDGES: &str = "edges";
+
 /// The word `all` of `collapse`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]

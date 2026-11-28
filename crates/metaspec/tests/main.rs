@@ -965,6 +965,7 @@ fn parts_inside(graph: &Value, region: &str) -> Vec<String> {
 #[test]
 fn region_page_holds_the_parts_of_each_collapsed_region_and_its_box_links_them() {
     let mut regions = 0;
+    let mut rolled = 0;
     for dir in packs() {
         let name = dir.file_name().unwrap().to_string_lossy().into_owned();
         let state = scratch(&format!("region-state-{name}"));
@@ -982,6 +983,33 @@ fn region_page_holds_the_parts_of_each_collapsed_region_and_its_box_links_them()
                     .map(|t| serde_json::from_str(&t).unwrap());
             for scene in scenes {
                 let id = scene["view"]["id"].as_str().unwrap();
+                for e in scene["edges"].as_array().unwrap() {
+                    let n = e["count"].as_u64().unwrap_or(1);
+                    if n < 2 {
+                        continue;
+                    }
+                    let label = e["label"].as_str().unwrap();
+                    assert!(label.ends_with(&format!(" ×{n}")), "{rel}: {label}");
+                    assert_eq!(
+                        e["links"].as_array().map(Vec::len),
+                        Some(n as usize),
+                        "{rel}"
+                    );
+                    assert!(
+                        svg_of_view(&html, id).contains(&format!(">{}</text>", label)),
+                        "{rel}: the page draws {label}"
+                    );
+                    let in_site = docs_page.as_ref().is_some_and(|p| {
+                        p["data"].as_object().unwrap().values().any(|d| {
+                            d["view"]["id"] == id
+                                && d["edges"]
+                                    .as_array()
+                                    .is_some_and(|es| es.iter().any(|x| x["label"] == label))
+                        })
+                    });
+                    assert!(in_site, "{rel}: the docs site draws {label} in {id}");
+                    rolled += 1;
+                }
                 for b in scene["boxes"].as_array().unwrap() {
                     let Some(c) = b.get("collapsed") else {
                         continue;
@@ -1034,6 +1062,10 @@ fn region_page_holds_the_parts_of_each_collapsed_region_and_its_box_links_them()
     assert!(
         regions >= 2,
         "{regions} collapsed regions in the fixture pages"
+    );
+    assert!(
+        rolled >= 1,
+        "a fixture page rolls two links or more into one edge: {rolled}"
     );
 }
 

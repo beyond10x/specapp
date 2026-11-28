@@ -120,6 +120,31 @@
       },
       "findings": [],
       "title": "skiff->berth_a:moors_at"
+    },
+    {
+      "id": "skiff->berth_b:moors_at",
+      "from": "skiff",
+      "to": "berth_b",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          332.0,
+          61.7
+        ],
+        [
+          274.0,
+          75.8
+        ]
+      ],
+      "label_at": {
+        "x": 272.4,
+        "y": 117.0,
+        "w": 61.3,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "skiff->berth_b:moors_at"
     }
   ],
   "marks": [],

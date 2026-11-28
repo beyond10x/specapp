@@ -238,6 +238,86 @@ fn region_collapse_block_the_blocks_do_not_have_is_named_like_a_view_block() {
 }
 
 #[test]
+fn region_collapse_of_no_region_and_of_a_region_named_edges_are_named() {
+    use metaspec_core::manifest::{Collapse, Every};
+    let mut tested = 0;
+    for (name, fixture) in packs() {
+        let manifest = metaspec_core::pack::read_manifest(&super::common::manifest_of(&fixture))
+            .expect("manifest");
+        let class = &manifest.documents[0];
+        let Some(inside) = class.contain.as_ref().and_then(|c| c.inside.clone()) else {
+            continue;
+        };
+        let per = class.contain.as_ref().and_then(|c| c.per.clone());
+        let dir = super::common::scratch(&format!("region-warnings-{name}")).join(&name);
+        super::common::copy_dir(&fixture, &dir);
+        // One document more: a region `edges` with one part in it, and a part another part is
+        // only `per` (when the class has `per`).
+        let mut parts = serde_json::json!({
+            "edges": { "block": "zz_kilo" },
+            "zz_inner": { "block": "zz_kilo", inside.as_str(): "edges" },
+            "zz_host": { "block": "zz_kilo" },
+        });
+        if let Some(per) = &per {
+            parts["zz_each"] = serde_json::json!({ "block": "zz_kilo", per.as_str(): "zz_host" });
+        }
+        let doc = serde_json::json!({ class.name.as_str(): "zz", "parts": parts, "links": [] });
+        let path = class.paths[0].replace('*', "zz-region-edges");
+        std::fs::write(dir.join(&path), doc.to_string()).unwrap();
+
+        let with = |collapse: Collapse| {
+            load_changed(&dir, |m| {
+                let view = m.documents[0].views.first_mut().expect("a view");
+                view.blocks.clear();
+                view.collapse = Some(collapse);
+            })
+            .0
+        };
+        let ids = |list: &[&str]| Collapse::Parts(list.iter().map(|s| s.to_string()).collect());
+        let report = with(ids(&["edges", "zz_host", "zz_nowhere"]));
+        assert!(report.valid, "{name}");
+        assert_eq!(
+            codes(&report.warnings),
+            vec![
+                "view_unknown_collapse",
+                "view_unknown_collapse",
+                "view_region_edges"
+            ],
+            "{name}: {:?}",
+            report.warnings
+        );
+        assert!(report.warnings[0].message.contains("zz_host"), "{name}");
+        assert!(report.warnings[1].message.contains("zz_nowhere"), "{name}");
+        assert!(
+            report.warnings[2].message.contains("edges")
+                && report.warnings[2].message.contains(&path),
+            "{name}: {}",
+            report.warnings[2].message
+        );
+        let report = with(Collapse::Every(Every::All));
+        assert_eq!(codes(&report.warnings), vec!["view_region_edges"], "{name}");
+        let report = with(ids(&["zz_inner"]));
+        assert_eq!(
+            codes(&report.warnings),
+            vec!["view_unknown_collapse"],
+            "{name}: a part no part sits in is no region"
+        );
+        let (report, _) = load_changed(&fixture, |m| {
+            let view = m.documents[0].views.first_mut().expect("a view");
+            view.blocks.clear();
+            view.collapse = Some(Collapse::Every(Every::All));
+        });
+        assert!(
+            report.warnings.is_empty(),
+            "{name}: no region named edges in the fixture: {:?}",
+            report.warnings
+        );
+        tested += 1;
+    }
+    assert!(tested >= 1, "a fixture class contains by `in`");
+}
+
+#[test]
 fn a_kpi_without_the_measure_field_is_named() {
     for (name, dir) in packs() {
         let (report, _) = load_changed(&dir, |m| {

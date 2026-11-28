@@ -155,6 +155,14 @@ pub struct Badge {
     pub findings: Vec<usize>,
     /// The text shown on hover.
     pub title: String,
+    /// For a badge of a link across the border of a collapsed region: the number of links it
+    /// stands for.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<usize>,
+    /// For a badge of a link across the border of a collapsed region: the ids of the links it
+    /// stands for.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub links: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

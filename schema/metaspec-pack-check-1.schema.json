@@ -73,7 +73,11 @@
       }
     },
     "errors": { "type": "array", "items": { "$ref": "#/$defs/issue" } },
-    "warnings": { "type": "array", "items": { "$ref": "#/$defs/issue" } }
+    "warnings": {
+      "description": "What does not refuse the pack. Among the codes about a view: view_unknown_block (a block of blocks, hubs.blocks or collapse.blocks the blocks do not have), view_unknown_collapse (an id of collapse that is a region of no document of the class) and view_region_edges (a region named edges that the view would collapse; it stays expanded).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/issue" }
+    }
   },
   "allOf": [
     {

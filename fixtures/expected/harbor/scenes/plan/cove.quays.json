@@ -96,7 +96,7 @@
       "from": "skiff",
       "to": "north_quay",
       "carries": "moors_at",
-      "label": "moors at",
+      "label": "moors at ×2",
       "points": [
         [
           72.0,
@@ -112,16 +112,17 @@
         ]
       ],
       "label_at": {
-        "x": 55.4,
+        "x": 47.2,
         "y": 134.0,
-        "w": 61.3,
+        "w": 77.6,
         "h": 18.0
       },
       "findings": [],
-      "title": "1 link across the border of a collapsed region:\nskiff->berth_a:moors_at",
-      "count": 1,
+      "title": "2 links across the border of a collapsed region:\nskiff->berth_a:moors_at\nskiff->berth_b:moors_at",
+      "count": 2,
       "links": [
-        "skiff->berth_a:moors_at"
+        "skiff->berth_a:moors_at",
+        "skiff->berth_b:moors_at"
       ]
     },
     {

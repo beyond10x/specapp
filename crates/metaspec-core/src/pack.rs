@@ -345,6 +345,9 @@ pub fn load_with(
                     ));
                 }
             }
+            if let (Some(collapse), Some(found)) = (&view.collapse, documents.last()) {
+                collapse_warnings(&manifest, class, view, collapse, found, &mut warnings);
+            }
         }
     }
 
@@ -614,6 +617,90 @@ fn layer_of(dir: &str) -> Option<Layer> {
 
 /// The documents of one class: every file its globs match and no `exclude` glob matches, inside
 /// the pack, read as YAML.
+/// The warnings of a view's `collapse` over the documents of its class, read as their pages read
+/// them (with the manifest's aliases). A region is a part of the view's blocks that such a part
+/// sits `in`.
+///
+/// - `view_unknown_collapse`: an id `collapse` lists that is a region of no document: no part
+///   has it, or parts are only `per` it.
+/// - `view_region_edges`: a region named [`manifest::REGION_EDGES`] that the view would collapse;
+///   it stays expanded, since its view would take the id of the view `<id>/edges`.
+fn collapse_warnings(
+    manifest: &Manifest,
+    class: &DocumentClass,
+    view: &manifest::View,
+    collapse: &manifest::Collapse,
+    documents: &[Document],
+    warnings: &mut Vec<Issue>,
+) {
+    use manifest::Collapse;
+    let subject = format!("view:{}/{}", class.class, view.id);
+    let mut regions: BTreeSet<String> = BTreeSet::new();
+    let mut edges_in: Vec<&str> = Vec::new();
+    for document in documents {
+        let Some(value) = &document.value else {
+            continue;
+        };
+        let graph =
+            crate::graph::read_with_aliases(class, &document.path, value, &manifest.blocks.aliases);
+        let shown: BTreeMap<&str, &crate::graph::Part> = graph
+            .parts
+            .iter()
+            .filter(|p| {
+                view.blocks.is_empty() || p.block.as_ref().is_some_and(|b| view.blocks.contains(b))
+            })
+            .map(|p| (p.id.as_str(), p))
+            .collect();
+        let held: BTreeSet<&str> = shown
+            .values()
+            .filter_map(|p| p.inside.as_deref().filter(|h| *h != p.id))
+            .filter(|h| shown.contains_key(h))
+            .collect();
+        regions.extend(held.iter().map(|h| h.to_string()));
+        if let Some(part) = shown.get(manifest::REGION_EDGES)
+            && held.contains(manifest::REGION_EDGES)
+        {
+            let collapsed = match collapse {
+                Collapse::Every(_) => !part
+                    .inside
+                    .as_deref()
+                    .is_some_and(|h| h != part.id && shown.contains_key(h)),
+                Collapse::Parts(ids) => ids.iter().any(|id| id == manifest::REGION_EDGES),
+                Collapse::Blocks(c) => part.block.as_ref().is_some_and(|b| c.blocks.contains(b)),
+            };
+            if collapsed {
+                edges_in.push(document.path.as_str());
+            }
+        }
+    }
+    if let Collapse::Parts(ids) = collapse {
+        for id in ids {
+            if !regions.contains(id) {
+                warnings.push(Issue::new(
+                    "view_unknown_collapse",
+                    &subject,
+                    format!(
+                        "the view collapses {id}, which is a region (a part other parts sit in) of no document of the class"
+                    ),
+                ));
+            }
+        }
+    }
+    if !edges_in.is_empty() {
+        warnings.push(Issue::new(
+            "view_region_edges",
+            &subject,
+            format!(
+                "the view would collapse the region {} of {}; it stays expanded, since its view would take the id {}/{}",
+                manifest::REGION_EDGES,
+                edges_in.join(", "),
+                view.id,
+                manifest::REGION_EDGES
+            ),
+        ));
+    }
+}
+
 fn read_class(
     root: &Path,
     class: &DocumentClass,

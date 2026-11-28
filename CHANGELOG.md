@@ -23,8 +23,15 @@
   (held for the three real packs). A block of `collapse.blocks` the blocks do not have is a
   `view_unknown_block` warning. In `spec/`, `View` has the field `collapse`
   (`metaspec.documents.Collapse`). The fixture pack harbor has the view `quays` with `collapse:
-  { blocks: [quay] }`. The region of the view `<id>/<region>` is its id after the view's; a
-  region named `edges` in a view with hubs shares the id of its `<id>/edges`.
+  { blocks: [quay] }`, and its plan `cove` a second link from the skiff to the other berth of its
+  quay, so a fixture scene rolls two links into one (`moors at ×2`). A rolled-up link to a hub is
+  a badge with the same `count`, `links` and `×<n>` label, and the marks of the findings of its
+  links (`metaspec-scene/1`: a badge's `count` and `links`); whether a view has its `<id>/edges`
+  is decided on the links after the roll-up, as the drawing decides it. A part whose id is
+  `edges` is never collapsed, with or without hubs (its view would take the id `<id>/edges`);
+  `metaspec pack check` names it, `view_region_edges`. An id of `collapse: [...]` that is a region
+  of no document of the class (no part has it, or parts are only `per` it) is a
+  `view_unknown_collapse` warning.
 - A manifest may say which block a part's block word stands for: `blocks.aliases: { <word>:
   <block> }`, optional; the format stays `metaspec-pack/1`. The graph of a document's page
   (`graph::read_with_aliases`, called where the docs read a document) carries the block of an

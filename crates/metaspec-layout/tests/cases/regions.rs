@@ -350,6 +350,48 @@ fn region_view_holds_the_region_and_its_parts_and_the_box_names_it() {
     );
 }
 
+#[test]
+fn region_named_edges_stays_expanded_with_and_without_hubs() {
+    for hubs in ["", ", hubs: { parts: [f] }"] {
+        for collapse in ["[edges]", "all", "{ blocks: [kilo] }"] {
+            let views =
+                format!("{{ id: v, title: V, layout: LAYOUT{hubs}, collapse: {collapse} }}");
+            for (l, c) in layouts(&views) {
+                let g = graph_of(
+                    &c,
+                    json!({
+                        "edges": { "block": "kilo" },
+                        "a": { "block": "lima", "in": "edges" },
+                        "b": { "block": "lima", "in": "edges" },
+                        "f": { "block": "mike" },
+                    }),
+                    json!([
+                        { "from": "a", "to": "f", "carries": "x" },
+                        { "from": "b", "to": "f", "carries": "x" },
+                    ]),
+                    &[],
+                );
+                let views = views_of(&c, &g);
+                let all = ids(&views);
+                assert!(
+                    views.iter().all(|v| v.region.is_none()),
+                    "{l:?} {collapse}{hubs}: no view of the region: {all:?}"
+                );
+                let mut unique = all.clone();
+                unique.sort_unstable();
+                unique.dedup();
+                assert_eq!(unique.len(), all.len(), "{l:?}: {all:?}");
+                let s = layout(&g, &views[0], &Style::default(), &[]);
+                assert!(
+                    s.boxes.iter().all(|b| b.collapsed.is_none()),
+                    "{l:?} {collapse}{hubs}: edges stays expanded"
+                );
+                assert_eq!(part_ids(&s), ["edges", "a", "b", "f"].into(), "{l:?}");
+            }
+        }
+    }
+}
+
 fn finding(subject: &str) -> Finding {
     Finding {
         rule: String::from("q"),

@@ -115,11 +115,13 @@
           "from": { "description": "The id of the box the badge is drawn on, the link's caller.", "type": "string" },
           "to": { "description": "The id of the hub's box.", "type": "string" },
           "carries": { "type": "string" },
-          "label": { "description": "The hub and the link's name in the pack's words.", "type": "string" },
+          "label": { "description": "The hub and the link's name in the pack's words, and `×<n>` for a rolled-up link standing for two links or more.", "type": "string" },
           "at": { "$ref": "#/$defs/rect" },
           "added_by": { "type": "string" },
           "findings": { "$ref": "#/$defs/numbers" },
-          "title": { "type": "string" }
+          "title": { "type": "string" },
+          "count": { "description": "For a badge of a link across the border of a collapsed region: the number of links it stands for. Absent for any other badge.", "type": "integer", "minimum": 1 },
+          "links": { "description": "For a badge of a link across the border of a collapsed region: the ids of the links it stands for. Absent for any other badge.", "type": "array", "minItems": 1, "items": { "type": "string" } }
         }
       }
     },

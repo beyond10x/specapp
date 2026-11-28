@@ -5,12 +5,12 @@
   "front_matter": {
     "title": "cove",
     "sidebar_label": "cove",
-    "description": "An invented small cove with one quay and two berths.",
-    "lede": "An invented small cove with one quay and two berths.",
+    "description": "An invented small cove with one quay and two berths; its skiff moors at either.",
+    "lede": "An invented small cove with one quay and two berths; its skiff moors at either.",
     "kicker": "Harbor plans",
     "source": "harbors/cove.yaml"
   },
-  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 4 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 5 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Quays folded\n\nLayout `rows`: 3 parts, 2 links, 0 finding marks. 1 region drawn collapsed: it is one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.\n\n<GraphView data={page.data[\"scene-3\"]} presentation={site.presentation} />\n\n## Quays folded: region north\\_quay\n\nLayout `rows`: 3 parts, 0 links, 0 finding marks.\n\n<GraphView data={page.data[\"scene-4\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## KPIs\n\n4 KPIs the pack's tool measured on the document as written, with what the [KPI catalogue](../kpis.mdx) says of each.\n\n| KPI | value | unit | what it measures |\n|---|---|---|---|\n| [`berth_idle_share`](../blocks/1-shore/berth.mdx#kpis) | 0.5 | share | Share of the day a berth holds no vessel. |\n| [`vessel_unmoored_count`](../blocks/2-craft/vessel.mdx#kpis) | 0 | count | Vessels in the harbor that are moored at no berth. |\n| [`crane_lift_rate`](../blocks/planned.mdx#crane) | 0 | count | Loads a crane lifts per hour. The crane block is planned. |\n| `pilot_boardings` | 2 | – | not in the KPI catalogue |\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `north_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `berth_a` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `berth_b` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `skiff` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 1m |\n| `tug_one` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `skiff` | `moors at` | `berth_a` | – |\n| `tug_one` | `guides` | `skiff` | – |\n\n## Border\n\nThe parts on the border of the document: `skiff`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
+  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 4 parts, 2 links, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 5 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Quays folded\n\nLayout `rows`: 3 parts, 2 links, 0 finding marks. 1 region drawn collapsed: it is one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.\n\n<GraphView data={page.data[\"scene-3\"]} presentation={site.presentation} />\n\n## Quays folded: region north\\_quay\n\nLayout `rows`: 3 parts, 0 links, 0 finding marks.\n\n<GraphView data={page.data[\"scene-4\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## KPIs\n\n4 KPIs the pack's tool measured on the document as written, with what the [KPI catalogue](../kpis.mdx) says of each.\n\n| KPI | value | unit | what it measures |\n|---|---|---|---|\n| [`berth_idle_share`](../blocks/1-shore/berth.mdx#kpis) | 0.5 | share | Share of the day a berth holds no vessel. |\n| [`vessel_unmoored_count`](../blocks/2-craft/vessel.mdx#kpis) | 0 | count | Vessels in the harbor that are moored at no berth. |\n| [`crane_lift_rate`](../blocks/planned.mdx#crane) | 0 | count | Loads a crane lifts per hour. The crane block is planned. |\n| `pilot_boardings` | 2 | – | not in the KPI catalogue |\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `north_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `berth_a` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `berth_b` | [berth](../blocks/1-shore/berth.mdx) | in `north_quay` | `within` north\\_quay |\n| `skiff` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 1m |\n| `tug_one` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `skiff` | `moors at` | `berth_a` | – |\n| `skiff` | `moors at` | `berth_b` | – |\n| `tug_one` | `guides` | `skiff` | – |\n\n## Border\n\nThe parts on the border of the document: `skiff`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
   "components": [
     "GraphView"
   ],
@@ -137,6 +137,31 @@
           },
           "findings": [],
           "title": "skiff->berth_a:moors_at"
+        },
+        {
+          "id": "skiff->berth_b:moors_at",
+          "from": "skiff",
+          "to": "berth_b",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              332.0,
+              61.7
+            ],
+            [
+              274.0,
+              75.8
+            ]
+          ],
+          "label_at": {
+            "x": 272.4,
+            "y": 117.0,
+            "w": 61.3,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "skiff->berth_b:moors_at"
         }
       ],
       "marks": [],
@@ -439,7 +464,7 @@
           "from": "skiff",
           "to": "north_quay",
           "carries": "moors_at",
-          "label": "moors at",
+          "label": "moors at ×2",
           "points": [
             [
               72.0,
@@ -455,16 +480,17 @@
             ]
           ],
           "label_at": {
-            "x": 55.4,
+            "x": 47.2,
             "y": 134.0,
-            "w": 61.3,
+            "w": 77.6,
             "h": 18.0
           },
           "findings": [],
-          "title": "1 link across the border of a collapsed region:\nskiff->berth_a:moors_at",
-          "count": 1,
+          "title": "2 links across the border of a collapsed region:\nskiff->berth_a:moors_at\nskiff->berth_b:moors_at",
+          "count": 2,
           "links": [
-            "skiff->berth_a:moors_at"
+            "skiff->berth_a:moors_at",
+            "skiff->berth_b:moors_at"
           ]
         },
         {
