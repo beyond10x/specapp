@@ -1,0 +1,574 @@
+domain: metaspec.packs
+
+summary: >-
+  A pack: a repository described by a manifest metaspec holds or is given (metaspec-pack/1), the
+  adapter that runs the pack's own tool and maps its answer, the trust a user gives to the tool
+  a manifest names, and the features of metaspec a pack cannot use yet.
+
+naming:
+  wire: packs
+  display: Packs
+
+types:
+  - name: metaspec.packs.PackName
+    kind: newtype
+    of: String
+    naming:
+      summary: >-
+        The manifest's `pack`, `^[a-z][a-z0-9-]*$` in schema/metaspec-pack-1.schema.json. Not
+        written as an `alphabet:`: ess 0.99.9 synthesis then places no provided Pack row as a
+        fixture (ESS-SYNTH-004).
+
+  - name: metaspec.packs.PackDirectory
+    kind: newtype
+    of: String
+    naming:
+      summary: A pack directory, resolved. Where a pack is checked out is given when metaspec is started; trust belongs to the directory.
+
+  - name: metaspec.packs.GapId
+    kind: newtype
+    of: Uuid
+
+  - name: metaspec.packs.ToolDigest
+    kind: newtype
+    of: String
+    prefix: "sha256:"
+    naming:
+      summary: "`sha256:` and the SHA-256 of the JSON of the manifest's `tool` section (metaspec-trust/1)."
+
+  - name: metaspec.packs.Visibility
+    kind: enum
+    variants: [public, private]
+
+  - name: metaspec.packs.ManifestSource
+    kind: enum
+    naming:
+      summary: >-
+        Where the manifest of a pack is read from (owner, 2026-11-28): metaspec holds the
+        manifest of a public pack it knows (`packs/<name>.yaml`); a private pack's manifest is
+        given by path at run time. A pack knows nothing of metaspec.
+    variants: [held, given]
+
+  - name: metaspec.packs.Verb
+    kind: enum
+    naming:
+      summary: A verb of the pack's tool, mapped by the manifest under `tool.verbs`.
+    variants: [graph, check, simulate, search, apply]
+
+  - name: metaspec.packs.AdoptionLevel
+    kind: enum
+    ordered: true
+    naming:
+      summary: >-
+        Levels of adoption, cheapest first: L0 blocks, L1 KPIs, L2 documents, L3 check, L4 runs,
+        L5 edit. A pack is at the highest level its manifest declares.
+    variants: [L0, L1, L2, L3, L4, L5]
+
+  - name: metaspec.packs.FeatureKind
+    kind: enum
+    naming:
+      summary: What kind of feature of metaspec a gap names.
+    variants: [screen, measure, verb]
+
+  - name: metaspec.packs.Colour
+    kind: enum
+    naming:
+      summary: A colour of metaspec's palette; a pack never writes a colour value.
+    variants: [blue, violet, green, teal, amber, orange, red, pink, cyan, lime, brown, slate]
+
+  - name: metaspec.packs.Family
+    kind: struct
+    naming:
+      summary: Blocks drawn under one colour and one icon.
+    fields:
+      - name: blocks
+        type: List<String>
+      - name: colour
+        type: metaspec.packs.Colour
+      - name: icon
+        type: String
+
+  - name: metaspec.packs.Presentation
+    kind: struct
+    fields:
+      - name: families
+        type: Map<String, metaspec.packs.Family>
+      - name: vocabulary
+        type: Map<String, String>
+        summary: Display words for block names and link names; the identifier stays visible.
+
+  # The adapter of a verb (metaspec-pack/1 `tool.verbs`, crates/metaspec-core/src/adapter.rs):
+  # metaspec runs `<tool.run> <args> <document>` in the pack directory, reads stdout as JSON and
+  # maps the result onto metaspec-findings/1. `check` is the only verb metaspec-pack/1 gives an
+  # adapter; the other verbs get theirs when the format adds them.
+  - name: metaspec.packs.Pointer
+    kind: newtype
+    of: String
+    naming:
+      summary: >-
+        A JSON pointer (RFC 6901), empty for the whole value, else starting with a slash
+        (`^(/.*)?$` in the schema; not written as an `alphabet:`, like PackName).
+
+  - name: metaspec.packs.Template
+    kind: newtype
+    of: String
+    naming:
+      summary: >-
+        A text in which `{<JSON pointer>}` stands for the text at that pointer in one entry of
+        the answer (a number or a boolean written out); any other character is kept.
+
+  - name: metaspec.packs.Test
+    kind: struct
+    naming:
+      summary: A truth read from the answer, the boolean at `at`, or whether the value at `at` equals `equals`.
+    fields:
+      - {name: at, type: metaspec.packs.Pointer}
+      - {name: equals, type: Optional<Json>}
+
+  - name: metaspec.packs.Gate
+    kind: union
+    tag: kind
+    naming:
+      summary: >-
+        Whether a finding of a list is gated, always, never, or as a test of the entry says.
+        The manifest writes it untagged (a boolean or a test); ESS writes every union tagged.
+    variants:
+      always: Boolean
+      when: metaspec.packs.Test
+
+  - name: metaspec.packs.SubjectKind
+    kind: enum
+    variants: [part, link, document]
+
+  - name: metaspec.packs.UnknownSubject
+    kind: enum
+    naming:
+      summary: >-
+        What an id the drawn graph does not have becomes. keep, it stays a part or a link (the
+        default); document, the finding is about the document, the id put before the message
+        unless it is the document's name.
+    variants: [keep, document]
+
+  - name: metaspec.packs.SubjectRule
+    kind: struct
+    naming:
+      summary: >-
+        The subject of a finding from an entry, the id of a part or a link. With
+        `link_when_contains`, an id that contains the text is a link and any other a part; with
+        `kind`, the template's value is looked up in `kinds` (a value not listed, the document);
+        with neither, a part. An empty id is the document. `link_when_contains` and `kind`
+        exclude each other, and `kind` comes with `kinds`.
+    fields:
+      - {name: id, type: metaspec.packs.Template}
+      - {name: link_when_contains, type: Optional<String>}
+      - {name: kind, type: Optional<metaspec.packs.Template>}
+      - {name: kinds, type: "Map<String, metaspec.packs.SubjectKind>"}
+      - {name: unknown, type: metaspec.packs.UnknownSubject}
+
+  - name: metaspec.packs.FindingSubject
+    kind: union
+    tag: kind
+    naming:
+      summary: >-
+        What the findings of a list are about, always the document or a rule over the entry.
+        The manifest writes `document` or a subject rule untagged.
+    variants:
+      document:
+      rule: metaspec.packs.SubjectRule
+
+  - name: metaspec.packs.FindingList
+    kind: struct
+    naming:
+      summary: One list of findings in the result and how one entry maps to a metaspec-findings/1 finding.
+    fields:
+      - name: at
+        type: metaspec.packs.Pointer
+        summary: The list, relative to the result; a list the answer leaves out is empty.
+      - {name: rule, type: metaspec.packs.Template}
+      - {name: gate, type: metaspec.packs.Gate}
+      - {name: message, type: metaspec.packs.Template}
+      - {name: subject, type: metaspec.packs.FindingSubject}
+
+  - name: metaspec.packs.CheckAdapter
+    kind: struct
+    naming:
+      summary: >-
+        How metaspec checks one document with the pack's tool and reads the answer. A text at
+        `error` refuses the run with it whatever the exit code; an exit code outside `exit` is no
+        answer; no JSON on stdout, or nothing at `at`, fails the run.
+    fields:
+      - name: args
+        type: List<String>
+        summary: The arguments after `tool.run`; the document's path is appended.
+      - name: exit
+        type: Optional<List<Integer>>
+        summary: The exit codes that come with an answer; absent, 0 alone.
+      - name: at
+        type: metaspec.packs.Pointer
+        summary: Where the document's result is in the answer; every other pointer is relative to it.
+      - {name: error, type: Optional<metaspec.packs.Pointer>}
+      - name: valid
+        type: Optional<metaspec.packs.Test>
+        summary: Whether the document is valid; absent, valid when no finding is gated.
+      - name: counts
+        type: Optional<metaspec.packs.Pointer>
+        summary: A mapping from a rule to a count; left out of the answer, no counts.
+      - name: findings
+        type: List<metaspec.packs.FindingList>
+        summary: The lists of findings, in the order they are shown.
+
+entities:
+  - name: metaspec.packs.Pack
+    naming:
+      summary: >-
+        A pack as its manifest describes it. Read from files and cached by the digest of its
+        sources; no command creates one.
+    provided: true
+    identity:
+      name: pack
+      type: metaspec.packs.PackName
+    fields:
+      - name: title
+        type: String
+      - name: summary
+        type: Optional<String>
+      - name: visibility
+        type: metaspec.packs.Visibility
+      - name: source_url
+        type: Optional<String>
+      - name: extends
+        type: Optional<metaspec.packs.PackName>
+        summary: The public pack a private pack builds on. The public pack never names the private one.
+      - name: manifest
+        type: metaspec.packs.ManifestSource
+      - name: directory
+        type: metaspec.packs.PackDirectory
+        summary: >-
+          The resolved directory the pack is loaded from, given when metaspec is started. The
+          trust of the pack's tool is the Trust row of this directory; none, not trusted.
+      - name: blocks_path
+        type: String
+      - name: strip_prefix
+        type: Optional<String>
+      - name: declares_kpis
+        type: Boolean
+        summary: The manifest has a `kpis` section.
+      - name: declares_documents
+        type: Boolean
+        summary: The manifest declares at least one document class.
+      - name: tool_run
+        type: List<String>
+        summary: The argv prefix of the pack's tool; empty when the manifest names no tool.
+      - name: tool_verbs
+        type: List<metaspec.packs.Verb>
+        summary: The verbs the manifest declares under `tool.verbs`.
+      - name: check_adapter
+        type: Optional<metaspec.packs.CheckAdapter>
+        summary: The adapter of `tool.verbs.check`; present exactly when `check` is a verb of the tool.
+      - name: tool_digest
+        type: Optional<metaspec.packs.ToolDigest>
+        summary: The digest of the manifest's `tool` section; absent without a tool.
+      - name: presentation
+        type: Optional<metaspec.packs.Presentation>
+      - name: level
+        type: metaspec.packs.AdoptionLevel
+        summary: Derived from the manifest; the invariants below are the derivation.
+    invariants:
+      - {any: [{exists: {in: tool_verbs, as: v, that: v == check}}, not defined(check_adapter)]}
+      - {any: [{not: {exists: {in: tool_verbs, as: v, that: v == check}}}, defined(check_adapter)]}
+      - {any: [{not: {exists: {in: tool_verbs, as: v, that: v == apply}}}, level == L5]}
+      - any:
+          - {exists: {in: tool_verbs, as: v, that: v == apply}}
+          - {not: {exists: {in: tool_verbs, as: v, that: {v: [simulate, search]}}}}
+          - level == L4
+      - any:
+          - {exists: {in: tool_verbs, as: v, that: {v: [apply, simulate, search]}}}
+          - {not: {exists: {in: tool_verbs, as: v, that: v == check}}}
+          - level == L3
+      - any:
+          - {exists: {in: tool_verbs, as: v, that: {v: [apply, simulate, search, check]}}}
+          - declares_documents == false
+          - level == L2
+      - any:
+          - {exists: {in: tool_verbs, as: v, that: {v: [apply, simulate, search, check]}}}
+          - declares_documents == true
+          - declares_kpis == false
+          - level == L1
+      - any:
+          - {exists: {in: tool_verbs, as: v, that: {v: [apply, simulate, search, check]}}}
+          - declares_documents == true
+          - declares_kpis == true
+          - level == L0
+      # metaspec holds only public packs' manifests; a private pack's manifest is given by path.
+      - {any: [visibility == public, manifest == given]}
+      # `extends` is how a private pack names the public pack it builds on, so a pack with
+      # `extends` is private. Not declared: with `{any: [not defined(extends), visibility ==
+      # private]}` the spec validates, but ess 0.99.9's interpreted target then mints no
+      # provided Pack row that meets the invariants (ESS-CF-TARGET on 15 scenarios). Held by
+      # the manifest loader.
+    relations:
+      - name: extends
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: extends
+      - name: trust
+        kind: references
+        target: metaspec.packs.Trust
+        cardinality: one
+        via: directory
+      - name: gaps
+        kind: owns
+        target: metaspec.packs.Gap
+        cardinality: many
+        via: pack
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.packs.Gap
+    naming:
+      summary: >-
+        A feature metaspec offers for every pack that this pack cannot use yet (owner,
+        2026-11-28: whatever metaspec does for one pack it offers for every pack; per-pack gaps
+        are listed).
+    provided: true
+    # D2 "one gap per pack and feature" is not declared: ESS declares a uniqueness over rows as
+    # a row-set guard of the command that creates them, and no command creates a Gap
+    # (provided); an invariant reads one row. A struct identity (pack, kind, feature) would be
+    # the uniqueness, but ess 0.99.9 then refuses the relation `gaps` (ESS-ENTITY-005: `pack`
+    # is no field of Gap) and the Gaps view filter (ESS-VIEW-003). Held by the loader.
+    identity:
+      name: gap_id
+      type: metaspec.packs.GapId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: needs
+        type: metaspec.packs.AdoptionLevel
+        summary: The level whose feature the pack lacks.
+      - name: kind
+        type: metaspec.packs.FeatureKind
+      - name: feature
+        type: String
+        summary: The feature's id, such as a screen's name, a measure's id or a verb; one gap per pack and feature.
+      - name: summary
+        type: String
+    lifecycle:
+      initial: Listed
+      states: [Listed]
+      terminal: [Listed]
+
+  - name: metaspec.packs.Trust
+    naming:
+      summary: >-
+        The user trusts the tool a pack directory's manifest names (metaspec-trust/1). Trust
+        belongs to the directory, not to a manifest file; a changed `tool` section asks again.
+    identity:
+      name: directory
+      type: metaspec.packs.PackDirectory
+    fields:
+      - name: tool_digest
+        type: metaspec.packs.ToolDigest
+    lifecycle:
+      initial: Trusted
+      states: [Trusted]
+      terminal: [Trusted]
+
+actors:
+  - name: metaspec.packs.User
+    naming:
+      display: User
+    may:
+      - metaspec.packs.TrustPack
+      - metaspec.packs.UntrustPack
+      - metaspec.drafts.OpenDraft
+      - metaspec.drafts.ApplyPatch
+      - metaspec.drafts.DryRunPatch
+      - metaspec.drafts.SaveDraft
+      - metaspec.drafts.AcceptVariant
+      - metaspec.checks.CheckRevision
+      - metaspec.runs.StartRun
+      - metaspec.agents.TurnOnChannel
+      - metaspec.agents.TurnOffChannel
+      - metaspec.agents.TurnOnChannelAgain
+      - metaspec.agents.StartSession
+      - metaspec.agents.EndSession
+
+errors:
+  - name: metaspec.packs.NotTrusted
+    summary: The directory holds no trust, so nothing was removed.
+    fields:
+      - name: directory
+        type: metaspec.packs.PackDirectory
+  - name: metaspec.packs.NoSuchPack
+    summary: No loaded pack has this name; nothing was trusted.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.packs.NotThePacksDirectory
+    summary: The pack is not loaded from this directory; nothing was trusted.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: directory, type: metaspec.packs.PackDirectory}
+  - name: metaspec.packs.NoTool
+    summary: The pack's manifest names no tool, so there is nothing to trust.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+  - name: metaspec.packs.NotThePacksDigest
+    summary: The digest is not the one of the pack's `tool` section (it changed, or the caller made it up); nothing was trusted.
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: tool_digest, type: metaspec.packs.ToolDigest}
+
+commands:
+  - name: metaspec.packs.TrustPack
+    naming:
+      wire: trust
+      display: Trust a pack's tool
+      summary: >-
+        Record the digest of the `tool` section of the manifest of the pack loaded from a
+        directory (`metaspec trust <name> --pack <dir>`). The digest is the pack's: a digest the
+        pack's manifest does not have is refused.
+    input:
+      - name: directory
+        type: metaspec.packs.PackDirectory
+      - name: pack
+        type: metaspec.packs.PackName
+        summary: The pack loaded from the directory.
+      - name: tool_digest
+        type: metaspec.packs.ToolDigest
+        summary: >-
+          The digest of the tool section the user was shown, held to the pack's own by the
+          refusal other-digest (ess 0.99.9 reads no `Optional` related field into a required
+          one, so it is not copied from the pack).
+    outcomes:
+      - name: no-pack
+        when_related: {via: input.pack, exists: false}
+        error: metaspec.packs.NoSuchPack
+        payload:
+          metaspec.packs.NoSuchPack: {pack: input.pack}
+      # The three refusals below compare the pack's own fields (directory, tool_digest) with the
+      # input. Written as `when_related: {via: input.pack, predicate: …}` they validate, but ess
+      # 0.99.9 synthesis writes no scenario for a guard over a provided row's fields
+      # (ESS-SYNTH-004, for each of them and for `retrusted`), so they are external refusals.
+      - name: other-directory
+        external: the pack is not loaded from this directory (Pack.directory differs)
+        error: metaspec.packs.NotThePacksDirectory
+        payload:
+          metaspec.packs.NotThePacksDirectory: {pack: input.pack, directory: input.directory}
+      - name: no-tool
+        external: the pack's manifest names no tool (Pack.tool_digest is absent)
+        error: metaspec.packs.NoTool
+        payload:
+          metaspec.packs.NoTool: {pack: input.pack}
+      - name: other-digest
+        external: the digest is not the pack's (Pack.tool_digest differs; the tool section changed since the user was shown it)
+        error: metaspec.packs.NotThePacksDigest
+        payload:
+          metaspec.packs.NotThePacksDigest: {pack: input.pack, tool_digest: input.tool_digest}
+      - name: trusted
+        unknown_instance: true
+        creates: metaspec.packs.Trust
+        instance: directory
+        sets:
+          tool_digest: input.tool_digest
+        emits: [metaspec.packs.PackTrusted]
+        payload:
+          metaspec.packs.PackTrusted:
+            directory: input.directory
+            tool_digest: input.tool_digest
+        summary: The directory had no trust; it now trusts the pack's tool section.
+      - name: retrusted
+        updates: metaspec.packs.Trust
+        instance: directory
+        sets:
+          tool_digest: input.tool_digest
+        emits: [metaspec.packs.PackTrusted]
+        payload:
+          metaspec.packs.PackTrusted:
+            directory: input.directory
+            tool_digest: input.tool_digest
+        summary: The directory trusted a tool section; it now trusts the pack's current one.
+
+  # `metaspec trust --remove <name> --pack <dir>` (design/metaspec.md "The tool adapter").
+  - name: metaspec.packs.UntrustPack
+    naming:
+      wire: untrust
+      display: Withdraw trust
+    input:
+      - name: directory
+        type: metaspec.packs.PackDirectory
+    outcomes:
+      - name: untrusted
+        deletes: metaspec.packs.Trust
+        instance: directory
+        emits: [metaspec.packs.PackUntrusted]
+        payload:
+          metaspec.packs.PackUntrusted:
+            directory: input.directory
+      - name: not-trusted
+        unknown_instance: true
+        error: metaspec.packs.NotTrusted
+        payload:
+          metaspec.packs.NotTrusted:
+            directory: input.directory
+
+events:
+  - name: metaspec.packs.PackTrusted
+    fields:
+      - name: directory
+        type: metaspec.packs.PackDirectory
+      - name: tool_digest
+        type: metaspec.packs.ToolDigest
+
+  - name: metaspec.packs.PackUntrusted
+    fields:
+      - name: directory
+        type: metaspec.packs.PackDirectory
+
+views:
+  - name: metaspec.packs.Packs
+    source: metaspec.packs.Pack
+    consistency: read_your_writes
+    naming:
+      wire: packs
+      display: Packs
+    fields:
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: title, type: String}
+      - {name: visibility, type: metaspec.packs.Visibility}
+      - {name: extends, type: Optional<metaspec.packs.PackName>}
+      - {name: level, type: metaspec.packs.AdoptionLevel}
+      - {name: directory, type: metaspec.packs.PackDirectory}
+      - {name: tool_digest, type: Optional<metaspec.packs.ToolDigest>}
+      # A field `trusted_digest: {related: {via: directory, field: tool_digest}}` would show a
+      # changed tool section beside the pack; ess 0.99.9 synthesis refuses its witness
+      # (ESS-SYNTH-001: no branch creates the provided Pack), so the Trusts view is read beside.
+
+  - name: metaspec.packs.Gaps
+    source: metaspec.packs.Gap
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: gaps
+      display: What a pack cannot use yet
+    fields:
+      - {name: gap_id, type: metaspec.packs.GapId}
+      - {name: needs, type: metaspec.packs.AdoptionLevel}
+      - {name: kind, type: metaspec.packs.FeatureKind}
+      - {name: feature, type: String}
+      - {name: summary, type: String}
+
+  - name: metaspec.packs.Trusts
+    source: metaspec.packs.Trust
+    consistency: read_your_writes
+    naming:
+      wire: trusts
+      display: Trusted pack directories
+    fields:
+      - {name: directory, type: metaspec.packs.PackDirectory}
+      - {name: tool_digest, type: metaspec.packs.ToolDigest}
+      - {name: state, type: metaspec.packs.Trust.State}

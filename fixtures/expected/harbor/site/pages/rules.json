@@ -1,0 +1,13 @@
+{
+  "format": "metaspec-page/1",
+  "id": "rules",
+  "kind": "rules",
+  "front_matter": {
+    "title": "Rules",
+    "sidebar_label": "Rules",
+    "description": "Every rule the tool of Harbor reports across its documents, with the documents that break it."
+  },
+  "markdown": "The pack's tool checked 3 of 3 drawn documents. A rule appears here once a document breaks it; a pack with a broken example per rule shows that each rule can refuse.\n\n| rule | gate | documents that break it |\n|---|---|---|\n| `berth_without_quay` | gate | [inlet](./plan/inlet.mdx) (1) |\n| `border_names_nothing` | not gated | [reef](./plan/reef.mdx) (1) |\n| `mooring_without_berth` | gate | [reef](./plan/reef.mdx) (1) |\n| `vessel_without_berth` | gate | [reef](./plan/reef.mdx) (1) |\n",
+  "components": [],
+  "data": {}
+}

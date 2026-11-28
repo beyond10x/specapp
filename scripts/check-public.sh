@@ -11,10 +11,10 @@
 #   address   no IPv4 address outside 127.0.0.0/8, 0.0.0.0 and the documentation ranges
 #   deny      no term of the deny list, in a file or in a file name
 #
-# The deny list is the file SPECAPP_DENYLIST names. It lives outside this repository. One term
+# The deny list is the file METASPEC_DENYLIST names. It lives outside this repository. One term
 # per line, matched as fixed text without regard to case. A line starting with `=` matches the
 # term only as a whole word. Empty lines and lines starting with `#` are skipped. With
-# SPECAPP_DENYLIST unset (CI, a build node) the deny check is skipped and the last line says so.
+# METASPEC_DENYLIST unset (CI, a build node) the deny check is skipped and the last line says so.
 #
 # A finding prints `<check> <file>:<line>`. The matched text is printed only with --show, so a
 # log of this script names no term of the deny list.
@@ -88,11 +88,11 @@ done < "$tmp/files" \
   | report address || true
 
 # deny
-deny_note="no deny list (SPECAPP_DENYLIST is not set)"
-if [ -n "${SPECAPP_DENYLIST:-}" ]; then
-  [ -r "$SPECAPP_DENYLIST" ] || { echo "check-public: cannot read the deny list" >&2; exit 2; }
-  grep -v -e '^[[:space:]]*$' -e '^#' "$SPECAPP_DENYLIST" | grep -v '^=' > "$tmp/sub" || true
-  grep '^=' "$SPECAPP_DENYLIST" | sed 's/^=//' | grep -v '^[[:space:]]*$' > "$tmp/word" || true
+deny_note="no deny list (METASPEC_DENYLIST is not set)"
+if [ -n "${METASPEC_DENYLIST:-}" ]; then
+  [ -r "$METASPEC_DENYLIST" ] || { echo "check-public: cannot read the deny list" >&2; exit 2; }
+  grep -v -e '^[[:space:]]*$' -e '^#' "$METASPEC_DENYLIST" | grep -v '^=' > "$tmp/sub" || true
+  grep '^=' "$METASPEC_DENYLIST" | sed 's/^=//' | grep -v '^[[:space:]]*$' > "$tmp/word" || true
   terms=$(( $(wc -l < "$tmp/sub") + $(wc -l < "$tmp/word") ))
   [ "$terms" -gt 0 ] || { echo "check-public: the deny list has no term" >&2; exit 2; }
   if [ -s "$tmp/sub" ]; then

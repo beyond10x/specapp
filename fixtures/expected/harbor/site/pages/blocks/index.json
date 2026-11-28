@@ -1,0 +1,172 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/index",
+  "kind": "layer-map",
+  "front_matter": {
+    "title": "Building blocks",
+    "sidebar_label": "Layer map",
+    "description": "Every building block of Harbor, by layer, with the blocks it depends on.",
+    "lede": "5 blocks in 3 layers. Each block is a contract of commands, events and views.",
+    "source": "blocks/",
+    "hide_table_of_contents": true
+  },
+  "markdown": "The blocks declare 4 entities, 8 commands and 8 events. An arrow points from a block to a block it depends on; point at a block to see what it uses and what uses it.\n\n<LayerMap data={page.data[\"map\"]} presentation={site.presentation} />\n\n## Every block\n\n| layer | block | what it is | depends on | KPIs |\n|---|---|---|---|---|\n| **2** craft | [tug](./2-craft/tug.mdx) | Tows a vessel between the open water and its berth. | [vessel](./2-craft/vessel.mdx) | 1 |\n|  | [vessel](./2-craft/vessel.mdx) | A craft that comes in, moors at a berth and leaves. | [berth](./1-shore/berth.mdx) | 1 |\n| **1** shore | [berth](./1-shore/berth.mdx) | A place at a quay where one vessel moors. | [quay](./1-shore/quay.mdx) | 1 |\n|  | [quay](./1-shore/quay.mdx) | A stretch of shore where berths are laid out. | – | 0 |\n| **0** bedrock | [ledger](./0-bedrock/ledger.mdx) | Identifiers of every entity of the harbor blocks. | – | 0 |\n\n## Planned blocks\n\nThe KPI catalogue already measures blocks the blocks do not declare yet: [crane](./planned.mdx#crane). See [planned blocks](./planned.mdx).\n",
+  "components": [
+    "LayerMap"
+  ],
+  "data": {
+    "map": {
+      "width": 980.0,
+      "height": 388.0,
+      "rows": [
+        {
+          "layer": 2,
+          "name": "craft",
+          "y": 6.0,
+          "h": 92.0
+        },
+        {
+          "layer": 1,
+          "name": "shore",
+          "y": 148.0,
+          "h": 92.0
+        },
+        {
+          "layer": 0,
+          "name": "bedrock",
+          "y": 290.0,
+          "h": 92.0
+        }
+      ],
+      "blocks": [
+        {
+          "name": "ledger",
+          "label": "ledger",
+          "layer": 0,
+          "summary": "Identifiers of every entity of the harbor blocks.",
+          "route": "/blocks/0-bedrock/ledger",
+          "kpis": 0,
+          "entities": 0,
+          "commands": 0,
+          "events": 0,
+          "views": 0,
+          "uses": [],
+          "used_by": [],
+          "band": false,
+          "x": 134.0,
+          "y": 290.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "quay",
+          "label": "quay",
+          "layer": 1,
+          "summary": "A stretch of shore where berths are laid out.",
+          "route": "/blocks/1-shore/quay",
+          "kpis": 0,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [],
+          "used_by": [
+            "berth"
+          ],
+          "band": false,
+          "x": 134.0,
+          "y": 148.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "berth",
+          "label": "berth",
+          "layer": 1,
+          "summary": "A place at a quay where one vessel moors.",
+          "route": "/blocks/1-shore/berth",
+          "kpis": 1,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "quay"
+          ],
+          "used_by": [
+            "vessel"
+          ],
+          "band": false,
+          "x": 557.0,
+          "y": 148.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "vessel",
+          "label": "vessel",
+          "layer": 2,
+          "summary": "A craft that comes in, moors at a berth and leaves.",
+          "route": "/blocks/2-craft/vessel",
+          "kpis": 1,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "berth"
+          ],
+          "used_by": [
+            "tug"
+          ],
+          "band": false,
+          "x": 557.0,
+          "y": 6.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "tug",
+          "label": "tug",
+          "layer": 2,
+          "summary": "Tows a vessel between the open water and its berth.",
+          "route": "/blocks/2-craft/tug",
+          "kpis": 1,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "vessel"
+          ],
+          "used_by": [],
+          "band": false,
+          "x": 134.0,
+          "y": 6.0,
+          "w": 393.0,
+          "h": 92.0
+        }
+      ],
+      "edges": [
+        {
+          "from": "tug",
+          "to": "vessel",
+          "count": 4,
+          "d": "M527 52 L557 52"
+        },
+        {
+          "from": "vessel",
+          "to": "berth",
+          "count": 4,
+          "d": "M753.5 98 C753.5 123 753.5 123 753.5 148"
+        },
+        {
+          "from": "berth",
+          "to": "quay",
+          "count": 4,
+          "d": "M557 194 L527 194"
+        }
+      ]
+    }
+  }
+}

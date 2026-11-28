@@ -1,0 +1,462 @@
+domain: metaspec.runs
+
+summary: >-
+  Runs of the pack's tool (L4): `simulate` and `search` on a document or a draft, with a budget
+  and a deadline; a run over its deadline is killed and shown as such. A run's result holds
+  variants, each of which can be accepted as a new revision of a draft.
+
+naming:
+  wire: runs
+  display: Runs
+
+types:
+  - name: metaspec.runs.RunId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.runs.VariantId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.runs.KpiValueId
+    kind: newtype
+    of: Uuid
+
+  - name: metaspec.runs.RunVerb
+    kind: enum
+    variants: [simulate, search]
+
+  - name: metaspec.runs.RunEnd
+    kind: enum
+    naming:
+      summary: >-
+        How a run ended: finished, the tool answered a result; killed, it passed its deadline and
+        was killed with all it started; refused, exit 2 with {error}; failed, not started or an
+        answer in no format metaspec reads.
+    variants: [finished, killed, refused, failed]
+
+entities:
+  - name: metaspec.runs.Run
+    naming:
+      summary: One run of the pack's tool, `simulate` or `search`, on a document or on a draft's revision.
+    identity:
+      name: run_id
+      type: metaspec.runs.RunId
+    fields:
+      - name: verb
+        type: metaspec.runs.RunVerb
+      - name: document_id
+        type: metaspec.documents.DocumentId
+      - name: revision_id
+        type: Optional<metaspec.drafts.RevisionId>
+        summary: >-
+          The draft's revision the run reads; absent for a run on the document file. A variant
+          of the run goes only into that revision's draft.
+      - name: budget
+        type: Optional<Integer>
+        summary: The budget metaspec passes to the tool (`--budget N`).
+      - name: deadline
+        type: Duration
+        summary: The run is killed when it passes it.
+      - name: message
+        type: Optional<String>
+        summary: The tool's error, or why the run failed.
+      # The run's result (metaspec-result/1: baseline and best, KPI values per document and per
+      # part, the marked places, a trace) has no typed members until metaspec-result/1 has a
+      # schema.
+    invariants:
+      - {any: [not defined(budget), budget >= 1]}
+    relations:
+      - name: document
+        kind: references
+        target: metaspec.documents.Document
+        cardinality: one
+        via: document_id
+      - name: revision
+        kind: references
+        target: metaspec.drafts.Revision
+        cardinality: one
+        via: revision_id
+      - name: variants
+        kind: owns
+        target: metaspec.runs.Variant
+        cardinality: many
+        via: run_id
+      - name: kpi_values
+        kind: owns
+        target: metaspec.runs.KpiValue
+        cardinality: many
+        via: run_id
+    lifecycle:
+      initial: Running
+      states: [Running, Finished, Killed, Refused, Failed]
+      terminal: [Finished, Killed, Refused, Failed]
+      transitions:
+        - {name: finish, from: [Running], to: Finished}
+        - {name: kill, from: [Running], to: Killed, summary: Passed its deadline; killed with all it started.}
+        - {name: refuse, from: [Running], to: Refused}
+        - {name: fail, from: [Running], to: Failed}
+
+  - name: metaspec.runs.Variant
+    naming:
+      summary: >-
+        A variant a run's result holds: a change of the document the tool's search found. The
+        search uses the same operation set as the user and the agent, so a variant is written as
+        a patch.
+    identity:
+      name: variant_id
+      type: metaspec.runs.VariantId
+    fields:
+      - name: run_id
+        type: metaspec.runs.RunId
+      - name: patch
+        type: metaspec.drafts.Patch
+      # A variant's KPI values ("KPIs per part, baseline against best") come with
+      # metaspec-result/1 and have no typed members until it has a schema.
+    # A variant is accepted when a revision took it (Revision.variant_id); ess 0.99.9 admits no
+    # second effect beside a created subject, so the variant keeps one state.
+    lifecycle:
+      initial: Found
+      states: [Found]
+      terminal: [Found]
+
+  - name: metaspec.runs.KpiValue
+    naming:
+      summary: >-
+        One KPI value a finished run's result holds for its document, or for one part of it
+        (metaspec-result/1 "KPI values per document and per part"). The KPI-quality measures
+        (alive, discrimination, redundancy) read these values across a pack's documents.
+    identity:
+      name: kpi_value_id
+      type: metaspec.runs.KpiValueId
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - name: kpi
+        type: String
+        summary: The KPI id as the pack's tool reports it.
+      - name: kpi_id
+        type: Optional<metaspec.blocks.KpiId>
+        summary: The pack's catalogue row of that id; absent for an id the catalogue does not have.
+      - name: part
+        type: Optional<String>
+        summary: The part the value is of, by its name in the document; absent for the document's own value.
+      - {name: value, type: Decimal}
+      # A value of the run's best or of a variant is not a KpiValue: metaspec-result/1 holds
+      # "baseline and best" and the variants' KPI values and has no schema yet, so they stay
+      # untyped until it has one (decision D14, design/metaspec.md "Decided for the meta model").
+    relations:
+      - name: kpi
+        kind: references
+        target: metaspec.blocks.Kpi
+        cardinality: one
+        via: kpi_id
+    lifecycle:
+      initial: Recorded
+      states: [Recorded]
+      terminal: [Recorded]
+
+errors:
+  - name: metaspec.runs.NoSuchDocument
+    summary: No document of a loaded pack has this id.
+    fields:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+  - name: metaspec.runs.BadBudget
+    summary: A budget is at least 1.
+    fields:
+      - {name: budget, type: Integer}
+  - name: metaspec.runs.NoSuchRun
+    summary: No run has this id.
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+  - name: metaspec.runs.RunAlreadyEnded
+    summary: The run has ended; nothing changed.
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+  - name: metaspec.runs.RunNotFinished
+    summary: Only a finished run holds variants.
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+  - name: metaspec.runs.NotTrusted
+    summary: The user has not trusted the tool section of the pack, or trusted another one; nothing ran.
+    fields: []
+  - name: metaspec.runs.NotAnAgentTool
+    summary: The agent's tools give it simulate only; nothing ran.
+    fields:
+      - {name: verb, type: metaspec.runs.RunVerb}
+  - name: metaspec.runs.NoVerb
+    summary: The pack's tool does not declare this verb; nothing ran.
+    fields:
+      - {name: verb, type: metaspec.runs.RunVerb}
+  - name: metaspec.runs.NoSuchRevision
+    summary: No revision has this id; nothing ran.
+    fields:
+      - {name: revision_id, type: Optional<metaspec.drafts.RevisionId>}
+  - name: metaspec.runs.RevisionOfOtherDocument
+    summary: The revision is not one of a draft of this document; nothing ran.
+    fields:
+      - {name: revision_id, type: Optional<metaspec.drafts.RevisionId>}
+
+commands:
+  - name: metaspec.runs.StartRun
+    naming:
+      wire: start-run
+      display: Start a run
+      summary: Start `simulate` or `search` of the pack's tool. The agent's tool `simulate`.
+    input:
+      - {name: verb, type: metaspec.runs.RunVerb}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: revision_id, type: Optional<metaspec.drafts.RevisionId>}
+      - {name: budget, type: Optional<Integer>}
+      - {name: deadline, type: Duration}
+    outcomes:
+      - name: bad-budget
+        when: {all: [defined(budget), budget < 1]}
+        error: metaspec.runs.BadBudget
+        payload:
+          metaspec.runs.BadBudget: {budget: {generated: true}}
+      - name: no-document
+        when_related: {via: input.document_id, exists: false}
+        error: metaspec.runs.NoSuchDocument
+        payload:
+          metaspec.runs.NoSuchDocument: {document_id: input.document_id}
+      - name: no-revision
+        when_related: {via: input.revision_id, exists: false}
+        error: metaspec.runs.NoSuchRevision
+        payload:
+          metaspec.runs.NoSuchRevision: {revision_id: input.revision_id}
+      - name: other-document
+        when_related: {via: input.revision_id, predicate: document_id != input.document_id}
+        error: metaspec.runs.RevisionOfOtherDocument
+        payload:
+          metaspec.runs.RevisionOfOtherDocument: {revision_id: input.revision_id}
+      # The agent's tools give it `simulate` only (design/metaspec.md "Operations"); a search
+      # is the user's. ESS has no guard over the caller's actor, so it is external.
+      - name: agent-search
+        external: the agent called StartRun with search, which is not one of the agent's tools
+        when: verb == search
+        error: metaspec.runs.NotAnAgentTool
+        payload:
+          metaspec.runs.NotAnAgentTool: {verb: input.verb}
+      # Trust and verbs are read from the document's pack (Document.pack -> Pack.tool_verbs,
+      # Pack.directory -> Trust), a second hop, which an ess 0.99.9 guard does not read.
+      - name: no-verb
+        external: the pack's tool does not declare the verb (Pack.tool_verbs)
+        error: metaspec.runs.NoVerb
+        payload:
+          metaspec.runs.NoVerb: {verb: input.verb}
+      - name: not-trusted
+        external: >-
+          the pack's directory holds no trust, or a trust of another digest than the pack's tool
+          section (a changed tool section asks again)
+        error: metaspec.runs.NotTrusted
+      - name: started
+        creates: metaspec.runs.Run
+        instance: run_id
+        sets:
+          verb: input.verb
+          document_id: input.document_id
+          revision_id: input.revision_id
+          budget: input.budget
+          deadline: input.deadline
+          message: {cleared: true}
+        emits: [metaspec.runs.RunStarted]
+        payload:
+          metaspec.runs.RunStarted:
+            run_id: {generated: true}
+            verb: input.verb
+            document_id: input.document_id
+
+  - name: metaspec.runs.EndRun
+    naming:
+      wire: end-run
+      display: Record how a run ended
+    input:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: end, type: metaspec.runs.RunEnd}
+      - {name: message, type: Optional<String>}
+    outcomes:
+      - name: no-run
+        unknown_instance: true
+        error: metaspec.runs.NoSuchRun
+        payload:
+          metaspec.runs.NoSuchRun: {run_id: input.run_id}
+      - name: finished
+        when: end == finished
+        moves: metaspec.runs.Run.finish
+        instance: run_id
+        sets: {message: input.message}
+        emits: [metaspec.runs.RunEnded]
+        payload:
+          metaspec.runs.RunEnded: {run_id: input.run_id, end: input.end}
+      - name: killed
+        when: end == killed
+        moves: metaspec.runs.Run.kill
+        instance: run_id
+        sets: {message: input.message}
+        emits: [metaspec.runs.RunEnded]
+        payload:
+          metaspec.runs.RunEnded: {run_id: input.run_id, end: input.end}
+      - name: refused
+        when: end == refused
+        moves: metaspec.runs.Run.refuse
+        instance: run_id
+        sets: {message: input.message}
+        emits: [metaspec.runs.RunEnded]
+        payload:
+          metaspec.runs.RunEnded: {run_id: input.run_id, end: input.end}
+      - name: failed
+        moves: metaspec.runs.Run.fail
+        instance: run_id
+        sets: {message: input.message}
+        emits: [metaspec.runs.RunEnded]
+        payload:
+          metaspec.runs.RunEnded: {run_id: input.run_id, end: input.end}
+      - name: ended
+        wrong_state: true
+        error: metaspec.runs.RunAlreadyEnded
+        payload:
+          metaspec.runs.RunAlreadyEnded: {run_id: input.run_id}
+
+  - name: metaspec.runs.RecordVariant
+    naming:
+      wire: record-variant
+      display: Record a variant of a run
+    input:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: patch, type: metaspec.drafts.Patch}
+    outcomes:
+      - name: no-run
+        when_related: {via: input.run_id, exists: false}
+        error: metaspec.runs.NoSuchRun
+        payload:
+          metaspec.runs.NoSuchRun: {run_id: input.run_id}
+      - name: not-finished
+        when_related: {via: input.run_id, predicate: {state: {none_of: [Finished]}}}
+        error: metaspec.runs.RunNotFinished
+        payload:
+          metaspec.runs.RunNotFinished: {run_id: input.run_id}
+      - name: recorded
+        creates: metaspec.runs.Variant
+        instance: variant_id
+        sets:
+          run_id: input.run_id
+          patch: input.patch
+        emits: [metaspec.runs.VariantRecorded]
+        payload:
+          metaspec.runs.VariantRecorded:
+            variant_id: {generated: true}
+            run_id: input.run_id
+
+  - name: metaspec.runs.RecordKpiValue
+    naming:
+      wire: record-kpi-value
+      display: Record a KPI value of a run
+    input:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: kpi, type: String, example: a-kpi}
+      - {name: kpi_id, type: Optional<metaspec.blocks.KpiId>}
+      - {name: part, type: Optional<String>}
+      - {name: value, type: Decimal}
+    outcomes:
+      - name: no-run
+        when_related: {via: input.run_id, exists: false}
+        error: metaspec.runs.NoSuchRun
+        payload:
+          metaspec.runs.NoSuchRun: {run_id: input.run_id}
+      - name: not-finished
+        when_related: {via: input.run_id, predicate: {state: {none_of: [Finished]}}}
+        error: metaspec.runs.RunNotFinished
+        payload:
+          metaspec.runs.RunNotFinished: {run_id: input.run_id}
+      - name: recorded
+        creates: metaspec.runs.KpiValue
+        instance: kpi_value_id
+        sets:
+          run_id: input.run_id
+          kpi: input.kpi
+          kpi_id: input.kpi_id
+          part: input.part
+          value: input.value
+        emits: [metaspec.runs.KpiValueRecorded]
+        payload:
+          metaspec.runs.KpiValueRecorded:
+            kpi_value_id: {generated: true}
+            run_id: input.run_id
+            kpi: input.kpi
+            value: input.value
+
+events:
+  - name: metaspec.runs.RunStarted
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: verb, type: metaspec.runs.RunVerb}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+  - name: metaspec.runs.RunEnded
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: end, type: metaspec.runs.RunEnd}
+  - name: metaspec.runs.VariantRecorded
+    fields:
+      - {name: variant_id, type: metaspec.runs.VariantId}
+      - {name: run_id, type: metaspec.runs.RunId}
+  - name: metaspec.runs.KpiValueRecorded
+    fields:
+      - {name: kpi_value_id, type: metaspec.runs.KpiValueId}
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: kpi, type: String}
+      - {name: value, type: Decimal}
+
+views:
+  - name: metaspec.runs.Runs
+    source: metaspec.runs.Run
+    consistency: read_your_writes
+    naming:
+      wire: runs
+      display: Runs
+    fields:
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: verb, type: metaspec.runs.RunVerb}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: revision_id, type: Optional<metaspec.drafts.RevisionId>}
+      - {name: budget, type: Optional<Integer>}
+      - {name: deadline, type: Duration}
+      - {name: message, type: Optional<String>}
+      - {name: state, type: metaspec.runs.Run.State}
+
+  - name: metaspec.runs.Variants
+    source: metaspec.runs.Variant
+    consistency: read_your_writes
+    naming:
+      wire: variants
+      display: Variants
+    fields:
+      - {name: variant_id, type: metaspec.runs.VariantId}
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: patch, type: metaspec.drafts.Patch}
+      - {name: state, type: metaspec.runs.Variant.State}
+
+  - name: metaspec.runs.RunVariants
+    source: metaspec.runs.Variant
+    consistency: read_your_writes
+    params:
+      - {name: run_id, type: metaspec.runs.RunId}
+    filter: run_id == param.run_id
+    naming:
+      wire: run-variants
+      display: Variants of a run
+    fields:
+      - {name: variant_id, type: metaspec.runs.VariantId}
+      - {name: state, type: metaspec.runs.Variant.State}
+
+  - name: metaspec.runs.KpiValues
+    source: metaspec.runs.KpiValue
+    consistency: read_your_writes
+    naming:
+      wire: kpi-values
+      display: KPI values of runs
+    fields:
+      - {name: kpi_value_id, type: metaspec.runs.KpiValueId}
+      - {name: run_id, type: metaspec.runs.RunId}
+      - {name: kpi, type: String}
+      - {name: kpi_id, type: Optional<metaspec.blocks.KpiId>}
+      - {name: part, type: Optional<String>}
+      - {name: value, type: Decimal}
+      - {name: state, type: metaspec.runs.KpiValue.State}

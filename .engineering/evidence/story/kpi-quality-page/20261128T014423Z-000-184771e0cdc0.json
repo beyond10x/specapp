@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-28T01:44:23Z",
+  "actor": "human:operator",
+  "artifact": "story:kpi-quality-page",
+  "kind": "story",
+  "revision": 4,
+  "change": {
+    "change": "evidence",
+    "kind": "review_outcome",
+    "source": "review-result:quality-parallel-round-1",
+    "reference": ".engineering/planning/story/kpi-quality-page.md:33 (quality.html golden report source)",
+    "review": "review-result:quality-parallel-round-1",
+    "outcome": "fixed"
+  }
+}

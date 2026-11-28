@@ -1,5 +1,5 @@
 {
-  "format": "specapp-scene/1",
+  "format": "metaspec-scene/1",
   "document": "harbors/inlet.yaml",
   "view": {
     "id": "guidance",

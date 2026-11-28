@@ -1,0 +1,27 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/planned",
+  "kind": "planned",
+  "front_matter": {
+    "title": "Planned blocks",
+    "sidebar_label": "Planned blocks",
+    "description": "Blocks the KPI catalogue measures before the blocks declare them.",
+    "source": "kpis/catalogue.yaml"
+  },
+  "markdown": "The [KPI catalogue](../kpis.mdx) measures 1 block the blocks do not declare yet. Each gets its own page, with its entities, commands, events and views, once it is declared.\n\n## crane\n\n<BlockHeader data={page.data[\"header-1\"]} presentation={site.presentation} />\n\n### Efficiency\n\n| KPI | unit | better | gate | status |\n|---|---|---|---|---|\n| `crane_lift_rate`<br/>Loads a crane lifts per hour. The crane block is planned.<br/><small>By tides: flood: higher, ebb: ignore</small> | count | higher | – | planned |\n\n",
+  "components": [
+    "BlockHeader"
+  ],
+  "data": {
+    "header-1": {
+      "name": "crane",
+      "label": "crane",
+      "layer": null,
+      "layer_name": null,
+      "planned": true,
+      "counts": {
+        "kpis": 1
+      }
+    }
+  }
+}

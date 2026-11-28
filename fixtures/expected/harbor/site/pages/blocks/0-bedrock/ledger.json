@@ -1,0 +1,33 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/0-bedrock/ledger",
+  "kind": "block",
+  "front_matter": {
+    "title": "ledger",
+    "sidebar_label": "ledger",
+    "description": "Identifiers of every entity of the harbor blocks.",
+    "kicker": "Layer 0 · bedrock",
+    "source": "blocks/0-bedrock/ledger.yaml"
+  },
+  "markdown": "<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nIdentifiers of every entity of the harbor blocks.\n\n## Depends on\n\nNothing: this block depends on no other block.\n\n## Used by\n\nNo block depends on this one.\n\n## Types\n\n| type | is | values or fields |\n|---|---|---|\n| `BerthId` | an identifier or value | `uuid` |\n| `QuayId` | an identifier or value | `uuid` |\n| `TugId` | an identifier or value | `uuid` |\n| `VesselId` | an identifier or value | `uuid` |\n\n## KPIs\n\nNo KPI of this block is in the catalogue.\n\n## Documents using it\n\nNo document of the pack has a part of this block.\n",
+  "components": [
+    "BlockHeader"
+  ],
+  "data": {
+    "header": {
+      "name": "ledger",
+      "label": "ledger",
+      "layer": 0,
+      "layer_name": "bedrock",
+      "planned": false,
+      "counts": {
+        "entities": 0,
+        "commands": 0,
+        "events": 0,
+        "views": 0,
+        "refusals": 0,
+        "kpis": 0
+      }
+    }
+  }
+}

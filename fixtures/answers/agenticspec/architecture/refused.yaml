@@ -1,0 +1,11 @@
+format: agenticspec-architecture/1
+architecture: stray
+summary: An invented architecture the check refuses, on a link and on a part.
+
+parts:
+  lead: { block: principal, kind: human }
+  worker: { block: agent, harness: coding }
+
+links:
+  - { from: lead, to: worker, carries: prompt }
+  - { from: lead, to: ghost, carries: prompt }

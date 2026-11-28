@@ -1,0 +1,54 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/2-craft/tug",
+  "kind": "block",
+  "front_matter": {
+    "title": "tug",
+    "sidebar_label": "tug",
+    "description": "Tows a vessel between the open water and its berth.",
+    "kicker": "Layer 2 · craft",
+    "source": "blocks/2-craft/tug.yaml"
+  },
+  "markdown": "<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nTows a vessel between the open water and its berth.\n\n## Depends on\n\n- [vessel](./vessel.mdx) · layer 2 · craft · 4 references\n\n## Used by\n\nNo block depends on this one.\n\n## Entities\n\n### Tug\n\nIdentified by `tug_id` (`TugId`).\n\n| field | type |\n|---|---|\n| `vessel_id` | `VesselId` |\n| `started_at` | `timestamp` |\n\nRelations:\n\n- `vessel_id` references **Vessel** of [vessel](./vessel.mdx) (one, by `vessel_id`)\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetireTug\n\n**Retire a tug.**\n\n| field | type |\n|---|---|\n| `tug_id` | `TugId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-tug` (refused) | no such Tug | `TugNotFound`: No tug of this identity exists. |\n| `retired` | otherwise | moves the **Tug** `Active` → `Retired`; emits `TugRetired` |\n| `wrong-state` (refused) | the Tug is in a state that does not allow it | `TugStateConflict`: The tug is not in a state this command acts from. |\n\n### StartTug\n\n**Start a tug.**\n\n| field | type |\n|---|---|\n| `tug_id` | `TugId` |\n| `vessel_id` | `VesselId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Tug** in `Active`; emits `TugStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `TugRetired` | `tug_id` TugId, `at` timestamp | `RetireTug` |\n| `TugStarted` | `tug_id` TugId, `at` timestamp | `StartTug` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Tugs`<br/>Tugs | each **Tug** | `tug_id` TugId, `vessel_id` VesselId, `started_at` timestamp, `state` State |\n\n## KPIs\n\n1 KPI from the [KPI catalogue](../../kpis.mdx).\n\n### Efficiency\n\n| KPI | unit | better | gate | status |\n|---|---|---|---|---|\n| `tug_wait_minutes`<br/>Minutes a vessel waits for a tug at the harbor mouth.<br/><small>By tides: flood: lower, ebb: ignore</small> | minutes | lower | – | sketched |\n\n## Documents using it\n\n- [cove](../../plan/cove.mdx) (Harbor plans) · 1 part\n- [reef](../../plan/reef.mdx) (Harbor plans) · 1 part\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "tug",
+      "label": "tug",
+      "layer": 2,
+      "layer_name": "craft",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 1
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Tug",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

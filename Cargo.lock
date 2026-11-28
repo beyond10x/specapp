@@ -442,6 +442,54 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "metaspec"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "jsonschema",
+ "metaspec-core",
+ "metaspec-docs",
+ "metaspec-layout",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "metaspec-core"
+version = "0.1.0"
+dependencies = [
+ "glob",
+ "jsonschema",
+ "libc",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "sha2",
+]
+
+[[package]]
+name = "metaspec-docs"
+version = "0.1.0"
+dependencies = [
+ "metaspec-core",
+ "metaspec-layout",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+]
+
+[[package]]
+name = "metaspec-layout"
+version = "0.1.0"
+dependencies = [
+ "jsonschema",
+ "metaspec-core",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "micromap"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -769,42 +817,6 @@ name = "smallvec"
 version = "1.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3244542535d5de959d90ec55d1b5ff0fd2bb7b1310223907d5f11932847f7b59"
-
-[[package]]
-name = "specapp"
-version = "0.1.0"
-dependencies = [
- "clap",
- "jsonschema",
- "serde",
- "serde_json",
- "specapp-core",
- "specapp-layout",
-]
-
-[[package]]
-name = "specapp-core"
-version = "0.1.0"
-dependencies = [
- "glob",
- "jsonschema",
- "libc",
- "serde",
- "serde_json",
- "serde_yaml_ng",
- "sha2",
-]
-
-[[package]]
-name = "specapp-layout"
-version = "0.1.0"
-dependencies = [
- "jsonschema",
- "serde",
- "serde_json",
- "sha2",
- "specapp-core",
-]
 
 [[package]]
 name = "strsim"

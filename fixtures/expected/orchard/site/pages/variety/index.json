@@ -1,0 +1,14 @@
+{
+  "format": "metaspec-page/1",
+  "id": "variety/index",
+  "kind": "class",
+  "front_matter": {
+    "title": "Varieties",
+    "sidebar_label": "Overview",
+    "description": "Varieties of Orchard: 1 document.",
+    "source": "varieties/*.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n1 document of the class `variety` (`records/1`), read from `varieties/*.yaml`.\n\n| document | Traits | Rules |\n|---|---|---|\n| [russet](./russet.mdx) | 2 | 3 |\n",
+  "components": [],
+  "data": {}
+}

@@ -1,0 +1,63 @@
+{
+  "format": "metaspec-page/1",
+  "id": "variety/russet",
+  "kind": "record",
+  "front_matter": {
+    "title": "russet",
+    "sidebar_label": "russet",
+    "description": "An invented variety and the rules an orchard of it keeps.",
+    "lede": "An invented variety and the rules an orchard of it keeps.",
+    "kicker": "Varieties",
+    "source": "varieties/russet.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n## Traits\n\n2 rows at `traits`.\n\n<RecordTable data={page.data.tables[0]} presentation={site.presentation} />\n\n## Rules\n\n3 rows at `rules`.\n\n<RecordTable data={page.data.tables[1]} presentation={site.presentation} />\n\n",
+  "components": [
+    "RecordTable"
+  ],
+  "data": {
+    "tables": [
+      {
+        "title": "Traits",
+        "at": "traits",
+        "key": "name",
+        "columns": [
+          "name",
+          "summary"
+        ],
+        "rows": [
+          [
+            "thick_skin",
+            "Keeps well after picking."
+          ],
+          [
+            "late_bloom",
+            "Flowers after the last frost."
+          ]
+        ]
+      },
+      {
+        "title": "Rules",
+        "at": "rules",
+        "key": "id",
+        "columns": [
+          "id",
+          "summary"
+        ],
+        "rows": [
+          [
+            "basket_without_picker",
+            "Every basket belongs to one picker."
+          ],
+          [
+            "harvest_unhauled",
+            "Every harvest is reached by a link that carries fruit to it."
+          ],
+          [
+            "fill_over_capacity",
+            "A basket is not filled faster than it is hauled away."
+          ]
+        ]
+      }
+    ]
+  }
+}

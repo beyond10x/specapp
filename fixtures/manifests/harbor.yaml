@@ -1,7 +1,7 @@
-format: specapp-pack/2
+format: metaspec-pack/1
 pack: harbor
 title: Harbor
-summary: An invented pack of a small harbor, for the tests of specapp.
+summary: An invented pack of a small harbor, for the tests of metaspec.
 visibility: public
 source_url: https://example.org/harbor
 

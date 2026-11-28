@@ -1,5 +1,9 @@
 version: '3'
 
+vars:
+  SLOT:
+    sh: command -v slot > /dev/null 2>&1 && echo slot || true
+
 tasks:
   check:
     desc: Run the repository gate.
@@ -7,12 +11,15 @@ tasks:
       - task: check:public
       - task: check:scripts
       - task: check:fixtures
+      - task: check:spec
       - task: check:rust
       - task: test
+      - task: check:docs
+      - task: check:web
       - task: check:vocabulary
 
   check:public:
-    desc: Refuse content that does not belong in a public repository (home paths, e-mail addresses, IP addresses, terms of the deny list SPECAPP_DENYLIST names, in file contents and file names). Without SPECAPP_DENYLIST (CI, a build node) the deny check is skipped.
+    desc: Refuse content that does not belong in a public repository (home paths, e-mail addresses, IP addresses, terms of the deny list METASPEC_DENYLIST names, in file contents and file names). Without METASPEC_DENYLIST (CI, a build node) the deny check is skipped.
     cmds:
       - scripts/check-public.sh
 
@@ -31,7 +38,7 @@ tasks:
         echo "check:scripts: $n script test(s) passed"
 
   check:fixtures:
-    desc: Validate the blocks of every fixture pack (fixtures/packs/*/blocks) with ess, and fail when a fixture pack holds anything of specapp, a manifest above all (scripts/check-pack-dirs.sh); its manifest is fixtures/manifests/<name>.yaml.
+    desc: Validate the blocks of every fixture pack (fixtures/packs/*/blocks) with ess, and fail when a fixture pack holds anything of metaspec, a manifest above all (scripts/check-pack-dirs.sh); its manifest is fixtures/manifests/<name>.yaml.
     cmds:
       - |
         set -eu
@@ -40,6 +47,16 @@ tasks:
         done
       - scripts/check-pack-dirs.sh
 
+  check:spec:
+    desc: Validate metaspec's own ESS specification (spec/, ess pinned by spec/ess-inputs.yaml) with --strict-requires and run its conformance suite on the interpreted reference target. The suite is synthesized once per digest of its sources under target/spec-conform/; scenarios listed in spec/known-failing.txt are known failures (scripts/check-spec-conform.sh).
+    cmds:
+      - scripts/check-spec-conform.sh
+
+  check:spec:slow:
+    desc: The slow lane of check:spec, not part of check. Synthesizes the suite afresh and compares its bytes with the cached suite of the same digest.
+    cmds:
+      - scripts/check-spec-conform.sh --slow
+
   check:rust:
     desc: Format and lint the Rust workspace.
     cmds:
@@ -47,7 +64,7 @@ tasks:
       - cargo clippy --locked --all-targets -- -D warnings
 
   test:
-    desc: Run the Rust tests under cargo-nextest, among them the schema validation of the manifests (packs/, fixtures/manifests/), of the report of `specapp pack check` and of what the adapters read from the fixture tools' own answers. A test is killed at 60 s and the step fails over 120 s (.config/nextest.toml). Prints the ten slowest tests.
+    desc: Run the Rust tests under cargo-nextest, among them the schema validation of the manifests (packs/, fixtures/manifests/), of the report of `metaspec pack check` and of what the adapters read from the fixture tools' own answers. A test is killed at 60 s and the step fails over 120 s (.config/nextest.toml). Prints the ten slowest tests.
     cmds:
       - cargo nextest run --workspace --locked --no-run
       - silent: true
@@ -60,10 +77,56 @@ tasks:
           exit $status
 
   check:vocabulary:
-    desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/ or web/*/src (scripts/check-vocabulary.sh). The manifests under packs/ and fixtures/manifests/ are not searched. scripts/acceptance.sh runs it with the real packs too.
+    desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/, web/src/ or web/*/src/ (scripts/check-vocabulary.sh). The manifests under packs/ and fixtures/manifests/ are not searched. scripts/acceptance.sh runs it with the real packs too.
     cmds:
-      - cargo build --quiet --locked -p specapp
+      - cargo build --quiet --locked -p metaspec
       - scripts/check-vocabulary.sh
+
+  check:docs:
+    desc: Generate the docs site of each fixture pack (fixtures/packs/<pack> with fixtures/manifests/<pack>.yaml) with metaspec docs build --check and compare it byte for byte with the committed fixtures/expected/<pack>/site. The fixture tools are trusted in target/docs-state, apart from the user's trust.
+    cmds:
+      - cargo build --quiet --locked -p metaspec
+      - |
+        set -eu
+        state=target/docs-state
+        mkdir -p "$state"
+        for manifest in fixtures/manifests/*.yaml; do
+          pack=$(basename "$manifest" .yaml)
+          XDG_STATE_HOME="$state" target/debug/metaspec trust --manifest "$manifest" --pack "fixtures/packs/$pack" > /dev/null
+          XDG_STATE_HOME="$state" target/debug/metaspec docs build --manifest "$manifest" --pack "fixtures/packs/$pack" --out "fixtures/expected/$pack/site" --check
+        done
+
+  web:install:
+    desc: Install the node packages of web/ (npm ci) when web/node_modules is missing or older than web/package-lock.json. Needs the network; check does not run it.
+    cmds:
+      - |
+        if [ ! -d web/node_modules ] || [ web/package-lock.json -nt web/node_modules/.package-lock.json ]; then
+          cd web && npm ci --no-audit --no-fund
+        fi
+
+  web:build:
+    desc: Build dist/ of web/ui and web/docusaurus, which a site installs.
+    cmds:
+      - cd web && {{.SLOT}} npm run build --workspace ui && {{.SLOT}} npm run build --workspace docusaurus
+
+  check:web:
+    desc: Typecheck web/ui and web/docusaurus, then run the vitest suite of web/ui on the committed pages of both fixture packs (a test is killed at 60 s). Needs task web:install first.
+    cmds:
+      - |
+        [ -d web/node_modules ] || { echo "check:web: web/node_modules is missing; run task web:install"; exit 1; }
+      - cd web/ui && {{.SLOT}} npx tsc -p tsconfig.json --noEmit
+      - cd web/docusaurus && {{.SLOT}} npx tsc -p tsconfig.json --noEmit
+      - cd web/ui && {{.SLOT}} npx vitest run --maxWorkers=4
+
+  ux:
+    desc: The UX lane, not part of check. Builds the docs sites of both fixture packs and runs the Playwright gates on every page at 1440x900 and 1280x800, light and dark, with no serious or critical axe-core violation (scripts/ux.sh). Needs task web:install and a Chromium for Playwright.
+    cmds:
+      - scripts/ux.sh
+
+  parity:
+    desc: The parity of the generated agenticspec site with agenticspec's own pages, not part of check. Its manifest is packs/agenticspec.yaml, or the file given second. task parity -- <agenticspec-dir> [<manifest>]
+    cmds:
+      - scripts/parity.sh {{.CLI_ARGS}}
 
   acceptance:
     desc: The acceptance of a wave, not part of check (it needs checkouts of the real packs; their manifests are packs/orgspec.yaml and packs/agenticspec.yaml). task acceptance -- <orgspec-dir> <agenticspec-dir>

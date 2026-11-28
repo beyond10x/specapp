@@ -1,0 +1,54 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/1-soil/tree",
+  "kind": "block",
+  "front_matter": {
+    "title": "tree",
+    "sidebar_label": "tree",
+    "description": "One tree of a grove.",
+    "kicker": "Layer 1 · soil",
+    "source": "blocks/1-soil/tree.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nOne tree of a grove.\n\n## Depends on\n\n- [grove](./grove.mdx) · layer 1 · soil · 4 references\n\n## Used by\n\n- [harvest](../3-yield/harvest.mdx) · layer 3 · yield · 4 references\n\n## Entities\n\n### Tree\n\nIdentified by `tree_id` (`TreeId`).\n\n| field | type |\n|---|---|\n| `grove_id` | `GroveId` |\n| `started_at` | `timestamp` |\n\nRelations:\n\n- `grove_id` references **Grove** of [grove](./grove.mdx) (one, by `grove_id`)\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetireTree\n\n**Retire a tree.**\n\n| field | type |\n|---|---|\n| `tree_id` | `TreeId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-tree` (refused) | no such Tree | `TreeNotFound`: No tree of this identity exists. |\n| `retired` | otherwise | moves the **Tree** `Active` → `Retired`; emits `TreeRetired` |\n| `wrong-state` (refused) | the Tree is in a state that does not allow it | `TreeStateConflict`: The tree is not in a state this command acts from. |\n\n### StartTree\n\n**Start a tree.**\n\n| field | type |\n|---|---|\n| `tree_id` | `TreeId` |\n| `grove_id` | `GroveId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Tree** in `Active`; emits `TreeStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `TreeRetired` | `tree_id` TreeId, `at` timestamp | `RetireTree` |\n| `TreeStarted` | `tree_id` TreeId, `at` timestamp | `StartTree` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Trees`<br/>Trees | each **Tree** | `tree_id` TreeId, `grove_id` GroveId, `started_at` timestamp, `state` State |\n\n## KPIs\n\nNo KPI of this block is in the catalogue.\n\n## Documents using it\n\n- [hillside](../../layout/hillside.mdx) (Orchard layouts) · 2 parts\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "tree",
+      "label": "tree",
+      "layer": 1,
+      "layer_name": "soil",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 0
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Tree",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

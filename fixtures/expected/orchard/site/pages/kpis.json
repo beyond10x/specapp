@@ -1,0 +1,103 @@
+{
+  "format": "metaspec-page/1",
+  "id": "kpis",
+  "kind": "kpis",
+  "front_matter": {
+    "title": "KPI catalogue",
+    "sidebar_label": "KPI catalogue",
+    "description": "Every KPI of every building block of Orchard: what it measures, which way is better, whether it is a gate, and its status.",
+    "source": "kpis/catalogue.yaml",
+    "hide_table_of_contents": true
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n3 KPIs over 3 blocks, 0 of them planned; 1 of the KPIs are gates. The column `sort` is the pack's measure of a KPI, and `seasons` its direction per mode. Filter by block, sort, status or gate, search by name, and sort by any column; the address keeps the filters.\n\n<KpiCatalogue data={page.data[\"catalogue\"]} presentation={site.presentation} />\n\n## By block\n\n- [grove](./blocks/1-soil/grove.mdx#kpis): `grove_unpicked_share`\n- [basket](./blocks/2-hands/basket.mdx#kpis): `basket_overflow_count`\n- [harvest](./blocks/3-yield/harvest.mdx#kpis): `tree_yield_kilograms`\n",
+  "components": [
+    "KpiCatalogue"
+  ],
+  "data": {
+    "catalogue": {
+      "format": "metaspec-kpis/1",
+      "measure": "sort",
+      "modes": "seasons",
+      "kpis": [
+        {
+          "id": "tree_yield_kilograms",
+          "block": "harvest",
+          "measure": "output",
+          "unit": "kilograms",
+          "summary": "Fruit picked from one tree in one season.",
+          "how": "",
+          "direction": "higher",
+          "modes": [
+            {
+              "mode": "spring",
+              "direction": "ignore"
+            },
+            {
+              "mode": "autumn",
+              "direction": "higher"
+            }
+          ],
+          "gate": false,
+          "reads": [],
+          "status": "drafted",
+          "extra": {},
+          "layer": 3,
+          "planned": false,
+          "route": "/blocks/3-yield/harvest#kpis"
+        },
+        {
+          "id": "basket_overflow_count",
+          "block": "basket",
+          "measure": "fault",
+          "unit": "count",
+          "summary": "Baskets filled past their rim.",
+          "how": "",
+          "direction": "lower",
+          "modes": [
+            {
+              "mode": "spring",
+              "direction": "lower"
+            },
+            {
+              "mode": "autumn",
+              "direction": "lower"
+            }
+          ],
+          "gate": true,
+          "reads": [],
+          "status": "drafted",
+          "extra": {},
+          "layer": 2,
+          "planned": false,
+          "route": "/blocks/2-hands/basket#kpis"
+        },
+        {
+          "id": "grove_unpicked_share",
+          "block": "grove",
+          "measure": "output",
+          "unit": "share",
+          "summary": "Share of the trees of a grove that no picker reached.",
+          "how": "",
+          "direction": "lower",
+          "modes": [
+            {
+              "mode": "spring",
+              "direction": "ignore"
+            },
+            {
+              "mode": "autumn",
+              "direction": "lower"
+            }
+          ],
+          "gate": false,
+          "reads": [],
+          "status": "drafted",
+          "extra": {},
+          "layer": 1,
+          "planned": false,
+          "route": "/blocks/1-soil/grove#kpis"
+        }
+      ]
+    }
+  }
+}

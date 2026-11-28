@@ -1,0 +1,206 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/index",
+  "kind": "layer-map",
+  "front_matter": {
+    "title": "Building blocks",
+    "sidebar_label": "Layer map",
+    "description": "Every building block of Orchard, by layer, with the blocks it depends on.",
+    "lede": "6 blocks in 4 layers. Each block is a contract of commands, events and views.",
+    "source": "blocks/",
+    "hide_table_of_contents": true
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\nThe blocks declare 5 entities, 10 commands and 10 events. An arrow points from a block to a block it depends on; point at a block to see what it uses and what uses it.\n\n<LayerMap data={page.data[\"map\"]} presentation={site.presentation} />\n\n## Every block\n\n| layer | block | what it is | depends on | KPIs |\n|---|---|---|---|---|\n| **3** yield | [harvest](./3-yield/harvest.mdx) | The fruit of one tree in one season. | [tree](./1-soil/tree.mdx) | 1 |\n| **2** hands | [basket](./2-hands/basket.mdx) | What one picker fills; one exists for each picker. | [picker](./2-hands/picker.mdx) | 1 |\n|  | [picker](./2-hands/picker.mdx) | A hand that picks fruit in a grove. | [grove](./1-soil/grove.mdx) | 0 |\n| **1** soil | [tree](./1-soil/tree.mdx) | One tree of a grove. | [grove](./1-soil/grove.mdx) | 0 |\n|  | [grove](./1-soil/grove.mdx) | A planted piece of land. | – | 1 |\n| **0** seed | [seedbank](./0-seed/seedbank.mdx) | Identifiers of every entity of the orchard blocks. | – | 0 |\n\n## Planned blocks\n\nThe KPI catalogue names no block beyond these. [Planned blocks](./planned.mdx) lists a block once it does.\n",
+  "components": [
+    "LayerMap"
+  ],
+  "data": {
+    "map": {
+      "width": 980.0,
+      "height": 530.0,
+      "rows": [
+        {
+          "layer": 3,
+          "name": "yield",
+          "y": 6.0,
+          "h": 92.0
+        },
+        {
+          "layer": 2,
+          "name": "hands",
+          "y": 148.0,
+          "h": 92.0
+        },
+        {
+          "layer": 1,
+          "name": "soil",
+          "y": 290.0,
+          "h": 92.0
+        },
+        {
+          "layer": 0,
+          "name": "seed",
+          "y": 432.0,
+          "h": 92.0
+        }
+      ],
+      "blocks": [
+        {
+          "name": "seedbank",
+          "label": "seedbank",
+          "layer": 0,
+          "summary": "Identifiers of every entity of the orchard blocks.",
+          "route": "/blocks/0-seed/seedbank",
+          "kpis": 0,
+          "entities": 0,
+          "commands": 0,
+          "events": 0,
+          "views": 0,
+          "uses": [],
+          "used_by": [],
+          "band": false,
+          "x": 134.0,
+          "y": 432.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "grove",
+          "label": "grove",
+          "layer": 1,
+          "summary": "A planted piece of land.",
+          "route": "/blocks/1-soil/grove",
+          "kpis": 1,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [],
+          "used_by": [
+            "tree",
+            "picker"
+          ],
+          "band": false,
+          "x": 134.0,
+          "y": 290.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "tree",
+          "label": "tree",
+          "layer": 1,
+          "summary": "One tree of a grove.",
+          "route": "/blocks/1-soil/tree",
+          "kpis": 0,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "grove"
+          ],
+          "used_by": [
+            "harvest"
+          ],
+          "band": false,
+          "x": 557.0,
+          "y": 290.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "picker",
+          "label": "picker",
+          "layer": 2,
+          "summary": "A hand that picks fruit in a grove.",
+          "route": "/blocks/2-hands/picker",
+          "kpis": 0,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "grove"
+          ],
+          "used_by": [
+            "basket"
+          ],
+          "band": false,
+          "x": 134.0,
+          "y": 148.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "basket",
+          "label": "basket",
+          "layer": 2,
+          "summary": "What one picker fills; one exists for each picker.",
+          "route": "/blocks/2-hands/basket",
+          "kpis": 1,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "picker"
+          ],
+          "used_by": [],
+          "band": false,
+          "x": 557.0,
+          "y": 148.0,
+          "w": 393.0,
+          "h": 92.0
+        },
+        {
+          "name": "harvest",
+          "label": "harvest",
+          "layer": 3,
+          "summary": "The fruit of one tree in one season.",
+          "route": "/blocks/3-yield/harvest",
+          "kpis": 1,
+          "entities": 1,
+          "commands": 2,
+          "events": 2,
+          "views": 1,
+          "uses": [
+            "tree"
+          ],
+          "used_by": [],
+          "band": false,
+          "x": 557.0,
+          "y": 6.0,
+          "w": 393.0,
+          "h": 92.0
+        }
+      ],
+      "edges": [
+        {
+          "from": "harvest",
+          "to": "tree",
+          "count": 4,
+          "d": "M753.5 98 C753.5 115.5 542 105.5 542 123 L542 265 C542 282.5 753.5 272.5 753.5 290"
+        },
+        {
+          "from": "picker",
+          "to": "grove",
+          "count": 4,
+          "d": "M330.5 240 C330.5 265 330.5 265 330.5 290"
+        },
+        {
+          "from": "basket",
+          "to": "picker",
+          "count": 4,
+          "d": "M557 194 L527 194"
+        },
+        {
+          "from": "tree",
+          "to": "grove",
+          "count": 4,
+          "d": "M557 336 L527 336"
+        }
+      ]
+    }
+  }
+}

@@ -27,7 +27,7 @@ expect() {
   [ "$got" -eq "$want" ] || { cat "$work/out" >&2; fail "$label: exit $got, wanted $want"; }
 }
 
-unset SPECAPP_DENYLIST
+unset METASPEC_DENYLIST
 
 d=$(tree clean)
 expect 0 "clean tree" "$d"
@@ -59,25 +59,25 @@ grep -q 'no deny list' "$work/out" || fail "deny list unset: last line does not 
 
 d=$(tree deny-sub)
 printf 'our supplier is the millstone company\n' > "$d/design/a.md"
-SPECAPP_DENYLIST=$list expect 1 "deny substring" "$d"
+METASPEC_DENYLIST=$list expect 1 "deny substring" "$d"
 grep -q '^deny design/a.md:1$' "$work/out" || fail "deny substring: finding not printed"
 if grep -q -i 'millstone' "$work/out"; then fail "deny substring: the output names the term"; fi
-SPECAPP_DENYLIST=$list expect 1 "deny substring --show" "$d" --show
+METASPEC_DENYLIST=$list expect 1 "deny substring --show" "$d" --show
 grep -q -i 'millstone' "$work/out" || fail "deny substring: --show does not print the line"
 
 d=$(tree deny-word)
 printf 'a marker and a remark\n' > "$d/design/b.md"
-SPECAPP_DENYLIST=$list expect 0 "deny exact word, only inside other words" "$d"
+METASPEC_DENYLIST=$list expect 0 "deny exact word, only inside other words" "$d"
 printf 'ask Mark\n' > "$d/design/c.md"
-SPECAPP_DENYLIST=$list expect 1 "deny exact word" "$d"
+METASPEC_DENYLIST=$list expect 1 "deny exact word" "$d"
 grep -q '^deny design/c.md:1$' "$work/out" || fail "deny exact word: finding not printed"
 
 d=$(tree deny-name)
 printf 'nothing\n' > "$d/design/millstone-plan.md"
-SPECAPP_DENYLIST=$list expect 1 "deny file name" "$d"
+METASPEC_DENYLIST=$list expect 1 "deny file name" "$d"
 grep -q '^deny-name design/millstone-plan.md:0$' "$work/out" || fail "deny file name: finding not printed"
 
 d=$(tree deny-missing)
-SPECAPP_DENYLIST=$work/none.txt expect 2 "deny list missing" "$d"
+METASPEC_DENYLIST=$work/none.txt expect 2 "deny list missing" "$d"
 
 echo "check-public.test: 11 cases passed"

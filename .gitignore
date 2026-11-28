@@ -1,2 +1,6 @@
 /target/
 node_modules/
+web/*/dist/
+web/site/build/
+web/site/.docusaurus/
+.engineering/drafts/

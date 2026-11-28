@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-findings-1.schema.json",
+  "title": "metaspec-findings/1",
+  "description": "A check result of one document: what the adapter of the manifest reads from the answer of the pack's own tool. Produced by metaspec only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "valid", "findings"],
+  "properties": {
+    "format": { "const": "metaspec-findings/1" },
+    "valid": { "type": "boolean" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "gate", "subject", "message"],
+        "properties": {
+          "rule": { "type": "string", "minLength": 1 },
+          "gate": { "type": "boolean" },
+          "subject": { "type": "string", "pattern": "^(part:.+|link:.+|document)$" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "counts": {
+      "description": "Findings per rule.",
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

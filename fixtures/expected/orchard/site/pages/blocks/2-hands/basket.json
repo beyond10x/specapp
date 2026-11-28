@@ -1,0 +1,54 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/2-hands/basket",
+  "kind": "block",
+  "front_matter": {
+    "title": "basket",
+    "sidebar_label": "basket",
+    "description": "What one picker fills; one exists for each picker.",
+    "kicker": "Layer 2 · hands",
+    "source": "blocks/2-hands/basket.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nWhat one picker fills; one exists for each picker.\n\n## Depends on\n\n- [picker](./picker.mdx) · layer 2 · hands · 4 references\n\n## Used by\n\nNo block depends on this one.\n\n## Entities\n\n### Basket\n\nIdentified by `basket_id` (`BasketId`).\n\n| field | type |\n|---|---|\n| `picker_id` | `PickerId` |\n| `started_at` | `timestamp` |\n\nRelations:\n\n- `picker_id` references **Picker** of [picker](./picker.mdx) (one, by `picker_id`)\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetireBasket\n\n**Retire a basket.**\n\n| field | type |\n|---|---|\n| `basket_id` | `BasketId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-basket` (refused) | no such Basket | `BasketNotFound`: No basket of this identity exists. |\n| `retired` | otherwise | moves the **Basket** `Active` → `Retired`; emits `BasketRetired` |\n| `wrong-state` (refused) | the Basket is in a state that does not allow it | `BasketStateConflict`: The basket is not in a state this command acts from. |\n\n### StartBasket\n\n**Start a basket.**\n\n| field | type |\n|---|---|\n| `basket_id` | `BasketId` |\n| `picker_id` | `PickerId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Basket** in `Active`; emits `BasketStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `BasketRetired` | `basket_id` BasketId, `at` timestamp | `RetireBasket` |\n| `BasketStarted` | `basket_id` BasketId, `at` timestamp | `StartBasket` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Baskets`<br/>Baskets | each **Basket** | `basket_id` BasketId, `picker_id` PickerId, `started_at` timestamp, `state` State |\n\n## KPIs\n\n1 KPI from the [KPI catalogue](../../kpis.mdx).\n\n### Fault\n\n| KPI | unit | better | gate | status |\n|---|---|---|---|---|\n| `basket_overflow_count`<br/>Baskets filled past their rim.<br/><small>By seasons: spring: lower, autumn: lower</small> | count | lower | gate | drafted |\n\n## Documents using it\n\n- [hillside](../../layout/hillside.mdx) (Orchard layouts) · 1 part\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "basket",
+      "label": "basket",
+      "layer": 2,
+      "layer_name": "hands",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 1
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Basket",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

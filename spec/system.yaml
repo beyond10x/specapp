@@ -1,0 +1,13 @@
+format: ess/37
+system: metaspec
+version: v1
+
+domains:
+  - metaspec.packs
+  - metaspec.blocks
+  - metaspec.documents
+  - metaspec.checks
+  - metaspec.drafts
+  - metaspec.runs
+  - metaspec.agents
+  - metaspec.quality

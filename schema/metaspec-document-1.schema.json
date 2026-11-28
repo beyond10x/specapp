@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-document-1.schema.json",
+  "title": "metaspec-document/1",
+  "description": "The data of one document's page as `metaspec render` writes it, in the page's <script type=\"application/json\" id=\"metaspec-data\"> element: the graph, the check by the pack's tool, the findings with the views they are drawn in, and one scene per view. `graph` follows metaspec-graph/1, each scene metaspec-scene/1, `check.result` metaspec-findings/1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "pack", "title", "visibility", "class", "class_title", "document", "name", "page", "check", "findings", "graph", "scenes"],
+  "properties": {
+    "format": { "const": "metaspec-document/1" },
+    "pack": { "type": "string" },
+    "title": { "type": "string" },
+    "visibility": { "enum": ["public", "private"] },
+    "class": { "type": "string" },
+    "class_title": { "type": "string" },
+    "document": { "description": "The path of the document relative to the pack.", "type": "string" },
+    "name": { "type": "string" },
+    "page": { "description": "The page's file relative to the output directory.", "type": "string" },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": {
+          "description": "ran: the tool answered. no_tool, no_check: the manifest names no tool or no verb check. not_trusted: the user has not trusted this tool section (metaspec trust). timed_out: the run went over its deadline and was killed. refused: the answer holds the text the adapter's error points at. failed: not started, or an answer the adapter cannot read.",
+          "enum": ["ran", "no_tool", "no_check", "not_trusted", "timed_out", "refused", "failed"]
+        },
+        "message": { "type": "string" },
+        "result": { "description": "The tool's answer as the adapter read it, metaspec-findings/1.", "type": "object", "required": ["format"], "properties": { "format": { "const": "metaspec-findings/1" } } }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "rule", "gate", "subject", "message", "drawn_in"],
+        "properties": {
+          "n": { "description": "The number its marks show, from 1.", "type": "integer", "minimum": 1 },
+          "rule": { "type": "string" },
+          "gate": { "type": "boolean" },
+          "subject": { "type": "string" },
+          "message": { "type": "string" },
+          "drawn_in": { "description": "The ids of the views whose scene marks it.", "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "graph": { "type": "object", "required": ["format"], "properties": { "format": { "const": "metaspec-graph/1" } } },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "object", "required": ["format"], "properties": { "format": { "const": "metaspec-scene/1" } } }
+    }
+  }
+}

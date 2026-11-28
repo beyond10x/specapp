@@ -1,0 +1,54 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/3-yield/harvest",
+  "kind": "block",
+  "front_matter": {
+    "title": "harvest",
+    "sidebar_label": "harvest",
+    "description": "The fruit of one tree in one season.",
+    "kicker": "Layer 3 · yield",
+    "source": "blocks/3-yield/harvest.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nThe fruit of one tree in one season.\n\n## Depends on\n\n- [tree](../1-soil/tree.mdx) · layer 1 · soil · 4 references\n\n## Used by\n\nNo block depends on this one.\n\n## Entities\n\n### Harvest\n\nIdentified by `harvest_id` (`HarvestId`).\n\n| field | type |\n|---|---|\n| `tree_id` | `TreeId` |\n| `started_at` | `timestamp` |\n\nRelations:\n\n- `tree_id` references **Tree** of [tree](../1-soil/tree.mdx) (one, by `tree_id`)\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetireHarvest\n\n**Retire a harvest.**\n\n| field | type |\n|---|---|\n| `harvest_id` | `HarvestId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-harvest` (refused) | no such Harvest | `HarvestNotFound`: No harvest of this identity exists. |\n| `retired` | otherwise | moves the **Harvest** `Active` → `Retired`; emits `HarvestRetired` |\n| `wrong-state` (refused) | the Harvest is in a state that does not allow it | `HarvestStateConflict`: The harvest is not in a state this command acts from. |\n\n### StartHarvest\n\n**Start a harvest.**\n\n| field | type |\n|---|---|\n| `harvest_id` | `HarvestId` |\n| `tree_id` | `TreeId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Harvest** in `Active`; emits `HarvestStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `HarvestRetired` | `harvest_id` HarvestId, `at` timestamp | `RetireHarvest` |\n| `HarvestStarted` | `harvest_id` HarvestId, `at` timestamp | `StartHarvest` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Harvests`<br/>Harvests | each **Harvest** | `harvest_id` HarvestId, `tree_id` TreeId, `started_at` timestamp, `state` State |\n\n## KPIs\n\n1 KPI from the [KPI catalogue](../../kpis.mdx).\n\n### Output\n\n| KPI | unit | better | gate | status |\n|---|---|---|---|---|\n| `tree_yield_kilograms`<br/>Fruit picked from one tree in one season.<br/><small>By seasons: spring: ignore, autumn: higher</small> | kilograms | higher | – | drafted |\n\n## Documents using it\n\n- [hillside](../../layout/hillside.mdx) (Orchard layouts) · 1 part\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "harvest",
+      "label": "harvest",
+      "layer": 3,
+      "layer_name": "yield",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 1
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Harvest",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

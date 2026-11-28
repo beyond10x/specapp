@@ -1,0 +1,266 @@
+{
+  "format": "metaspec-site/1",
+  "pack": "orchard",
+  "title": "Orchard",
+  "summary": "An invented pack of an orchard, for the tests of metaspec.",
+  "visibility": "private",
+  "source_url": null,
+  "level": "L3",
+  "counts": {
+    "blocks": 6,
+    "layers": 4,
+    "kpis": 3,
+    "planned_blocks": 0,
+    "documents": 2,
+    "pages": 15
+  },
+  "sidebar": [
+    "index",
+    {
+      "type": "category",
+      "label": "Building blocks",
+      "collapsed": true,
+      "link": {
+        "type": "doc",
+        "id": "blocks/index"
+      },
+      "items": [
+        {
+          "type": "category",
+          "label": "0 · seed",
+          "collapsed": true,
+          "items": [
+            "blocks/0-seed/seedbank"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "1 · soil",
+          "collapsed": true,
+          "items": [
+            "blocks/1-soil/grove",
+            "blocks/1-soil/tree"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "2 · hands",
+          "collapsed": true,
+          "items": [
+            "blocks/2-hands/picker",
+            "blocks/2-hands/basket"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "3 · yield",
+          "collapsed": true,
+          "items": [
+            "blocks/3-yield/harvest"
+          ]
+        },
+        "blocks/planned"
+      ]
+    },
+    "kpis",
+    {
+      "type": "category",
+      "label": "Orchard layouts",
+      "collapsed": true,
+      "link": {
+        "type": "doc",
+        "id": "layout/index"
+      },
+      "items": [
+        "layout/hillside"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Varieties",
+      "collapsed": true,
+      "link": {
+        "type": "doc",
+        "id": "variety/index"
+      },
+      "items": [
+        "variety/russet"
+      ]
+    },
+    "rules"
+  ],
+  "pages": [
+    {
+      "id": "index",
+      "kind": "pack",
+      "slug": "/",
+      "title": "Orchard"
+    },
+    {
+      "id": "blocks/index",
+      "kind": "layer-map",
+      "slug": "/blocks",
+      "title": "Building blocks"
+    },
+    {
+      "id": "blocks/0-seed/seedbank",
+      "kind": "block",
+      "slug": "/blocks/0-seed/seedbank",
+      "title": "seedbank"
+    },
+    {
+      "id": "blocks/1-soil/grove",
+      "kind": "block",
+      "slug": "/blocks/1-soil/grove",
+      "title": "grove"
+    },
+    {
+      "id": "blocks/1-soil/tree",
+      "kind": "block",
+      "slug": "/blocks/1-soil/tree",
+      "title": "tree"
+    },
+    {
+      "id": "blocks/2-hands/picker",
+      "kind": "block",
+      "slug": "/blocks/2-hands/picker",
+      "title": "picker"
+    },
+    {
+      "id": "blocks/2-hands/basket",
+      "kind": "block",
+      "slug": "/blocks/2-hands/basket",
+      "title": "basket"
+    },
+    {
+      "id": "blocks/3-yield/harvest",
+      "kind": "block",
+      "slug": "/blocks/3-yield/harvest",
+      "title": "harvest"
+    },
+    {
+      "id": "blocks/planned",
+      "kind": "planned",
+      "slug": "/blocks/planned",
+      "title": "Planned blocks"
+    },
+    {
+      "id": "kpis",
+      "kind": "kpis",
+      "slug": "/kpis",
+      "title": "KPI catalogue"
+    },
+    {
+      "id": "layout/index",
+      "kind": "class",
+      "slug": "/layout",
+      "title": "Orchard layouts"
+    },
+    {
+      "id": "layout/hillside",
+      "kind": "document",
+      "slug": "/layout/hillside",
+      "title": "hillside"
+    },
+    {
+      "id": "variety/index",
+      "kind": "class",
+      "slug": "/variety",
+      "title": "Varieties"
+    },
+    {
+      "id": "variety/russet",
+      "kind": "record",
+      "slug": "/variety/russet",
+      "title": "russet"
+    },
+    {
+      "id": "rules",
+      "kind": "rules",
+      "slug": "/rules",
+      "title": "Rules"
+    }
+  ],
+  "presentation": {
+    "blocks": {
+      "seedbank": {
+        "label": "seedbank",
+        "colour": "blue",
+        "icon": null,
+        "group": "0 seed",
+        "layer": 0,
+        "layer_name": "seed",
+        "route": "/blocks/0-seed/seedbank"
+      },
+      "grove": {
+        "label": "grove",
+        "colour": "violet",
+        "icon": null,
+        "group": "1 soil",
+        "layer": 1,
+        "layer_name": "soil",
+        "route": "/blocks/1-soil/grove"
+      },
+      "tree": {
+        "label": "tree",
+        "colour": "violet",
+        "icon": null,
+        "group": "1 soil",
+        "layer": 1,
+        "layer_name": "soil",
+        "route": "/blocks/1-soil/tree"
+      },
+      "picker": {
+        "label": "picker",
+        "colour": "green",
+        "icon": null,
+        "group": "2 hands",
+        "layer": 2,
+        "layer_name": "hands",
+        "route": "/blocks/2-hands/picker"
+      },
+      "basket": {
+        "label": "basket",
+        "colour": "green",
+        "icon": null,
+        "group": "2 hands",
+        "layer": 2,
+        "layer_name": "hands",
+        "route": "/blocks/2-hands/basket"
+      },
+      "harvest": {
+        "label": "harvest",
+        "colour": "teal",
+        "icon": null,
+        "group": "3 yield",
+        "layer": 3,
+        "layer_name": "yield",
+        "route": "/blocks/3-yield/harvest"
+      }
+    },
+    "groups": [
+      {
+        "label": "0 seed",
+        "colour": "blue",
+        "icon": null
+      },
+      {
+        "label": "1 soil",
+        "colour": "violet",
+        "icon": null
+      },
+      {
+        "label": "2 hands",
+        "colour": "green",
+        "icon": null
+      },
+      {
+        "label": "3 yield",
+        "colour": "teal",
+        "icon": null
+      }
+    ],
+    "icons": {},
+    "vocabulary": {}
+  }
+}

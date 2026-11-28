@@ -1,0 +1,13 @@
+{
+  "format": "metaspec-page/1",
+  "id": "rules",
+  "kind": "rules",
+  "front_matter": {
+    "title": "Rules",
+    "sidebar_label": "Rules",
+    "description": "Every rule the tool of Orchard reports across its documents, with the documents that break it."
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\nThe pack's tool checked 1 of 1 drawn document. A rule appears here once a document breaks it; a pack with a broken example per rule shows that each rule can refuse.\n\n| rule | gate | documents that break it |\n|---|---|---|\n| `fill_over_capacity` | not gated | [hillside](./layout/hillside.mdx) (1) |\n| `harvest_unhauled` | not gated | [hillside](./layout/hillside.mdx) (1) |\n",
+  "components": [],
+  "data": {}
+}

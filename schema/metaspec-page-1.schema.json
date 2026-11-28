@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-page-1.schema.json",
+  "title": "metaspec-page/1",
+  "description": "One generated page of `metaspec docs build`, as data: its front matter, its Markdown, the components the Markdown draws and their data. The build writes it to pages/<id>.json and the same page as MDX to docs/<id>.mdx, which imports this file and reads a component's data as page.data[<key>]. One producer: metaspec.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "id", "kind", "front_matter", "markdown", "components", "data"],
+  "properties": {
+    "format": { "const": "metaspec-page/1" },
+    "id": {
+      "description": "The path of the page below docs/ without .mdx, and its id in the sidebar.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$"
+    },
+    "kind": {
+      "description": "What the page shows.",
+      "enum": ["pack", "layer-map", "block", "planned", "kpis", "class", "document", "record", "rules"]
+    },
+    "front_matter": {
+      "description": "The front matter of the MDX page, in order. Fields the docs site reads: title, sidebar_label, description, lede, kicker, source (a path of the pack), source_url (where that file is read), hide_table_of_contents.",
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "sidebar_label": { "type": "string" },
+        "description": { "type": "string" },
+        "lede": { "type": "string" },
+        "kicker": { "type": "string" },
+        "source": { "type": "string" },
+        "source_url": { "type": "string", "pattern": "^https://" },
+        "hide_table_of_contents": { "type": "boolean" }
+      },
+      "additionalProperties": { "type": ["string", "boolean"] }
+    },
+    "markdown": {
+      "description": "The body of the MDX page after its imports: Markdown with component tags.",
+      "type": "string"
+    },
+    "components": {
+      "description": "The components of @beyond10x/metaspec-ui the Markdown draws.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["LayerMap", "BlockHeader", "Lifecycle", "KpiCatalogue", "GraphView", "FindingsList", "RecordTable", "ResultSections"]
+      }
+    },
+    "data": {
+      "description": "The data of the components by key. A GraphView's data is a metaspec-scene/1; a KpiCatalogue's holds metaspec-kpis/1 rows.",
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/planned",
+  "kind": "planned",
+  "front_matter": {
+    "title": "Planned blocks",
+    "sidebar_label": "Planned blocks",
+    "description": "Blocks the KPI catalogue measures before the blocks declare them.",
+    "source": "kpis/catalogue.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\nNone: every block the KPI catalogue names is declared in the blocks.\n",
+  "components": [],
+  "data": {}
+}

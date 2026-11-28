@@ -21,13 +21,13 @@ expect() {
 }
 
 expect 0 README.md
-expect 0 design/specapp.md CHANGELOG.md
+expect 0 design/metaspec.md CHANGELOG.md
 expect 0 .engineering/planning/story/one.md .engineering/project.yaml
 expect 0 AGENTS.md CLAUDE.md
-expect 1 crates/specapp-core/src/pack.rs
-expect 1 README.md crates/specapp/src/main.rs
-expect 1 design/specapp.md schema/specapp-pack-2.schema.json
-expect 1 fixtures/packs/harbor/specapp.yaml
+expect 1 crates/metaspec-core/src/pack.rs
+expect 1 README.md crates/metaspec/src/main.rs
+expect 1 design/metaspec.md schema/metaspec-pack-1.schema.json
+expect 1 fixtures/packs/harbor/metaspec.yaml
 expect 1 Cargo.toml
 expect 1 Cargo.lock
 expect 1 .github/workflows/gate.yml

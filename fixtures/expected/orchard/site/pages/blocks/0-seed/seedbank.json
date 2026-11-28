@@ -1,0 +1,33 @@
+{
+  "format": "metaspec-page/1",
+  "id": "blocks/0-seed/seedbank",
+  "kind": "block",
+  "front_matter": {
+    "title": "seedbank",
+    "sidebar_label": "seedbank",
+    "description": "Identifiers of every entity of the orchard blocks.",
+    "kicker": "Layer 0 · seed",
+    "source": "blocks/0-seed/seedbank.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nIdentifiers of every entity of the orchard blocks.\n\n## Depends on\n\nNothing: this block depends on no other block.\n\n## Used by\n\nNo block depends on this one.\n\n## Types\n\n| type | is | values or fields |\n|---|---|---|\n| `BasketId` | an identifier or value | `uuid` |\n| `GroveId` | an identifier or value | `uuid` |\n| `HarvestId` | an identifier or value | `uuid` |\n| `PickerId` | an identifier or value | `uuid` |\n| `TreeId` | an identifier or value | `uuid` |\n\n## KPIs\n\nNo KPI of this block is in the catalogue.\n\n## Documents using it\n\nNo document of the pack has a part of this block.\n",
+  "components": [
+    "BlockHeader"
+  ],
+  "data": {
+    "header": {
+      "name": "seedbank",
+      "label": "seedbank",
+      "layer": 0,
+      "layer_name": "seed",
+      "planned": false,
+      "counts": {
+        "entities": 0,
+        "commands": 0,
+        "events": 0,
+        "views": 0,
+        "refusals": 0,
+        "kpis": 0
+      }
+    }
+  }
+}

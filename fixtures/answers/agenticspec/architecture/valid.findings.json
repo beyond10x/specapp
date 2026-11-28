@@ -1,0 +1,22 @@
+{
+  "format": "metaspec-findings/1",
+  "valid": true,
+  "findings": [],
+  "counts": {
+    "acts_for_without_part": 0,
+    "agent_without_model_path": 0,
+    "border_without_part": 0,
+    "egress_without_part": 0,
+    "invalid_concurrency": 0,
+    "invalid_schedule": 0,
+    "per_without_part": 0,
+    "question_without_answerer": 0,
+    "review_without_reviewer": 0,
+    "swarm_needs_agent": 0,
+    "trigger_source_not_trigger": 0,
+    "trigger_target_not_agent": 0,
+    "trigger_without_source": 0,
+    "unknown_link_parts": 0,
+    "unreachable_parts": 0
+  }
+}
