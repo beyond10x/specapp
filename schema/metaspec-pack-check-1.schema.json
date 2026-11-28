@@ -72,7 +72,11 @@
         }
       }
     },
-    "errors": { "type": "array", "items": { "$ref": "#/$defs/issue" } },
+    "errors": {
+      "description": "What refuses the pack. Among the codes about extends: base_pack_missing (the manifest inherits blocks, kpis or tool and no directory of the base pack is given with --base-pack, or it does not exist), extends_chain (the base pack itself extends a pack), and extends_not_found, extends_other_pack or extends_unreadable for a manifest that leaves out blocks (for one with its own blocks they are warnings). A refused path of a pack with a base names its pack.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/issue" }
+    },
     "warnings": {
       "description": "What does not refuse the pack. Among the codes about a view: view_unknown_block (a block of blocks, hubs.blocks or collapse.blocks the blocks do not have), view_unknown_collapse (an id of collapse that is a region of no document of the class) and view_region_edges (a region named edges that the view would collapse; it stays expanded).",
       "type": "array",

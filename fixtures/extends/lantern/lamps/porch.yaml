@@ -1,0 +1,7 @@
+format: lantern-lamp/1
+lamp: porch
+summary: An invented lamp of the base pack.
+
+parts:
+  hood: { block: wick }
+  glow: { block: flame, in: hood }

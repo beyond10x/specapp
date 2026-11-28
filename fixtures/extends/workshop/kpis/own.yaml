@@ -1,0 +1,7 @@
+format: lantern-kpis/1
+kpis:
+  - id: bench_lamp_count
+    block: wick
+    measure: output
+    unit: count
+    summary: Lamps lit on the bench in one evening.

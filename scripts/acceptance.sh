@@ -54,8 +54,10 @@
 # and stays valid. Every part of architectures/groups.yaml, node-pools.yaml and l4-media.yaml
 # whose block word is a key of `blocks.aliases` in packs/cloudspec.yaml has the aliased block in
 # the graph of its page, and every part of an architecture whose word is neither an alias nor a
-# block of `metaspec pack check --json` keeps its word. Pages are under
-# target/acceptance/pages-<pack>/.
+# block of `metaspec pack check --json` keeps its word. A pack that extends cloudspec (a manifest
+# of this run with its own documents, which inherits blocks and tool, `--base-pack` the cloudspec
+# checkout) draws groups.yaml with the graph of packs/cloudspec.yaml and journeys.yaml with its
+# findings. Pages are under target/acceptance/pages-<pack>/.
 #
 # Wave 3: `metaspec docs build` writes a site of each pack alone under target/acceptance/docs-<pack>;
 # its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and the
@@ -424,6 +426,50 @@ alias_row() {
 alias_row aliases:aliased "$work/cloud-aliased.rows" "parts of groups, node-pools, l4-media whose word is an alias: the aliased block on the page"
 (cd "$cloud" && alias_counts architecture $(cat "$work/cloud-architectures") && alias_counts broken-architecture $(cat "$work/cloud-broken")) > "$work/cloud-kept.rows"
 alias_row aliases:kept "$work/cloud-kept.rows" "parts whose word is no alias and no block of pack check: the word on the page"
+
+# A pack that extends cloudspec: a manifest of this run ($work/extending.yaml, `extends:
+# cloudspec`, private, its own name and title) that names its own documents, the class
+# architecture of packs/cloudspec.yaml, and leaves out blocks, kpis and tool, so they are
+# cloudspec's, read in the cloudspec checkout (--base-pack). Its pack directory ($work/extending)
+# holds a copy of architectures/groups.yaml and architectures/journeys.yaml. Its page of
+# groups.yaml has the graph of the page of packs/cloudspec.yaml (each part's block, the aliased
+# parts included, and the links), and its page of journeys.yaml the same findings (rule, subject,
+# gate, the warnings included). The rows count what is equal and want every one; a graph or a
+# list of findings that differs counts none.
+ext=$work/extending
+mkdir -p "$ext/architectures"
+cp "$cloud/architectures/groups.yaml" "$cloud/architectures/journeys.yaml" "$ext/architectures/"
+yq '{"format": .format, "pack": "acceptance-extending", "title": "A pack that extends " + .pack, "visibility": "private", "extends": .pack, "documents": [.documents[] | select(.class == "architecture") | del(.exclude)]}' \
+  "$root/packs/cloudspec.yaml" > "$work/extending.yaml"
+"$metaspec" trust --manifest "$work/extending.yaml" --pack "$ext" --base-pack "$cloud" > /dev/null 2>&1 || true
+"$metaspec" render --manifest "$work/extending.yaml" --pack "$ext" --base-pack "$cloud" --out "$work/pages-extending" > "$work/pages-extending.log" \
+  || { echo "acceptance: render of the pack that extends cloudspec failed" >&2; exit 1; }
+# extends_equal <stem> <jq filter> <count filter>: the filter's value on both pages of
+# architectures/<stem>.yaml; sets $own to the count on the page of cloudspec and $mine to the
+# same count when both values are equal, else 0
+extends_equal() {
+  page_mine=$work/pages-extending/architecture/$1.html page_theirs=$work/pages-cloudspec/architecture/$1.html
+  if [ ! -f "$page_theirs" ]; then
+    echo "acceptance: no page of cloudspec for $1" >&2
+    mine=- own=-
+    return
+  fi
+  page_data "$page_theirs" | jq -cS "$2" > "$work/extends-theirs.tmp"
+  if [ -f "$page_mine" ]; then page_data "$page_mine" | jq -cS "$2" > "$work/extends-mine.tmp"; else echo null > "$work/extends-mine.tmp"; fi
+  own=$(jq "$3" "$work/extends-theirs.tmp")
+  # nothing to compare tests nothing: the row then wants "1 or more"
+  case "$own" in '' | 0) own="1 or more" ;; esac
+  if cmp -s "$work/extends-mine.tmp" "$work/extends-theirs.tmp"; then
+    mine=$own
+  else
+    echo "acceptance: $1: the pack that extends cloudspec draws [$(cat "$work/extends-mine.tmp")], cloudspec [$(cat "$work/extends-theirs.tmp")]" >&2
+    mine=0
+  fi
+}
+extends_equal groups '{parts: [.graph.parts[] | {id, block}] | sort_by(.id), links: [.graph.links[] | {id, from, to, carries}] | sort_by(.id)}' '.parts | length'
+row cloudspec extends:groups-graph "$mine" "$own" "parts of groups.yaml with the block of packs/cloudspec.yaml, aliased ones included, links equal, through extends"
+extends_equal journeys '[.findings[] | {rule, subject, gate}] | sort' 'length'
+row cloudspec extends:journeys-findings "$mine" "$own" "findings of journeys.yaml (rule, subject, gate) = those of packs/cloudspec.yaml, through extends"
 
 # --- wave 3: docs sites ---
 # docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of the site of one pack into

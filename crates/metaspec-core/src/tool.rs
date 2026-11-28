@@ -3,7 +3,9 @@
 //!
 //! metaspec runs a pack's tool only for a pack the user trusted: `metaspec trust <dir>` records
 //! the digest of the manifest's `tool` section in the user's state directory. A changed `tool`
-//! section is not trusted until it is trusted again. The tool answers in the pack's own format;
+//! section is not trusted until it is trusted again. A tool a manifest inherits from its base pack
+//! is the base's `tool` section: its digest is recorded for the extending pack's directory, and the
+//! tool runs in the base pack's directory. The tool answers in the pack's own format;
 //! the manifest's adapter maps that answer (`crate::adapter`).
 
 use crate::adapter::{self, Exit, Mapped};
@@ -326,8 +328,13 @@ pub fn check(
         );
     }
     let mut args: Vec<&str> = spec.args.iter().map(String::as_str).collect();
-    args.push(document);
-    match run(&pack.root, &tool.run, &args, deadline) {
+    // An inherited tool runs in the base pack's directory; the document is the extending
+    // pack's, so it is named by its whole path.
+    let root = pack.tool_root();
+    let whole =
+        (root != pack.root).then(|| pack.root.join(document).to_string_lossy().into_owned());
+    args.push(whole.as_deref().unwrap_or(document));
+    match run(root, &tool.run, &args, deadline) {
         Answer::Exited(exit) => match adapter::check(spec, &exit, graph) {
             Mapped::Findings(result) => Check {
                 state: CheckState::Ran,

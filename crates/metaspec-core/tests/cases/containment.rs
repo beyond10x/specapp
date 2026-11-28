@@ -23,7 +23,7 @@ fn every_kind_of_manifest_path_that_leaves_the_pack_is_refused_before_anything_i
         panic!("nothing is compiled for a refused manifest")
     };
     let cases: [fn(&mut metaspec_core::Manifest); 4] = [
-        |m| m.blocks.path = String::from("../blocks"),
+        |m| m.blocks.as_mut().unwrap().path = String::from("../blocks"),
         |m| m.kpis.as_mut().unwrap().path = String::from("/etc/hostname"),
         |m| m.documents[0].paths.push(String::from("../../*.yaml")),
         |m| m.tool.as_mut().unwrap().run[0] = String::from("../bin/program"),

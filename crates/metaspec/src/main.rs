@@ -7,7 +7,7 @@ mod quality_page;
 mod render;
 
 use clap::{Args, Parser, Subcommand};
-use metaspec_core::{Issue, Manifest, Report, ess_compile, known, load_with, pack, tool, words};
+use metaspec_core::{Issue, Manifest, Report, ess_compile, known, pack, tool, words};
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
@@ -32,7 +32,8 @@ enum Command {
     },
     /// Trust the tool a pack's manifest names, so that metaspec may run it.
     ///
-    /// Records the digest of the manifest's `tool` section for the pack directory in
+    /// Records the digest of the manifest's `tool` section (the base pack's, when the manifest
+    /// `extends` a pack and inherits its tool; give --base-pack) for the pack directory in
     /// `$XDG_STATE_HOME/metaspec/trust.json` (default `~/.local/state/metaspec`). A changed `tool`
     /// section is not trusted until it is trusted again. Exits 0 when recorded, 1 when the
     /// manifest names no tool or cannot be read, 2 on bad usage.
@@ -113,6 +114,10 @@ enum DocsCommand {
         /// The manifest the one pack's manifest `extends`, when metaspec does not know it.
         #[arg(long, value_name = "FILE")]
         extends: Option<PathBuf>,
+        /// The directory of the pack the one pack's manifest `extends`, which the sections it
+        /// leaves out are read in.
+        #[arg(long = "base-pack", value_name = "DIR")]
+        base_pack: Option<PathBuf>,
         /// The output directory.
         #[arg(long, value_name = "DIR")]
         out: PathBuf,
@@ -172,6 +177,10 @@ struct PackArgs {
     /// The manifest of the pack this pack's manifest `extends`, when metaspec does not know it.
     #[arg(long, value_name = "FILE")]
     extends: Option<PathBuf>,
+    /// The directory of the pack this pack's manifest `extends`. The `blocks`, `kpis` and `tool`
+    /// the manifest leaves out are the base pack's, and their paths are read in this directory.
+    #[arg(long = "base-pack", value_name = "DIR")]
+    base_pack: Option<PathBuf>,
 }
 
 /// Why a pack was not read.
@@ -201,6 +210,14 @@ impl PackArgs {
         read.map_err(NotRead::Refused)
     }
 
+    /// Where the pack the manifest `extends` is: `--extends` and `--base-pack`.
+    fn base(&self) -> pack::BaseArgs<'_> {
+        pack::BaseArgs {
+            manifest: self.extends.as_deref(),
+            dir: self.base_pack.as_deref(),
+        }
+    }
+
     /// Loads the pack: the report, with what metaspec says about `extends`, and the pack when it
     /// loads.
     fn load(&self) -> Result<(Report, Option<pack::Pack>), NotRead> {
@@ -211,10 +228,12 @@ impl PackArgs {
             }
             Err(usage) => return Err(usage),
         };
-        let extends = pack::extends_issues(&manifest, self.extends.as_deref());
-        let (mut report, loaded) = load_with(&self.dir, manifest, &ess_compile);
-        report.warnings.extend(extends);
-        Ok((report, loaded))
+        Ok(pack::load_extending(
+            &self.dir,
+            manifest,
+            self.base(),
+            &ess_compile,
+        ))
     }
 }
 
@@ -225,6 +244,7 @@ fn site_packs(
     manifest: Option<PathBuf>,
     packs: Vec<String>,
     extends: Option<PathBuf>,
+    base_pack: Option<PathBuf>,
 ) -> Result<Vec<PackArgs>, String> {
     if name.is_some() || manifest.is_some() {
         let [dir] = <[String; 1]>::try_from(packs).map_err(|_| {
@@ -237,11 +257,12 @@ fn site_packs(
             manifest,
             dir: PathBuf::from(dir),
             extends,
+            base_pack,
         }]);
     }
-    if extends.is_some() {
+    if extends.is_some() || base_pack.is_some() {
         return Err(String::from(
-            "--extends is for one pack, named by NAME or --manifest",
+            "--extends and --base-pack are for one pack, named by NAME or --manifest",
         ));
     }
     packs
@@ -261,6 +282,7 @@ fn site_packs(
                 manifest: is_file.then(|| PathBuf::from(which)),
                 dir: PathBuf::from(dir),
                 extends: None,
+                base_pack: None,
             })
         })
         .collect()
@@ -332,6 +354,7 @@ fn main() -> ExitCode {
                     manifest,
                     packs,
                     extends,
+                    base_pack,
                     out,
                     check,
                     deadline,
@@ -342,7 +365,7 @@ fn main() -> ExitCode {
                 return ExitCode::from(2);
             }
             let started = Instant::now();
-            let args = match site_packs(name, manifest, packs, extends) {
+            let args = match site_packs(name, manifest, packs, extends, base_pack) {
                 Ok(args) => args,
                 Err(why) => return usage(NotRead::Usage(why)),
             };
@@ -432,6 +455,16 @@ fn trust(args: &PackArgs) -> ExitCode {
             return ExitCode::from(1);
         }
         Err(usage_error) => return usage(usage_error),
+    };
+    // An inherited tool is the base's: its digest is the digest of the base's `tool` section.
+    let manifest = match pack::inherit(manifest, args.base()) {
+        Ok(inheritance) => inheritance.manifest,
+        Err(errors) => {
+            for e in errors {
+                eprintln!("metaspec: {} {}: {}", e.code, e.subject, e.message);
+            }
+            return ExitCode::from(1);
+        }
     };
     let Some(spec) = &manifest.tool else {
         eprintln!("metaspec: the manifest names no tool; there is nothing to trust");

@@ -1,0 +1,8 @@
+format: ess-inputs/2
+requires: ess 0.99.2
+specification:
+  - system.yaml
+  - 0-ground/registry.yaml
+  - 1-light/wick.yaml
+  - 1-light/flame.yaml
+scenarios: []

@@ -41,7 +41,10 @@ pub struct Manifest {
     pub source_file_url: Option<String>,
     #[serde(default)]
     pub extends: Option<String>,
-    pub blocks: Blocks,
+    /// The blocks. Only a manifest with `extends` may leave them out: it inherits the base's
+    /// (see [`crate::pack::inherit`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Blocks>,
     #[serde(default)]
     pub kpis: Option<Kpis>,
     #[serde(default)]
@@ -440,14 +443,29 @@ pub fn parse(text: &str) -> Result<Manifest, Vec<Issue>> {
         )]
     })?;
     validate(&value)?;
-    serde_json::from_value(value).map_err(|error| {
+    let manifest: Manifest = serde_json::from_value(value).map_err(|error| {
         vec![Issue::new(
             "manifest_invalid",
             "manifest",
             format!("the manifest does not decode: {error}"),
         )]
-    })
+    })?;
+    if manifest.blocks.is_none() && manifest.extends.is_none() {
+        return Err(vec![Issue::new(
+            "manifest_invalid",
+            "manifest",
+            "at /: the manifest names no `blocks`; only a manifest that `extends` a pack may leave them out, to inherit the base's",
+        )]);
+    }
+    Ok(manifest)
 }
+
+/// The `blocks` of a manifest that names none, for [`Manifest::blocks`].
+static NO_BLOCKS: Blocks = Blocks {
+    path: String::new(),
+    strip_prefix: None,
+    aliases: BTreeMap::new(),
+};
 
 /// Validates a manifest, already read into JSON, against the schema of `metaspec-pack/1`.
 pub fn validate(value: &Value) -> Result<(), Vec<Issue>> {
@@ -478,6 +496,12 @@ pub fn validate(value: &Value) -> Result<(), Vec<Issue>> {
 }
 
 impl Manifest {
+    /// The `blocks` section. A loaded pack's manifest always has one, its own or the one it
+    /// inherits; a manifest read alone that leaves it out (it `extends` a pack) has an empty one.
+    pub fn blocks(&self) -> &Blocks {
+        self.blocks.as_ref().unwrap_or(&NO_BLOCKS)
+    }
+
     /// The levels of adoption the manifest declares, cheapest first; the last is the highest.
     pub fn level(&self) -> &'static str {
         if self.tool.as_ref().is_some_and(|t| t.verbs.check.is_some()) {

@@ -45,7 +45,7 @@ pub fn words(pack: &Pack) -> BTreeSet<(Kind, String)> {
             out.insert((Kind::Layer, layer.name.clone()));
         }
     }
-    for word in pack.manifest.blocks.aliases.keys() {
+    for word in pack.manifest.blocks().aliases.keys() {
         out.insert((Kind::Block, word.clone()));
     }
     for row in &pack.kpis {

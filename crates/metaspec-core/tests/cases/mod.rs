@@ -5,6 +5,7 @@ mod containment;
 mod exclude_edges;
 mod fixtures;
 mod graph;
+mod inherit;
 mod manifest;
 mod quality;
 mod tools;

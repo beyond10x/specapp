@@ -5,7 +5,7 @@
   "description": "metaspec's manifest of a pack: packs/<name>.yaml for a public pack metaspec knows, a file given at run time for any other. It lies outside the pack. Every path is relative to the pack directory and stays inside it.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["format", "pack", "title", "visibility", "blocks"],
+  "required": ["format", "pack", "title", "visibility"],
   "properties": {
     "format": { "const": "metaspec-pack/1" },
     "pack": { "$ref": "#/$defs/name" },
@@ -19,10 +19,11 @@
       "pattern": "^https://[^ ]*\\{path\\}"
     },
     "extends": {
-      "description": "The name of the public pack this pack builds on: a pack metaspec knows (packs/<name>.yaml), or one whose manifest is given at run time (--extends).",
+      "description": "The name of the public pack this pack builds on: a pack metaspec knows (packs/<name>.yaml), or one whose manifest is given at run time (--extends). The blocks, kpis and tool this manifest leaves out are the base pack's, each section whole, its paths read in the base pack's directory given at run time (--base-pack). documents and presentation are never inherited. A base pack that itself extends a pack is refused.",
       "$ref": "#/$defs/name"
     },
     "blocks": {
+      "description": "The blocks of the pack. Required unless the manifest extends a pack, whose blocks it then inherits; the loader holds that rule (manifest_invalid).",
       "type": "object",
       "additionalProperties": false,
       "required": ["path"],
@@ -38,6 +39,7 @@
       }
     },
     "kpis": {
+      "description": "The KPI catalogue. A manifest that extends a pack and leaves it out inherits the base pack's.",
       "type": "object",
       "additionalProperties": false,
       "required": ["path"],
@@ -59,7 +61,7 @@
       "items": { "$ref": "#/$defs/document_class" }
     },
     "tool": {
-      "description": "The pack's own tool and, per verb metaspec offers, the adapter that runs it and maps its answer. The tool knows nothing of metaspec.",
+      "description": "The pack's own tool and, per verb metaspec offers, the adapter that runs it and maps its answer. The tool knows nothing of metaspec. A manifest that extends a pack and leaves it out inherits the base pack's, which runs in the base pack's directory.",
       "type": "object",
       "additionalProperties": false,
       "required": ["run"],

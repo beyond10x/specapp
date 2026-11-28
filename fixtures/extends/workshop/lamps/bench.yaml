@@ -1,0 +1,11 @@
+format: lantern-lamp/1
+lamp: bench
+summary: An invented lamp of the extending pack, with a part whose block word is an alias.
+
+parts:
+  left: { block: wick }
+  spark: { block: glow, in: left }
+  right: { block: flame }
+
+links:
+  - { from: left, to: right, carries: lights }

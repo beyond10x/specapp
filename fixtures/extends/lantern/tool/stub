@@ -1,0 +1,17 @@
+#!/bin/sh
+# The inspector of the invented lantern pack, a stub. It implements no rule: it answers that the
+# lamp is lit, with two notes, the directory it runs in and the lamp it was given.
+#
+#   stub inspect <lamp>
+#
+# Prints one JSON object and exits 0. Exit 3 with {"problem": ...} when the lamp cannot be read.
+
+fail() {
+  printf '{"problem": "%s"}\n' "$1"
+  exit 3
+}
+
+[ "${1:-}" = inspect ] || fail "usage: stub inspect <lamp>"
+[ $# -eq 2 ] || fail "inspect takes one lamp"
+[ -f "$2" ] || fail "no such lamp"
+printf '{"verdict": "lit", "notes": [{"rule": "where", "text": "%s"}, {"rule": "lamp", "text": "%s"}]}\n' "$(pwd -P)" "$2"

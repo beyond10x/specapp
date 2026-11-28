@@ -82,7 +82,11 @@ pub fn index(ctx: &Ctx) -> Page {
             plural(layers.len(), "layer", "layers")
         ),
     );
-    ctx.source(&mut p, &format!("{}/", ctx.pack.manifest.blocks.path));
+    ctx.source_in(
+        &mut p,
+        ctx.pack.blocks_root(),
+        &format!("{}/", ctx.pack.manifest.blocks().path),
+    );
     p.flag("hide_table_of_contents", true);
     let mut s = String::from(ctx.banner());
 
@@ -484,7 +488,7 @@ pub fn page(ctx: &Ctx, b: &Block) -> Page {
     }
     p.set("kicker", layer_text(b));
     if let Some(file) = block_file(ctx, b) {
-        ctx.source(&mut p, &file);
+        ctx.source_in(&mut p, ctx.pack.blocks_root(), &file);
     }
     let mut s = String::from(ctx.banner());
     let entities = members(ir, &b.domain, "entities");
@@ -831,8 +835,12 @@ pub fn page(ctx: &Ctx, b: &Block) -> Page {
 
 /// The file of a block: the entry of the system's specification list whose domain it is.
 fn block_file(ctx: &Ctx, b: &Block) -> Option<String> {
-    let blocks_path = ctx.pack.manifest.blocks.path.trim_end_matches('/');
-    let inputs = ctx.pack.root.join(blocks_path).join("ess-inputs.yaml");
+    let blocks_path = ctx.pack.manifest.blocks().path.trim_end_matches('/');
+    let inputs = ctx
+        .pack
+        .blocks_root()
+        .join(blocks_path)
+        .join("ess-inputs.yaml");
     let text = std::fs::read_to_string(inputs).ok()?;
     let inputs: Value = serde_yaml_ng::from_str(&text).ok()?;
     for entry in inputs["specification"]
@@ -843,7 +851,7 @@ fn block_file(ctx: &Ctx, b: &Block) -> Option<String> {
         if metaspec_core::paths::relative_inside(entry).is_err() {
             continue;
         }
-        let path = ctx.pack.root.join(blocks_path).join(entry);
+        let path = ctx.pack.blocks_root().join(blocks_path).join(entry);
         let Ok(content) = std::fs::read_to_string(&path) else {
             continue;
         };
@@ -868,7 +876,7 @@ pub fn planned_page(ctx: &Ctx) -> Page {
         "Blocks the KPI catalogue measures before the blocks declare them.",
     );
     if let Some(k) = &ctx.pack.manifest.kpis {
-        ctx.source(&mut p, &k.path);
+        ctx.source_in(&mut p, ctx.pack.kpis_root(), &k.path);
     }
     let mut s = String::from(ctx.banner());
     if ctx.planned.is_empty() {

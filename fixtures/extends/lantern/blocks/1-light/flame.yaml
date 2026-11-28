@@ -1,0 +1,10 @@
+domain: lantern.flame
+
+summary: A flame a wick holds.
+
+naming:
+  wire: flame
+  display: Flame
+
+types:
+  - {name: lantern.flame.Height, kind: newtype, of: Integer}
