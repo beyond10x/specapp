@@ -7,7 +7,44 @@ title: One document class holds parts contained by in and by per
 summary: The manifest's contain takes in, per or both; graph and nested layout keep both.
 relations:
 - decomposes: epic:cloudspec-pack
-revision: 3
+scope:
+- confidence: inferred
+  path: CHANGELOG.md
+- confidence: cited
+  path: crates/metaspec-core/src/graph.rs
+- confidence: cited
+  path: crates/metaspec-core/src/manifest.rs
+- confidence: cited
+  path: crates/metaspec-core/tests/cases/fixtures.rs
+- confidence: cited
+  path: crates/metaspec-core/tests/cases/graph.rs
+- confidence: cited
+  path: crates/metaspec-core/tests/cases/manifest.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/nested.rs
+- confidence: inferred
+  path: crates/metaspec-layout/src/rows.rs
+- confidence: inferred
+  path: crates/metaspec-layout/tests/cases/scenes.rs
+- confidence: inferred
+  path: design/metaspec.md
+- confidence: inferred
+  path: fixtures/expected/harbor
+- confidence: inferred
+  path: fixtures/expected/harbor.json
+- confidence: inferred
+  path: fixtures/expected/site/harbor
+- confidence: inferred
+  path: fixtures/manifests/harbor.yaml
+- confidence: inferred
+  path: fixtures/packs/harbor/harbors
+- confidence: inferred
+  path: schema/metaspec-graph-1.schema.json
+- confidence: cited
+  path: schema/metaspec-pack-1.schema.json
+- confidence: cited
+  path: spec/domains/documents.yaml
+revision: 5
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 3}
