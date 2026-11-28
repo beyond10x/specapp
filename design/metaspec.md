@@ -192,7 +192,9 @@ presentation:
 
 The same manifest for agenticspec differs in names and in four places: `strip_prefix: agentic.`,
 `kpis.fields: { measure: kind, modes: modes }`, one document class `architecture` with
-`contain: { per: per }` and one view, and no `tool` yet (see "Gaps per pack").
+`contain: { per: per }` and one view, and a `tool` whose `check` runs
+`target/debug/agenticspec sim check --json <architecture>` and reads `valid`, `counts` and the
+list `violations` (rule, gate at `/gate`, message, subject as for orgspec).
 
 Rules of the manifest:
 
@@ -224,7 +226,8 @@ A pack is useful from the first level and may stop at any.
   the agent channel.
 
 orgspec today reaches L3: its manifest in metaspec reads `orgspec check --json` through an
-adapter. agenticspec reaches L2 today (see "Gaps per pack").
+adapter. agenticspec reaches L3 too: its manifest reads `agenticspec sim check --json` (see
+"Gaps per pack").
 
 ## Neutral formats
 
@@ -297,9 +300,16 @@ directory with stdin closed and reads stdout as JSON:
   unless it is the document's name.
 
 The result is `metaspec-findings/1`, validated against its schema; an answer the adapter cannot
-read is a failed check, shown as such. orgspec's adapter reads `orgspec check --json`; the two
+read is a failed check, shown as such. orgspec's adapter reads `orgspec check --json`,
+agenticspec's reads `agenticspec sim check --json`; the two
 fixture packs answer in two other shapes (a list with exit 1 for an invalid plan, and an object
 with a verdict word and a kind field per finding), so the mapping is tested on both.
+
+What a known pack's tool answers is also recorded: `fixtures/answers/<pack>/<class>/` holds
+invented documents, the tool's stdout and exit code for each (`scripts/record-answers.sh <pack>
+<pack-dir>`, run by hand on a checkout of the pack), and the `metaspec-findings/1` the adapter
+of `packs/<pack>.yaml` reads from them. The tests compare that result byte for byte and run no
+pack's tool; the acceptance runs the tool itself on the same documents.
 
 The verbs to come take the same form when they are built: `graph` (an adapter to
 `metaspec-graph/1`, where the generic reader is not enough, such as a pack whose defaults add
@@ -483,9 +493,12 @@ tool, its own documents) or in a neutral format, never by code for one pack.
 - **orgspec** (L3). Its defaults add links the generic reader cannot see: a finding on such a
   link is a row, not a mark, until an adapter for `graph` reads the links its checker adds (no
   broken design or example needs it today). No `presentation` yet.
-- **agenticspec** (L2). Its tool's check (`agenticspec-sim check <architecture>`) answers in
-  text lines, not JSON, so no adapter for `check` can read it yet; the adapter reads JSON. A
-  JSON answer of its own (any shape) closes the gap. Its simulator's result waits for `simulate`
+- **agenticspec** (L3). Its manifest reads `agenticspec sim check --json <architecture>`
+  (`agenticspec-check/1`). A file the tool cannot read is answered on stderr with no JSON, so
+  it is shown as a failed check, not a refusal: the adapter's `error` has nothing to point at.
+  The pack has no broken architectures, so its rules page lists no rule; the acceptance proves
+  the mapping on the invented cases of `fixtures/answers/agenticspec/`. Its simulator's result
+  waits for `simulate`
   (wave 7). The gaps of its architectures listed in "Decided in wave 2" stand: two blocks the
   documents use are no block of `blocks/`, a link `over` a part has no neutral field, part
   fields that name other parts are fields only, and `architectures/ladder/` is outside the
@@ -524,7 +537,7 @@ tool, its own documents) or in a neutral format, never by code for one pack.
 design/                 this document
 schema/                 JSON Schemas of the neutral formats
 scripts/                the vocabulary check, the pack directory check, the acceptance script,
-                        the planning-only path list
+                        the planning-only path list, the recorder of a known pack's answers
 packs/                  the manifests of the public packs metaspec knows, `<name>.yaml`
 spec/                   the ESS system `metaspec` and its ess-ui model
 crates/metaspec-core/   manifest, pack loading, the neutral model
@@ -538,6 +551,7 @@ web/studio/             the studio (React, Vite)
 fixtures/packs/         two invented packs, nothing of metaspec in them
 fixtures/manifests/     their manifests, `<name>.yaml`
 fixtures/expected/      what each fixture pack's check must count
+fixtures/answers/       recorded answers of the known packs' tools on invented documents
 ux/                     adapter, baseline, rounds of the UI loop
 ```
 

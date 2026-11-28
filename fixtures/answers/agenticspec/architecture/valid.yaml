@@ -1,0 +1,13 @@
+format: agenticspec-architecture/1
+architecture: pair
+summary: An invented architecture of three parts that the check accepts.
+
+parts:
+  lead: { block: principal, kind: human }
+  worker: { block: agent, harness: coding }
+  engine: { block: model, route: frontier }
+
+links:
+  - { from: lead, to: worker, carries: prompt }
+  - { from: worker, to: lead, carries: question }
+  - { from: worker, to: engine, carries: model_call }

@@ -33,8 +33,12 @@
 # (organizations/broken/*.yaml, through a manifest of this run made from packs/orgspec.yaml)
 # and every example, the rule ids in the page data equal those `orgspec check --json` reports,
 # and every finding about a part or link is marked in a scene. The findings come from
-# `orgspec check --json` itself, mapped by the adapter in packs/orgspec.yaml. Pages are under
-# target/acceptance/pages-<pack>/.
+# `orgspec check --json` itself, mapped by the adapter in packs/orgspec.yaml. The same for
+# agenticspec: every architecture, and the invented cases of
+# fixtures/answers/agenticspec/architecture (copied into the pack's target/acceptance-cases,
+# through a manifest of this run made from packs/agenticspec.yaml), against
+# `agenticspec sim check --json`, mapped by the adapter in packs/agenticspec.yaml; its tool is
+# built first. Pages are under target/acceptance/pages-<pack>/.
 #
 # Wave 3: `metaspec docs build` writes the docs site of every pack under target/acceptance/docs-<pack>;
 # its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and each
@@ -139,6 +143,7 @@ own=$(cd "$org" && { target/debug/orgspec type check --json types/*.yaml || true
 row orgspec documents:type "$(documents orgspec type)" "$own" "orgspec type check --json"
 
 # --- agenticspec ---
+(cd "$agentic" && cargo build --quiet --locked -p agenticspec)
 check agenticspec "$agentic" agenticspec
 own=$(cd "$agentic" && scripts/check-layers.sh | sed -n 's/^layers: \([0-9]*\) domains.*/\1/p')
 row agenticspec blocks "$(of agenticspec .counts.blocks)" "$own" "scripts/check-layers.sh"
@@ -188,23 +193,38 @@ n=$(pages agenticspec "$agentic" "$work/pages-agenticspec" agenticspec)
 own=$(find "$agentic/architectures" -maxdepth 1 -name '*.yaml' | wc -l | tr -d ' ')
 row agenticspec pages:architecture "$n" "$own" "architectures/*.yaml"
 
-# rules <pages> <file...>: per design, the rule ids of metaspec's page against orgspec's own
-# check, and every finding about a part or link drawn in a scene
+# The rule ids a pack's own check reports for one document, run in the pack's directory.
+theirs_orgspec() {
+  { target/debug/orgspec check --json "$1" || true; } | jq -r '[.[0].violations[].rule, (.[0].refusals[]?.refusal)] | unique | join(" ")'
+}
+theirs_agenticspec() {
+  { target/debug/agenticspec sim check --json "$1" || true; } | jq -r '[.violations[]?.rule] | unique | join(" ")'
+}
+
+# rules <pack> <pages> <class> <file...>: per document (run in the pack's directory), the rule
+# ids of metaspec's page against the pack's own check (theirs_<pack>), and every finding about a
+# part or link drawn in a scene
 rules() {
-  out=$1
-  shift
+  pack=$1 out=$2 class=$3
+  shift 3
   for f in "$@"; do
     stem=$(basename "$f" .yaml)
-    page=$out/organization/$stem.html
+    page=$out/$class/$stem.html
     [ -f "$page" ] || { echo "acceptance: no page for $f" >&2; echo "$f - - 0 1 0 0"; continue; }
     page_data "$page" > "$work/page-data.tmp"
     mine=$(jq -r '[.findings[].rule] | unique | join(" ")' "$work/page-data.tmp")
-    theirs=$(cd "$org" && { target/debug/orgspec check --json "$f" || true; } | jq -r '[.[0].violations[].rule, (.[0].refusals[]?.refusal)] | unique | join(" ")')
+    theirs=$("theirs_$pack" "$f")
     subjects=$(jq '[.findings[] | select(.subject != "document")] | length' "$work/page-data.tmp")
     drawn=$(jq '[.findings[] | select(.subject != "document") | select(.drawn_in | length > 0)] | length' "$work/page-data.tmp")
-    if [ "$mine" = "$theirs" ]; then same=1; else same=0; echo "acceptance: $f: metaspec [$mine], orgspec [$theirs]" >&2; fi
+    if [ "$mine" = "$theirs" ]; then same=1; else same=0; echo "acceptance: $f: metaspec [$mine], $pack [$theirs]" >&2; fi
     echo "$f $same 1 $drawn $subjects"
   done
+}
+
+# rule_rows <pack> <name> <rows> <source>: the two rows of a set of rules lines
+rule_rows() {
+  row "$1" "$2:rules-matched" "$(awk '{ s += $2 } END { print s + 0 }' "$3")" "$(awk '{ s += $3 } END { print s + 0 }' "$3")" "rule ids of each page = $4"
+  row "$1" "$2:findings-drawn" "$(awk '{ s += $4 } END { print s + 0 }' "$3")" "$(awk '{ s += $5 } END { print s + 0 }' "$3")" "findings on a part or link marked in a scene"
 }
 
 # broken designs: a manifest of this run, made from packs/orgspec.yaml, whose organizations are
@@ -214,12 +234,29 @@ grep -q 'organizations/broken/\*\.yaml' "$work/orgspec-broken.yaml" || { echo "a
 n=$(pages orgspec-broken "$org" "$work/pages-orgspec-broken" "$work/orgspec-broken.yaml")
 own=$(find "$org/organizations/broken" -maxdepth 1 -name '*.yaml' | wc -l | tr -d ' ')
 row orgspec pages:broken "$n" "$own" "organizations/broken/*.yaml"
-(cd "$org" && rules "$work/pages-orgspec-broken" organizations/broken/*.yaml) > "$work/broken.rows"
-row orgspec broken:rules-matched "$(awk '{ s += $2 } END { print s + 0 }' "$work/broken.rows")" "$(awk '{ s += $3 } END { print s + 0 }' "$work/broken.rows")" "rule ids of each page = orgspec check --json"
-row orgspec broken:findings-drawn "$(awk '{ s += $4 } END { print s + 0 }' "$work/broken.rows")" "$(awk '{ s += $5 } END { print s + 0 }' "$work/broken.rows")" "findings on a part or link marked in a scene"
-(cd "$org" && rules "$work/pages-orgspec" organizations/*.yaml) > "$work/examples.rows"
-row orgspec examples:rules-matched "$(awk '{ s += $2 } END { print s + 0 }' "$work/examples.rows")" "$(awk '{ s += $3 } END { print s + 0 }' "$work/examples.rows")" "rule ids of each page = orgspec check --json"
-row orgspec examples:findings-drawn "$(awk '{ s += $4 } END { print s + 0 }' "$work/examples.rows")" "$(awk '{ s += $5 } END { print s + 0 }' "$work/examples.rows")" "findings on a part or link marked in a scene"
+(cd "$org" && rules orgspec "$work/pages-orgspec-broken" organization organizations/broken/*.yaml) > "$work/broken.rows"
+rule_rows orgspec broken "$work/broken.rows" "orgspec check --json"
+(cd "$org" && rules orgspec "$work/pages-orgspec" organization organizations/*.yaml) > "$work/examples.rows"
+rule_rows orgspec examples "$work/examples.rows" "orgspec check --json"
+
+# agenticspec: every architecture, and the cases recorded under
+# fixtures/answers/agenticspec/architecture (one it accepts, one it refuses), copied into the
+# pack's target/ directory and drawn with a manifest of this run made from
+# packs/agenticspec.yaml. The findings come from `agenticspec sim check --json` itself, mapped by
+# the adapter in packs/agenticspec.yaml.
+(cd "$agentic" && rules agenticspec "$work/pages-agenticspec" architecture architectures/*.yaml) > "$work/agentic-examples.rows"
+rule_rows agenticspec examples "$work/agentic-examples.rows" "agenticspec sim check --json"
+cases=$agentic/target/acceptance-cases
+rm -rf "$cases"
+mkdir -p "$cases"
+cp "$root"/fixtures/answers/agenticspec/architecture/*.yaml "$cases/"
+sed 's#architectures/\*\.yaml#target/acceptance-cases/*.yaml#' "$root/packs/agenticspec.yaml" > "$work/agenticspec-cases.yaml"
+grep -q 'target/acceptance-cases/\*\.yaml' "$work/agenticspec-cases.yaml" || { echo "acceptance: cannot point a manifest at the recorded cases" >&2; exit 2; }
+n=$(pages agenticspec-cases "$agentic" "$work/pages-agenticspec-cases" "$work/agenticspec-cases.yaml")
+own=$(find "$cases" -maxdepth 1 -name '*.yaml' | wc -l | tr -d ' ')
+row agenticspec pages:cases "$n" "$own" "fixtures/answers/agenticspec/architecture/*.yaml"
+(cd "$agentic" && rules agenticspec "$work/pages-agenticspec-cases" architecture target/acceptance-cases/*.yaml) > "$work/agentic-cases.rows"
+rule_rows agenticspec cases "$work/agentic-cases.rows" "agenticspec sim check --json"
 
 # --- wave 3: docs sites ---
 # docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of a pack into

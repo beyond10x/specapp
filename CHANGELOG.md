@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- agenticspec reaches L3: `packs/agenticspec.yaml` declares the `check` adapter of
+  `agenticspec sim check --json <architecture>` (`agenticspec-check/1`: `valid`, `counts`, and
+  per violation its rule, its gate, its message and a subject that is a link when it contains
+  `->`, else a part, else the document). The docs and the rendered pages of agenticspec show its
+  findings once its tool is built and trusted. No code changed: the adapter already runs the
+  tool once per document.
+- `fixtures/answers/<pack>/<class>/`: invented documents with what a known pack's tool answered
+  to them (stdout and exit code, `scripts/record-answers.sh <pack> <pack-dir>`) and the
+  `metaspec-findings/1` the manifest's adapter reads from that answer, compared byte for byte by
+  a test that runs no pack's tool (`METASPEC_BLESS=1` rewrites it). agenticspec has one
+  accepted and one refused architecture.
+- `scripts/acceptance.sh` builds agenticspec's tool and adds its rows: the rule ids of every
+  architecture's page and of the recorded cases equal `agenticspec sim check --json`, and every
+  finding about a part or link is marked in a scene.
+
 - Renamed from specapp to metaspec on 2026-11-28, on the owner's order: the repository
   (`github.com/beyond10x/metaspec`), the crates `metaspec-core`, `metaspec-layout`,
   `metaspec-docs` and `metaspec` (binary `metaspec`), the formats and their schemas

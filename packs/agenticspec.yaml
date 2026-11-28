@@ -25,3 +25,18 @@ documents:
       - id: architecture
         title: Architecture
         layout: rows
+
+tool:
+  run: [target/debug/agenticspec]
+  verbs:
+    check:
+      args: [sim, check, --json]
+      exit: [0, 1]
+      valid: { at: /valid }
+      counts: /counts
+      findings:
+        - at: /violations
+          rule: "{/rule}"
+          gate: { at: /gate }
+          message: "{/message}"
+          subject: { id: "{/subject}", link_when_contains: "->", unknown: document }

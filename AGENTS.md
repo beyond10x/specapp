@@ -35,8 +35,10 @@ other.
   `fixtures/manifests/<name>.yaml`; a fixture pack directory holds nothing of metaspec, and its
   tool answers in a format of its own (`scripts/check-pack-dirs.sh`).
 - **This repository is public.** No content of a real pack (no block, document, finding or other
-  file of it), no company, product, person or host name, no path of a home directory. The one
-  exception: the manifests of public packs under `packs/`, and only there. A private pack is
+  file of it), no company, product, person or host name, no path of a home directory. Two
+  exceptions, both for public packs only: their manifests under `packs/`, and the recorded
+  answers of their tools under `fixtures/answers/<pack>/`, for inputs this repository invents
+  (`scripts/record-answers.sh`). A private pack is
   loaded from its own checkout at run time with a manifest given by its path, and nothing of it
   is written here: no manifest, no fixture, no screenshot, no baseline, no test name.
 - A session that has read a private pack sets `METASPEC_DENYLIST` to that organization's deny
