@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-28T01:52:39Z",
+  "actor": "human:operator",
+  "artifact": "epic:spec-quality",
+  "kind": "epic",
+  "revision": 3,
+  "change": {
+    "change": "evidence",
+    "kind": "review_outcome",
+    "source": "review-result:quality-scope-round-2",
+    "reference": ".engineering/planning/epic/spec-quality.md:48",
+    "review": "review-result:quality-scope-round-2",
+    "outcome": "fixed"
+  }
+}

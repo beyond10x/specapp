@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-28T01:58:18Z",
+  "actor": "human:operator",
+  "artifact": "story:kpi-quality-catalogue-shape",
+  "kind": "story",
+  "revision": 11,
+  "change": {
+    "change": "evidence",
+    "kind": "review_outcome",
+    "source": "review-result:quality-acceptance-round-3",
+    "reference": ".engineering/planning/story/kpi-quality-catalogue-shape.md:265",
+    "review": "review-result:quality-acceptance-round-3",
+    "outcome": "fixed"
+  }
+}
