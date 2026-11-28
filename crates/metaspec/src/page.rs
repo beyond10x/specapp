@@ -139,11 +139,19 @@ pub fn document(p: &DocumentPage) -> String {
                 " metaspec adds this view because the views of the class leave a part or link out.",
             );
         }
+        if !s.badges.is_empty() {
+            let hubs = s.boxes.iter().filter(|b| b.hub).count();
+            meta.push_str(&format!(
+                " {} more link(s) go to {hubs} hub(s), each hub drawn once; each such link is drawn as a badge on its caller, and the view {}/edges draws it as an edge.",
+                s.badges.len(),
+                s.view.id
+            ));
+        }
         let _ = writeln!(h, "<p class=\"meta\">{}</p>", esc(&meta));
         let _ = writeln!(
             h,
             "<figure class=\"drawing\">{}</figure>",
-            svg::svg(s, &format!("v-{}", s.view.id))
+            svg::svg(s, &format!("v-{}", s.view.id.replace('/', "-")))
         );
         h.push_str("<ul class=\"legend\" aria-label=\"Legend\">");
         for entry in &s.legend {

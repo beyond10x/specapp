@@ -22,6 +22,7 @@ fn view(layout_: Layout, blocks: &[&str]) -> ViewSpec {
         rows: RowsBy::Layer,
         blocks: blocks.iter().map(|b| b.to_string()).collect(),
         carries: Vec::new(),
+        hubs: None,
         implicit: false,
     }
 }

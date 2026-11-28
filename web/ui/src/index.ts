@@ -5,6 +5,7 @@
 export {BlockHeader} from './BlockHeader.js';
 export {configure, route, SpecLink, type LinkProps} from './config.js';
 export {FindingsList} from './FindingsList.js';
+export {GraphSwitch} from './GraphSwitch.js';
 export {GraphView} from './GraphView.js';
 export {Icon, styleOf, word} from './Icon.js';
 export {KpiCatalogue} from './KpiCatalogue.js';

@@ -844,6 +844,141 @@ fn an_untrusted_site_says_its_documents_are_not_checked() {
     }
 }
 
+/// The text of the SVG of view `id` in a page `metaspec render` wrote.
+fn svg_of_view<'a>(html: &'a str, id: &str) -> &'a str {
+    let start = format!("<section class=\"view\" id=\"view-{id}\"");
+    let from = html
+        .find(&start)
+        .unwrap_or_else(|| panic!("a section of the view {id}"));
+    let to = from + html[from..].find("</section>").unwrap();
+    &html[from..to]
+}
+
+#[test]
+fn hub_page_draws_badges_with_their_marks_and_the_edges_view_without_a_script() {
+    let mut badges = 0;
+    let mut marked = 0;
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let state = scratch(&format!("hub-state-{name}"));
+        let out = scratch(&format!("hub-pages-{name}"));
+        trust(&state, &dir);
+        assert_eq!(render(&state, &dir, &out, &[]).status.code(), Some(0));
+        for rel in files(&out).into_iter().filter(|f| f != "index.html") {
+            let html = std::fs::read_to_string(out.join(&rel)).unwrap();
+            assert_eq!(
+                html.matches("<script").count(),
+                1,
+                "{rel}: no script but the data element"
+            );
+            let data = page_data(&html);
+            let scenes = data["scenes"].as_array().unwrap();
+            for scene in scenes {
+                let Some(list) = scene["badges"].as_array() else {
+                    continue;
+                };
+                let id = scene["view"]["id"].as_str().unwrap();
+                let edges_id = format!("{id}/edges");
+                let edges = scenes
+                    .iter()
+                    .find(|s| s["view"]["id"] == edges_id.as_str())
+                    .unwrap_or_else(|| panic!("{rel}: a scene {edges_id}"));
+                assert!(edges.get("badges").is_none(), "{rel}: {edges_id} has none");
+                assert!(
+                    html.contains(&format!("<a href=\"#view-{edges_id}\">")),
+                    "{rel}: the views list links {edges_id}"
+                );
+                let drawn = svg_of_view(&html, id);
+                let as_edges = svg_of_view(&html, &edges_id);
+                for b in list {
+                    let link = b["id"].as_str().unwrap().replace('>', "&gt;");
+                    assert!(
+                        drawn.contains(&format!("class=\"hublink\" id=\"v-{id}-h"))
+                            && drawn.contains(&format!("data-id=\"{link}\"")),
+                        "{rel}: the badge {link} is drawn"
+                    );
+                    assert!(
+                        as_edges.contains("class=\"edge")
+                            && as_edges.contains(&format!("data-id=\"{link}\"")),
+                        "{rel}: {edges_id} draws {link} as an edge"
+                    );
+                    for n in b["findings"].as_array().unwrap() {
+                        assert!(
+                            drawn.contains(&format!("href=\"#finding-{n}\"")),
+                            "{rel}: the mark of finding {n} on the badge links its row"
+                        );
+                        let row = data["findings"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .find(|f| f["n"] == *n)
+                            .unwrap();
+                        assert!(
+                            row["drawn_in"].as_array().unwrap().iter().any(|v| v == id),
+                            "{rel}: finding {n} is drawn in {id}"
+                        );
+                        marked += 1;
+                    }
+                    badges += 1;
+                }
+                assert!(
+                    drawn.contains("drawn as a badge on its caller"),
+                    "{rel}: the view says what a badge is"
+                );
+            }
+        }
+    }
+    assert!(badges >= 3, "{badges} badges in the fixture pages");
+    assert!(marked >= 1, "a finding on a badge");
+}
+
+#[test]
+fn hub_docs_page_shows_a_view_and_its_edges_view_as_one_view_with_a_switch() {
+    let root = committed_site();
+    let mut switches = 0;
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        for rel in files(&root.join(&name).join("pages")) {
+            let page: Value = serde_json::from_str(
+                &std::fs::read_to_string(root.join(&name).join("pages").join(&rel)).unwrap(),
+            )
+            .unwrap();
+            let markdown = page["markdown"].as_str().unwrap_or_default();
+            for (key, data) in page["data"].as_object().unwrap() {
+                let Some(views) = data.get("views").and_then(Value::as_array) else {
+                    continue;
+                };
+                if !views.iter().all(|v| v["format"] == "metaspec-scene/1") {
+                    continue;
+                }
+                assert_eq!(views.len(), 2, "{rel} {key}");
+                let id = views[0]["view"]["id"].as_str().unwrap();
+                assert_eq!(views[1]["view"]["id"], format!("{id}/edges"), "{rel}");
+                assert!(views[0]["badges"].as_array().is_some_and(|b| !b.is_empty()));
+                assert!(views[1].get("badges").is_none());
+                assert!(
+                    markdown.contains(&format!("<GraphSwitch data={{page.data[\"{key}\"]}}")),
+                    "{rel}: one component for both"
+                );
+                let title = views[1]["view"]["title"].as_str().unwrap();
+                assert!(
+                    !markdown.contains(&format!("## {title}\n")),
+                    "{rel}: no section of its own for {title}"
+                );
+                assert!(
+                    page["components"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|c| c == "GraphSwitch")
+                );
+                switches += 1;
+            }
+        }
+    }
+    assert!(switches >= 1, "a fixture page with a switch");
+}
+
 #[test]
 fn exclude_is_named_on_the_page_of_its_class() {
     let dir = &packs()[0];

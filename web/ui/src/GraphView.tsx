@@ -48,6 +48,7 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
   const region = useScrollRegion(frame, `${scene.view.title}, drawing`);
   const p = `sa-g${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const curved = scene.view.layout === 'rows';
+  const badges = scene.badges ?? [];
   const markWidth = (subject: string, n: number) =>
     scene.marks.find((m) => m.finding === n && m.subject === subject)?.w ?? 22;
   return (
@@ -62,7 +63,7 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
           aria-labelledby={`${p}-t ${p}-d`}>
           <title id={`${p}-t`}>{`${scene.view.title} of ${scene.document}`}</title>
           <desc id={`${p}-d`}>
-            {`${scene.boxes.length} boxes and ${scene.edges.length} edges, each edge labelled by what it carries; ${scene.marks.length} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.`}
+            {`${scene.boxes.length} boxes and ${scene.edges.length} edges, each edge labelled by what it carries${badges.length > 0 ? `; ${badges.length} links to a hub, each a badge on its caller's box` : ''}; ${scene.marks.length} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.`}
           </desc>
           <defs>
             <marker id={`${p}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -89,6 +90,7 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
               if (b.container) classes.push('sa-scene__box--container');
               if (child) classes.push('sa-scene__box--child');
               if (b.findings.length > 0) classes.push('sa-scene__box--marked');
+              if (b.hub) classes.push('sa-scene__box--hub');
               let lx = b.x + PAD;
               return (
                 <g key={`${b.id}-${i}`} className={classes.join(' ')} id={`${p}-b${i}`} data-id={b.id}>
@@ -128,6 +130,25 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
               );
             })}
           </g>
+          {badges.length > 0 && (
+            <g>
+              {badges.map((h, i) => {
+                const classes = ['sa-scene__badge'];
+                if (h.findings.length > 0) classes.push('sa-scene__badge--marked');
+                const marks = h.findings.reduce((sum, n) => sum + markWidth(`link:${h.id}`, n) + 3, 0);
+                const r = h.at;
+                return (
+                  <g key={`${h.id}-${i}`} className={classes.join(' ')} id={`${p}-h${i}`} data-id={h.id}>
+                    <title>{h.title}</title>
+                    <rect className="sa-scene__pill" x={r.x} y={r.y} width={r.w} height={r.h} rx={9} />
+                    <text className="sa-scene__edge-label" x={px(r.x + marks + (r.w - marks) / 2)} y={px(r.y + 13)} textAnchor="middle">
+                      {h.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          )}
           <g>
             {scene.edges.map((e, i) => {
               const classes = ['sa-scene__edge'];

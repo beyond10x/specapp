@@ -3,13 +3,21 @@
  * one site fixtures/expected/site, written by `metaspec docs build`) with the data and
  * presentation the page's MDX hands it, and checks what each draws against that data.
  */
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, fireEvent, render} from '@testing-library/react';
 import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import {join, relative, resolve} from 'node:path';
 import type {ComponentType} from 'react';
 import {afterEach, describe, expect, it} from 'vitest';
 import * as ui from '../src/index.js';
-import type {FindingsData, KpiCatalogueData, LayerMapData, Presentation, RecordTableData, Scene} from '../src/index.js';
+import type {
+  FindingsData,
+  GraphSwitchData,
+  KpiCatalogueData,
+  LayerMapData,
+  Presentation,
+  RecordTableData,
+  Scene,
+} from '../src/index.js';
 
 const expected = resolve(process.cwd(), '../../fixtures/expected/site');
 const packs = (JSON.parse(readFileSync(join(expected, 'index.json'), 'utf8')) as {packs: {pack: string}[]}).packs
@@ -102,11 +110,15 @@ describe.each(packs)('pack %s', (pack) => {
       if (scenes.length === 0) continue;
       const findings = page.data.findings as FindingsData | undefined;
       const list = findings ? render(<ui.FindingsList data={findings} presentation={site.presentation} />).container : null;
-      for (const [key, value] of scenes) {
-        const scene = value as Scene;
+      const drawings = scenes.flatMap(([key, value]) =>
+        'views' in (value as object) ? (value as GraphSwitchData).views.map((s) => [key, s] as const) : [[key, value as Scene] as const],
+      );
+      for (const [key, scene] of drawings) {
         const {container} = render(<ui.GraphView data={scene} presentation={site.presentation} />);
         const where = `${relative(root, file)} ${key}`;
-        expect(container.querySelector(`#view-${scene.view.id}`), where).not.toBeNull();
+        expect(container.querySelectorAll('g.sa-scene__badge').length, where).toBe(scene.badges?.length ?? 0);
+        expect(container.querySelectorAll('g.sa-scene__box--hub').length, where).toBe(scene.boxes.filter((b) => b.hub).length);
+        expect(container.querySelector(`[id="view-${scene.view.id}"]`), where).not.toBeNull();
         expect(container.querySelectorAll('g.sa-scene__box').length, where).toBe(scene.boxes.length);
         expect(container.querySelectorAll('g.sa-scene__edge').length, where).toBe(scene.edges.length);
         const marks = container.querySelectorAll('a[href^="#finding-"]');
@@ -119,6 +131,38 @@ describe.each(packs)('pack %s', (pack) => {
       }
       cleanup();
     }
+  });
+
+  it('a view with hubs and its edges view are one drawing with a switch', () => {
+    let switches = 0;
+    let tagged = 0;
+    for (const file of walk(join(root, 'pages'))) {
+      const page = JSON.parse(readFileSync(file, 'utf8'));
+      const mdx = join(root, 'docs', relative(join(root, 'pages'), file).replace(/\.json$/, '.mdx'));
+      tagged += readFileSync(mdx, 'utf8').split('<GraphSwitch ').length - 1;
+      for (const [key, value] of Object.entries(page.data)) {
+        if (!key.startsWith('scene-') || !('views' in (value as object))) continue;
+        const data = value as GraphSwitchData;
+        const [hubs, edges] = data.views;
+        const where = `${relative(root, file)} ${key}`;
+        expect(edges.view.id, where).toBe(`${hubs.view.id}/edges`);
+        const {container} = render(<ui.GraphSwitch data={data} presentation={site.presentation} />);
+        const buttons = container.querySelectorAll('button');
+        expect(buttons.length, where).toBe(2);
+        expect(container.querySelector(`[id="view-${hubs.view.id}"]`), where).not.toBeNull();
+        expect(container.querySelector(`[id="view-${edges.view.id}"]`), where).not.toBeNull();
+        expect(container.querySelectorAll('g.sa-scene__badge').length, where).toBe(hubs.badges?.length ?? 0);
+        expect(container.querySelectorAll('g.sa-scene__edge').length, where).toBe(hubs.edges.length);
+        fireEvent.click(buttons[1]);
+        expect(buttons[1].getAttribute('aria-pressed'), where).toBe('true');
+        expect(container.querySelectorAll('g.sa-scene__badge').length, where).toBe(0);
+        expect(container.querySelectorAll('g.sa-scene__edge').length, where).toBe(edges.edges.length);
+        expect(edges.edges.length, where).toBe(hubs.edges.length + (hubs.badges?.length ?? 0));
+        cleanup();
+        switches += 1;
+      }
+    }
+    expect(switches, pack).toBe(tagged);
   });
 
   it('a record table has one row per record', () => {

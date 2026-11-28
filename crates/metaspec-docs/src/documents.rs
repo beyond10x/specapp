@@ -10,7 +10,7 @@ use metaspec_core::manifest::{DocumentClass, Shape};
 use metaspec_core::pack::Document;
 use metaspec_core::tool::CheckState;
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
 /// The pages of every document class and their sidebar items.
@@ -274,7 +274,16 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
     let _ = writeln!(s, "{}\n", text(&sentence));
     s.push_str("A finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n");
 
+    let mut skip = BTreeSet::new();
     for (n, scene) in d.scenes.iter().enumerate() {
+        if skip.contains(&n) {
+            continue;
+        }
+        // A view with hubs and its view `<id>/edges` are one view with a switch.
+        let edges = d
+            .scenes
+            .get(n + 1)
+            .filter(|e| e.view.id == format!("{}/edges", scene.view.id));
         let _ = writeln!(s, "## {}\n", text(&scene.view.title));
         let boxes = scene.boxes.iter().filter(|b| !b.ghost).count();
         let ghosts = scene.boxes.len() - boxes;
@@ -297,12 +306,37 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
                 " metaspec adds this view because the views of the class leave a part or link out.",
             );
         }
-        let _ = writeln!(s, "{meta}\n");
-        s.push_str(&p.component(
-            "GraphView",
-            &format!("scene-{}", n + 1),
-            serde_json::to_value(scene).unwrap_or(Value::Null),
-        ));
+        if !scene.badges.is_empty() {
+            let hubs = scene.boxes.iter().filter(|b| b.hub).count();
+            let _ = write!(
+                meta,
+                " {} go to {}, each hub drawn once; each such link is a badge on its caller.",
+                plural(scene.badges.len(), "more link", "more links"),
+                plural(hubs, "hub", "hubs")
+            );
+        }
+        match edges {
+            Some(edges) => {
+                skip.insert(n + 1);
+                let _ = writeln!(
+                    s,
+                    "{meta} The switch draws the same view with every link an edge.\n"
+                );
+                s.push_str(&p.component(
+                    "GraphSwitch",
+                    &format!("scene-{}", n + 1),
+                    json!({ "views": [scene, edges] }),
+                ));
+            }
+            None => {
+                let _ = writeln!(s, "{meta}\n");
+                s.push_str(&p.component(
+                    "GraphView",
+                    &format!("scene-{}", n + 1),
+                    serde_json::to_value(scene).unwrap_or(Value::Null),
+                ));
+            }
+        }
     }
 
     s.push_str("## Findings\n\n");

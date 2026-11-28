@@ -310,7 +310,8 @@ pub fn load_with(
             }
         }
         for view in &class.views {
-            for block in &view.blocks {
+            let hub_blocks = view.hubs.iter().flat_map(|h| h.blocks.iter());
+            for block in view.blocks.iter().chain(hub_blocks) {
                 if !names.contains(block.as_str()) {
                     warnings.push(Issue::new(
                         "view_unknown_block",

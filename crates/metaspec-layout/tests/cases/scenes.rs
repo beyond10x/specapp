@@ -34,7 +34,12 @@ fn every_scene_follows_the_schema_and_equals_the_committed_scene() {
                 .unwrap()
                 .trim_end_matches(".yaml");
             golden(
-                &format!("{}/scenes/{}/{stem}.{}.json", d.pack, d.class, view.id),
+                &format!(
+                    "{}/scenes/{}/{stem}.{}.json",
+                    d.pack,
+                    d.class,
+                    view.id.replace('/', ".")
+                ),
                 &text,
             );
             n += 1;
@@ -76,7 +81,11 @@ fn every_shown_part_has_one_box_and_every_shown_link_one_edge() {
                 view.id
             );
             assert_eq!(parts.len(), want.len(), "one box per part");
-            assert_eq!(s.edges.len(), shown.links.len());
+            assert_eq!(
+                s.edges.len() + s.badges.len(),
+                shown.links.len(),
+                "every shown link is one edge or one badge"
+            );
             let ghosts: Vec<&str> = s
                 .boxes
                 .iter()
