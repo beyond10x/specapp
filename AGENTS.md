@@ -65,7 +65,7 @@ other.
   the deny check and says so), script tests, `ess specify validate` of the fixture packs' blocks
   and `scripts/check-pack-dirs.sh` (no fixture pack holds anything of metaspec), `check:spec`
   (`scripts/check-spec-conform.sh`: metaspec's own ESS specification `spec/`, validated with
-  `--strict-requires` by the ess release `spec/ess-inputs.yaml` pins (0.99.9, resolved from
+  `--strict-requires` by the ess release `spec/ess-inputs.yaml` pins (0.99.11, resolved from
   inside `spec/`), then its conformance suite on the interpreted target, synthesized once per
   digest of its sources under `target/spec-conform/`; the scenarios that fail because the
   synthesized scenario is wrong are listed in `spec/known-failing.txt`), `cargo fmt` and

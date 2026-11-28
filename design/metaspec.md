@@ -834,7 +834,7 @@ The owner's decisions of 2026-11-28 and what writing `spec/` decided. The ESS sy
   meta model (`packs`, `blocks`, `documents`, `checks`) and the studio (`drafts`, `runs`,
   `agents`), plus `quality`: measures of every pack's KPI catalogue and specification, their
   values per pack and report, and a baseline that takes a better value and fails a worse one.
-- `spec/ess-inputs.yaml` pins its ess release (`requires: ess 0.99.9`); every ess command runs
+- `spec/ess-inputs.yaml` pins its ess release (`requires: ess 0.99.11`); every ess command runs
   inside `spec/`, where the pin applies. `task check` runs `check:spec`
   (`scripts/check-spec-conform.sh`): validate with `--strict-requires`, then the conformance
   suite on the interpreted target, synthesized once per digest of the sources under

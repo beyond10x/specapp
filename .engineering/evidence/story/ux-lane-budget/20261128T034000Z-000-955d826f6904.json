@@ -1,0 +1,13 @@
+{
+  "at": "2026-11-28T03:40:00Z",
+  "actor": "human:operator",
+  "artifact": "story:ux-lane-budget",
+  "kind": "story",
+  "revision": 2,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "task ux (gates step 30 s and 48 s); gate on metaspec#11",
+    "reference": "https://github.com/beyond10x/metaspec/pull/11"
+  }
+}
