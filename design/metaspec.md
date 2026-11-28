@@ -97,6 +97,15 @@ Different, and therefore declared by the pack:
 - Extra document classes: types in orgspec; profiles and experiments in agenticspec.
 - What the tool can do beyond the check: simulate, search, lower to ESS commands.
 
+metaspec's own KPI catalogue is `kpis/catalogue.yaml`, format `metaspec-kpis/1`, embedded in the
+binary. One row per quality measure: `id`, `block` (`quality`, the domain `metaspec.quality` of
+metaspec's specification), `measure` (the question: `kpi_catalogue` or `specification`), `unit`,
+`summary`, `how`, `direction` (`higher_is_better` or `lower_is_better`, ESS type
+`metaspec.quality.Direction`), `modes` (empty), `reads` (empty), `status`. No row sets `gate`: no
+threshold is invented; the ratchet holds the first value. The quality runner reads unit and
+direction from it; `metaspec_core::quality::catalogue` refuses a row whose id is empty or blank,
+an id on two rows, a row without unit or direction, and a direction outside the two words.
+
 ## The principle: metaspec knows the packs; a pack knows nothing of metaspec
 
 1. metaspec reads a pack through a manifest of its own and a small set of neutral formats. The
@@ -244,7 +253,12 @@ metaspec's own formats. A pack's formats stay the pack's.
   with counts, and per block its entities, lifecycles, commands, events, views, types and source
   lines. One producer: metaspec, from `ess specify compile --format json`.
 - `metaspec-kpis/1`: the catalogue with neutral field names (`measure`, `modes`), the pack's
-  words for their values kept as data, and the pack's own columns kept as extra columns.
+  words for their values kept as data, and the pack's own columns kept as extra columns. Two
+  producers, both metaspec: its own catalogue `kpis/catalogue.yaml` (rows as a pack writes them:
+  `modes` a map from a mode to its direction, `gate` absent where no threshold is set), and the
+  KpiCatalogue data of a generated KPI page (top-level `measure` and `modes` name the pack's own
+  columns, `modes` of a row a list, the pack's other columns in `extra`, plus `layer`, `planned`
+  and `route`). Schema `schema/metaspec-kpis-1.schema.json` takes both.
 - `metaspec-graph/1`: one composed document. `parts[{id, block, kind, fields, inside, per,
   on_border, markers}]`, `links[{id, from, to, carries, fields, added_by}]`, `groups` from
   containment. `added_by` names a default of the pack that added a link the document did not

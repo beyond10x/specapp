@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-kpis-1.schema.json",
+  "title": "metaspec-kpis/1",
+  "description": "A KPI catalogue with neutral field names: `measure` for the measure kind and `modes` for a direction per mode. Two producers, both metaspec: its own catalogue `kpis/catalogue.yaml` (rows as a pack writes them, `modes` a map from a mode to its direction, `gate` absent where no threshold is set), and the KpiCatalogue data of a generated KPI page (a pack's catalogue read through its manifest: `measure` and `modes` at the top name the pack's own columns, `modes` of a row is a list, the pack's other columns are in `extra`, and the page adds `layer`, `planned` and `route`). A pack's words for the values (a measure kind, a direction, a status) are kept as data; metaspec's own catalogue writes `direction` as `higher_is_better` or `lower_is_better`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "kpis"],
+  "properties": {
+    "format": { "const": "metaspec-kpis/1" },
+    "measure": { "type": "string", "description": "The pack's name of the column that holds the measure kind (its manifest's `kpis.fields.measure`). Absent: `measure`." },
+    "modes": { "type": "string", "description": "The pack's name of the column that holds a direction per mode (its manifest's `kpis.fields.modes`). Absent: `modes`." },
+    "kpis": { "type": "array", "items": { "$ref": "#/$defs/kpi" } }
+  },
+  "$defs": {
+    "kpi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "block": { "type": "string", "description": "The block the KPI belongs to, as written; a block the pack does not have is planned." },
+        "measure": { "type": "string", "description": "The measure kind, in the pack's words." },
+        "unit": { "type": "string" },
+        "summary": { "type": "string" },
+        "how": { "type": "string", "description": "How the value is measured." },
+        "direction": { "type": "string", "description": "Which way the value is better, in the pack's words." },
+        "modes": {
+          "description": "A direction per mode; may be empty.",
+          "anyOf": [
+            { "type": "object", "additionalProperties": { "type": "string" } },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mode", "direction"],
+                "properties": { "mode": { "type": "string" }, "direction": { "type": "string" } }
+              }
+            }
+          ]
+        },
+        "gate": { "type": "boolean", "description": "Whether the KPI gates; absent: it does not." },
+        "reads": { "type": "array", "items": { "type": "string" }, "description": "The events of the blocks the KPI reads." },
+        "status": { "type": "string", "description": "The row's status, in the pack's words." },
+        "extra": { "type": "object", "description": "The pack's other columns, as text." },
+        "layer": { "type": ["integer", "null"], "description": "On a KPI page: the layer number of the block, null for a planned block." },
+        "planned": { "type": "boolean", "description": "On a KPI page: the block is planned." },
+        "route": { "type": ["string", "null"], "description": "On a KPI page: the address of the block's KPIs." }
+      }
+    }
+  }
+}
