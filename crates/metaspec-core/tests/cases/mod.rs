@@ -4,5 +4,6 @@ mod containment;
 mod fixtures;
 mod graph;
 mod manifest;
+mod quality;
 mod tools;
 mod trust;

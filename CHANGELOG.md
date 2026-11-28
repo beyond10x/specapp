@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- metaspec carries its own KPI catalogue, `kpis/catalogue.yaml` (format `metaspec-kpis/1`): one
+  row per quality measure of the two questions, 10 of the KPI catalogue (`coverage.blocks` to
+  `planned`) and 30 of the specification (`validity.refusals` to `drift`, with one
+  `mutation.<class>` row for each of the 14 mutation classes of ess). Every row names the block
+  `quality`, its question as measure kind (`kpi_catalogue`, `specification`), its unit and its
+  direction in metaspec's words (`higher_is_better`, `lower_is_better`); no row sets `gate`, and
+  every row is `planned`. `metaspec_core::quality::catalogue` embeds it and loads it: it refuses
+  a row whose id is empty or blank, an id on two rows, a row without unit or direction, and a
+  direction outside the two words, every refusal named. The format has its schema at last,
+  `schema/metaspec-kpis-1.schema.json`; it takes metaspec's catalogue and the KpiCatalogue data
+  of the generated KPI pages, and a test holds both fixture sites' pages to it.
+
 ## 0.1.0 (2026-11-28)
 
 - `spec/` pins ess 0.99.11 (was 0.99.9). Its synthesis expects the patch of the Variant row

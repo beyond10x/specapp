@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T10:56:20Z",
+  "actor": "human:operator",
+  "artifact": "story:quality-catalogue",
+  "kind": "story",
+  "revision": 17,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "slot --here task check (integration/2026-11-28-5 at 2e758de8cbc3abe1b35875850bd2b85e39fc69d2): check exit 0, 91 tests run: 91 passed, 135 spec scenarios passed"
+  }
+}

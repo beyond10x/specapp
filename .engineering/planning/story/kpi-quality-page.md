@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:kpi-quality-page
 kind: story
-status: draft
+status: active
 title: A quality page per pack shows the KPI report
 summary: metaspec render writes quality.html from a KPI report.
 relations:
@@ -27,7 +27,10 @@ scope:
   path: fixtures/quality-reports/orchard/kpis.json
 - confidence: cited
   path: scripts/acceptance.d/kpi-quality-page.sh
-revision: 12
+revision: 14
+transitions:
+- {from: "draft", to: "proposed", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 13, decided_on: {"recorded":{"review_outcome":3}}}
+- {from: "proposed", to: "active", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 14, decided_on: {"recorded":{"review_outcome":3}}}
 ---
 # A quality page per pack shows the KPI report
 

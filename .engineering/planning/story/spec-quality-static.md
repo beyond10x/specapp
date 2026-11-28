@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:spec-quality-static
 kind: story
-status: draft
+status: active
 title: metaspec quality spec reports validity, ESS completeness, honesty and adoption level for every pack
 summary: The specification command on the shared format, with the measures read from ess outputs, the block sources and the manifest.
 relations:
@@ -54,7 +54,10 @@ scope:
   path: fixtures/expected/orchard/quality/validity.warnings.json
 - confidence: cited
   path: scripts/acceptance.d/spec-quality-static.sh
-revision: 10
+revision: 12
+transitions:
+- {from: "draft", to: "proposed", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 11, decided_on: {"recorded":{"review_outcome":1}}}
+- {from: "proposed", to: "active", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 12, decided_on: {"recorded":{"review_outcome":1}}}
 ---
 # `metaspec quality spec` reports validity, ESS completeness, honesty and adoption level for every pack
 

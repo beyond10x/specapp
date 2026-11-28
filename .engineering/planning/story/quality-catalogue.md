@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:quality-catalogue
 kind: story
-status: draft
+status: implemented
 title: metaspec carries its own catalogue of quality KPIs, in the format the packs use
 summary: One row per quality measure of both epics, with unit and direction; the runner reads the measures from it.
 relations:
@@ -24,7 +24,11 @@ scope:
   path: crates/metaspec-core/tests/cases/quality/mod.rs
 - confidence: cited
   path: kpis/catalogue.yaml
-revision: 15
+revision: 18
+transitions:
+- {from: "draft", to: "proposed", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 16, decided_on: {"recorded":{"review_outcome":5}}}
+- {from: "proposed", to: "active", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 17, decided_on: {"recorded":{"review_outcome":5}}}
+- {from: "active", to: "implemented", at: "2026-11-28T10:56:20Z", actor: "human:operator", revision: 18, decided_on: {"recorded":{"test_result":1,"review_outcome":6}}}
 ---
 # metaspec carries its own catalogue of quality KPIs
 

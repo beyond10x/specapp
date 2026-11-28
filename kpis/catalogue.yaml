@@ -1,0 +1,441 @@
+format: metaspec-kpis/1
+kpis:
+  - id: coverage.blocks
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the pack's blocks with at least one KPI.
+    how: Blocks named by at least one row of the pack's KPI catalogue, over the blocks of the pack.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: coverage.rules
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the rules the pack's tool reports that have a KPI counting them.
+    how: Rules of the tool's check with a KPI that counts their findings, over the rules the tool reports.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: coverage.lifecycles
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the entity lifecycles whose events some KPI reads.
+    how: Lifecycles of the compiled blocks with an event named in the `reads` of a KPI, over all lifecycles.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: grounding
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the KPIs with a non-empty `reads` whose `reads` name only events the compiled blocks declare.
+    how: KPIs whose every read event is declared by the compiled blocks, over the KPIs with a non-empty `reads`; a KPI with an empty `reads` is left out.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: completeness.fields
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the KPIs with unit, direction, a direction per mode, and a gate threshold where `gate` is set.
+    how: Rows of the pack's catalogue that carry every one of these fields, over all rows.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: alive
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the KPIs the pack's tool reports a value for on at least one document.
+    how: KPIs with a value in the tool's check of at least one of the pack's documents, over all KPIs.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: discrimination
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the alive KPIs whose value differs across the pack's documents.
+    how: Alive KPIs with at least two values over the pack's documents, over the alive KPIs; an alive KPI with one value on every document is listed as flat.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: gate_fidelity
+    block: quality
+    measure: kpi_catalogue
+    unit: share
+    summary: Share of the gating KPIs with a broken example that move on that example and on no valid example.
+    how: For each gating KPI with a broken example, its value on that example against its value on the valid examples.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: redundancy
+    block: quality
+    measure: kpi_catalogue
+    unit: count
+    summary: Pairs of KPIs, neither of them flat, whose values agree on every document.
+    how: Pairs of KPIs that are not flat with equal values on each of the pack's documents; each pair is a candidate for merging.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: planned
+    block: quality
+    measure: kpi_catalogue
+    unit: count
+    summary: KPIs that name a block the pack does not have yet.
+    how: Rows of the pack's catalogue whose block is not one of the pack's blocks.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: validity.refusals
+    block: quality
+    measure: specification
+    unit: count
+    summary: Refusals of `ess specify validate` on the pack's specification.
+    how: The refusals `ess specify validate --format json` prints for the pack's blocks.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: validity.warnings
+    block: quality
+    measure: specification
+    unit: count
+    summary: Warnings of `ess specify validate` on the pack's specification.
+    how: The warnings `ess specify validate --format json` prints for the pack's blocks, such as an implied relation.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: layering
+    block: quality
+    measure: specification
+    unit: count
+    summary: Dependency edges that point to a higher layer or form a cycle inside a layer.
+    how: Edges between the compiled blocks, compared with the layers of the blocks.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: ess_completeness.unscenarioed
+    block: quality
+    measure: specification
+    unit: count
+    summary: The `unscenarioed` count of the completeness report of `ess specify validate`.
+    how: The `completeness` counts of `ess specify validate --format json`.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: ess_completeness.unanswered
+    block: quality
+    measure: specification
+    unit: count
+    summary: The `unanswered` count of the completeness report of `ess specify validate`.
+    how: The `completeness` counts of `ess specify validate --format json`.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: ess_completeness.outside
+    block: quality
+    measure: specification
+    unit: count
+    summary: The `outside` count of the completeness report of `ess specify validate`.
+    how: The `completeness` counts of `ess specify validate --format json`.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: conformance.synthesized
+    block: quality
+    measure: specification
+    unit: count
+    summary: Scenarios synthesized for the interpreted reference target.
+    how: The scenarios of the conformance suite of the pack's specification on the interpreted reference target.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: conformance.passed
+    block: quality
+    measure: specification
+    unit: count
+    summary: Scenarios that pass on the interpreted reference target.
+    how: The passing scenarios of the conformance suite on the interpreted reference target.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: conformance.known_failing
+    block: quality
+    measure: specification
+    unit: count
+    summary: Scenarios listed as known to fail on the interpreted reference target.
+    how: The scenarios of the conformance suite the pack lists as known to fail.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: conformance.skipped
+    block: quality
+    measure: specification
+    unit: count
+    summary: Scenarios skipped on the interpreted reference target.
+    how: The skipped scenarios of the conformance suite on the interpreted reference target.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.score
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of the specification that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.from-drop
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class from-drop that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class from-drop` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.transition-to
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class transition-to that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class transition-to` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.guard-boundary
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class guard-boundary that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class guard-boundary` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.sets-retarget
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class sets-retarget that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class sets-retarget` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.guard-negate
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class guard-negate that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class guard-negate` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.guard-connective
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class guard-connective that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class guard-connective` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.error-swap
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class error-swap that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class error-swap` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.emit-drop
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class emit-drop that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class emit-drop` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.order-flip
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class order-flip that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class order-flip` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.sets-drop
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class sets-drop that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class sets-drop` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.precedence-swap
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class precedence-swap that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class precedence-swap` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.emit-swap
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class emit-swap that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class emit-swap` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.grant-drop
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class grant-drop that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class grant-drop` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: mutation.grant-add
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the mutants of class grant-add that the conformance suite kills, survivors listed.
+    how: Read from the `slow` lane's result of `ess verify conform mutate --class grant-add` for the current digest; without one, a gap naming `task slow:mutation`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: honesty
+    block: quality
+    measure: specification
+    unit: count
+    summary: Open `UNMAPPED:` markers in the specification sources.
+    how: Occurrences of the marker `UNMAPPED:` in the files of the pack's blocks.
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: refusal_power
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the tool's rules that have a broken example document which fails exactly that rule.
+    how: Rules of the tool's check with a broken example whose check names that rule and no other, over the rules the tool reports.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: document_health
+    block: quality
+    measure: specification
+    unit: share
+    summary: Share of the pack's example documents that are valid, with the findings per rule.
+    how: Documents the tool's check calls valid, over the pack's example documents.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: adoption_level
+    block: quality
+    measure: specification
+    unit: level
+    summary: The level of adoption the pack reaches, L0 to L5, with the metaspec features it cannot use yet as gaps.
+    how: The levels of adoption of metaspec's design, read from the pack's manifest and tool; each feature the pack cannot use yet is a gap of kind `verb`.
+    direction: higher_is_better
+    modes: {}
+    reads: []
+    status: planned
+
+  - id: drift
+    block: quality
+    measure: specification
+    unit: count
+    summary: Generated files of the pack that differ from a fresh generation.
+    how: The pack's own generation check, named by an adapter verb of its manifest; a pack without the verb has the gap "drift".
+    direction: lower_is_better
+    modes: {}
+    reads: []
+    status: planned
