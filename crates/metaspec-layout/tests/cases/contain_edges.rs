@@ -46,16 +46,16 @@ fn contain_both_same_holder_rows_line_does_not_repeat_the_host_it_is_drawn_in() 
     // A part that sits in and exists per the same part: rows draws it inside that host, so its
     // line names no containment the drawing already shows (nested does the same, `nested.rs`).
     let g = graph_of(json!({
-        "node": { "block": "scope" },
-        "agent": { "block": "work", "in": "node", "per": "node" },
+        "echo": { "block": "alpha" },
+        "delta": { "block": "bravo", "in": "echo", "per": "echo" },
     }));
     let s = draw(&g, &view(Layout::Rows, &[]));
-    let agent = one_box(&s, "agent");
-    assert_eq!(agent.parent.as_deref(), Some("node"));
+    let delta = one_box(&s, "delta");
+    assert_eq!(delta.parent.as_deref(), Some("echo"));
     assert!(
-        !agent.label.ends_with(" · in node"),
-        "drawn inside node, and its line says it again: {:?}",
-        agent.label
+        !delta.label.ends_with(" · in echo"),
+        "drawn inside echo, and its line says it again: {:?}",
+        delta.label
     );
 }
 
@@ -64,11 +64,11 @@ fn contain_both_nested_in_container_not_shown_draws_it_in_its_per_and_notes_its_
     // design/metaspec.md: inside its `in` container, "its `per` container when the `in` one is
     // not shown", and the other is written as a line of its box.
     let g = graph_of(json!({
-        "host": { "block": "scope" },
-        "owner": { "block": "work" },
-        "item": { "block": "work", "in": "host", "per": "owner" },
+        "host": { "block": "alpha" },
+        "owner": { "block": "bravo" },
+        "item": { "block": "bravo", "in": "host", "per": "owner" },
     }));
-    let s = draw(&g, &view(Layout::Nested, &["work"]));
+    let s = draw(&g, &view(Layout::Nested, &["bravo"]));
     let item = one_box(&s, "item");
     assert_eq!(item.parent.as_deref(), Some("owner"));
     assert!(
