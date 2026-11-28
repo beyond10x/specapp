@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:kpi-quality-catalogue-shape
 kind: story
-status: active
+status: implemented
 title: metaspec quality kpis reports coverage.blocks, completeness.fields and planned for every pack
 summary: The KPI command, the shared report format with gaps as readings, and the measures read from the catalogue and the block list.
 relations:
@@ -101,10 +101,11 @@ scope:
   path: scripts/acceptance.d/kpi-quality-catalogue-shape.sh
 - confidence: cited
   path: scripts/acceptance.sh
-revision: 52
+revision: 53
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 51, decided_on: {"recorded":{"review_outcome":2}}}
 - {from: "proposed", to: "active", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 52, decided_on: {"recorded":{"review_outcome":2}}}
+- {from: "active", to: "implemented", at: "2026-11-28T11:37:23Z", actor: "human:operator", revision: 53, decided_on: {"recorded":{"test_result":1,"review_outcome":3}}}
 ---
 # `metaspec quality kpis` reports coverage.blocks, completeness.fields and planned for every pack
 

@@ -1,0 +1,23 @@
+{
+  "measure": "coverage.blocks",
+  "unit": "share",
+  "direction": "higher_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 0.5
+  },
+  "behind": [
+    {
+      "kind": "block",
+      "name": "seedbank"
+    },
+    {
+      "kind": "block",
+      "name": "tree"
+    },
+    {
+      "kind": "block",
+      "name": "picker"
+    }
+  ]
+}

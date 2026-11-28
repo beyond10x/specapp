@@ -1,0 +1,15 @@
+{
+  "measure": "completeness.fields",
+  "unit": "share",
+  "direction": "higher_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 0.6666666666666666
+  },
+  "behind": [
+    {
+      "kind": "kpi",
+      "name": "basket_overflow_count"
+    }
+  ]
+}

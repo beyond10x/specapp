@@ -2,6 +2,8 @@
 
 mod docs;
 mod page;
+mod quality;
+mod quality_page;
 mod render;
 
 use clap::{Args, Parser, Subcommand};
@@ -53,11 +55,22 @@ enum Command {
         /// Seconds one run of the tool may take before it is killed.
         #[arg(long, value_name = "SECONDS", default_value_t = 30.0)]
         deadline: f64,
+        /// A report `metaspec quality kpis --json` or `metaspec quality spec --json` wrote
+        /// (metaspec-quality/1); its page, quality.html, is written beside index.html.
+        /// Repeatable.
+        #[arg(long = "quality", value_name = "REPORT")]
+        quality: Vec<PathBuf>,
     },
     /// The docs site of a pack.
     Docs {
         #[command(subcommand)]
         command: DocsCommand,
+    },
+    /// Measure the quality of a pack: its KPI catalogue, its specification, and the ratchet
+    /// that holds each value against a baseline.
+    Quality {
+        #[command(subcommand)]
+        command: quality::QualityCommand,
     },
 }
 
@@ -347,10 +360,12 @@ fn main() -> ExitCode {
             }
             docs::build(&loaded, &out, check, deadline, started)
         }
+        Command::Quality { command } => quality::run(command),
         Command::Render {
             pack,
             out,
             deadline,
+            quality,
         } => {
             if !(deadline.is_finite() && deadline > 0.0) {
                 eprintln!("metaspec: --deadline takes a number of seconds above 0");
@@ -382,7 +397,21 @@ fn main() -> ExitCode {
                         "render: {} page(s) for {documents} drawn document(s), and index.html",
                         lines.len()
                     );
-                    ExitCode::SUCCESS
+                    if quality.is_empty() {
+                        return ExitCode::SUCCESS;
+                    }
+                    match quality_page::write(&loaded, &rendered, &quality, &out) {
+                        Ok(lines) => {
+                            for line in &lines {
+                                println!("{line}");
+                            }
+                            ExitCode::SUCCESS
+                        }
+                        Err(refusal) => {
+                            eprintln!("metaspec: {}", refusal.message);
+                            ExitCode::from(refusal.code)
+                        }
+                    }
                 }
                 Err(why) => {
                     eprintln!("metaspec: {why}");

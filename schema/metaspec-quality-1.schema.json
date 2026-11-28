@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/metaspec/schema/metaspec-quality-1.schema.json",
+  "title": "metaspec-quality/1",
+  "description": "The report of one quality question over one pack, what `metaspec quality kpis --json` (question `kpi_catalogue`) and `metaspec quality spec --json` (question `specification`) print. One measurement per measure of the question in metaspec's catalogue (kpis/catalogue.yaml), in its order: the measure id, its unit and direction from that catalogue, a reading (a value, or the gap that says why the pack cannot supply one) and the names behind the value as the pack writes them. Each gap reading is also one gap of kind `measure` with the measure id as its feature. One producer: metaspec.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "pack", "question", "source_digest", "measurements", "gaps"],
+  "properties": {
+    "format": { "const": "metaspec-quality/1" },
+    "pack": { "type": "string", "minLength": 1 },
+    "question": { "enum": ["kpi_catalogue", "specification"] },
+    "source_digest": {
+      "description": "The digest of the pack's sources the measures read, `sha256:` and the hex digest.",
+      "type": "string",
+      "minLength": 1
+    },
+    "measurements": { "type": "array", "items": { "$ref": "#/$defs/measurement" } },
+    "gaps": { "type": "array", "items": { "$ref": "#/$defs/gap" } }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measure", "unit", "direction", "reading", "behind"],
+      "if": { "properties": { "reading": { "properties": { "kind": { "const": "gap" } } } } },
+      "then": { "properties": { "behind": { "maxItems": 0 } } },
+      "properties": {
+        "measure": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string", "minLength": 1 },
+        "direction": { "enum": ["higher_is_better", "lower_is_better"] },
+        "reading": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": { "kind": { "const": "value" }, "value": { "type": "number" } }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "gap"],
+              "properties": { "kind": { "const": "gap" }, "gap": { "type": "string", "minLength": 1 } }
+            }
+          ]
+        },
+        "behind": {
+          "description": "The names behind the value, as the pack writes them; empty for a gap reading.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "name"],
+            "properties": {
+              "kind": {
+                "enum": ["kpi", "rule", "document", "finding", "block", "lifecycle", "event", "scenario", "mutant", "marker", "edge", "file"]
+              },
+              "name": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "gap": {
+      "description": "A feature metaspec offers that the pack cannot use yet. `needs` is the level of adoption whose input the pack lacks, or null when the gap is metaspec's own (a measure not built yet).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "feature", "needs", "summary"],
+      "properties": {
+        "kind": { "enum": ["screen", "measure", "verb"] },
+        "feature": { "type": "string", "minLength": 1 },
+        "needs": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5", null] },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

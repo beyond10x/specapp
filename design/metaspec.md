@@ -279,6 +279,19 @@ metaspec's own formats. A pack's formats stay the pack's.
 - `metaspec-document/1`: the data of one page `metaspec render` writes (wave 2): the graph, the
   check, the findings with the views they are drawn in, the scenes. One producer: metaspec.
 - `metaspec-trust/1`: the trust file in the user's state directory. One producer: metaspec.
+- `metaspec-quality/1`: the report of one quality question over one pack, what
+  `metaspec quality kpis --json` (question `kpi_catalogue`) and `metaspec quality spec --json`
+  (question `specification`) print. `pack`, `question`, `source_digest` (`sha256:` over the
+  manifest, the compiled blocks, the KPI rows and the documents the measures read; no path of
+  the checkout), `measurements[{measure, unit, direction, reading, behind}]`, one per measure of
+  the question in metaspec's catalogue, in its order, unit and direction copied from that
+  catalogue; a reading is `{kind: value, value}` or `{kind: gap, gap}`; `behind` is
+  `[{kind, name}]` with the names as the pack writes them (kinds of
+  `metaspec.quality.BehindKind`), empty for a gap (the schema refuses a name behind a gap
+  reading). `gaps[{kind, feature, needs, summary}]`: each gap reading is also a gap of kind
+  `measure` with the measure id as its feature; `needs` is the level of adoption whose input the
+  pack lacks, or null for metaspec's own gap, a measure not built yet. One producer: metaspec;
+  the command validates the report against the schema before it prints it.
 
 Every format has a JSON Schema in `schema/` and a version in its name. A manifest in a version
 metaspec does not know is refused with both versions named. A pack's tool answers in the pack's
@@ -1040,6 +1053,28 @@ metaspec", "or navigation". One site holds every pack; this replaces the site pe
 - `scripts/acceptance.sh` builds the one site of both real packs (`target/acceptance/docs-site`,
   through `web/site` into `target/acceptance/site`): per pack its HTML pages equal its pages, and
   the site has its page `/`. `scripts/parity.sh` reads the pack's part, `<out>/<pack>`.
+
+## Decided for the quality layout (2026-11-28)
+
+- The quality layout (`story:kpi-quality-catalogue-shape`): `metaspec quality` with verbs
+  `kpis`, `spec`, `ratchet`, and `render --quality <report.json>` (repeatable), wired once in
+  `crates/metaspec/src/main.rs`; the arguments and the shared run of a question are in
+  `crates/metaspec/src/quality/mod.rs`. `metaspec_core::quality::registry` maps each measure id
+  to a `Module` (`file`, `measure`, `built`) in the file of the story that builds it; the module
+  says itself which of its measures it builds, so a story that fills a stub changes its own file
+  only. A measure reads an `Input` (the pack, the state directory of trust, the deadline) whose
+  check of every document runs at most once (`Input::check_pass`, `quality/check_pass.rs`). A
+  catalogue row of status `measured` whose entry is a stub (`measure_not_built`) or absent
+  (`measure_not_registered`), and a registry measure without a row (`measure_without_row`), are
+  refused before anything is measured.
+- `completeness.fields`, decided where the story left it open: "a direction per mode" asks for a
+  direction for every mode any row of the catalogue writes (the modes field of
+  `kpis.fields.modes`); a catalogue that writes no mode asks for none. A gate value that is
+  neither a number, `true`, `false` nor absent is no threshold metaspec can read and counts as
+  incomplete. A share over nothing (no blocks, no KPI rows) is a gap, never 0.
+- A name behind a value is never blank: a KPI row without an id, or with an empty or blank one,
+  is named `#<index>` by its place; a block with a blank name (a `strip_prefix` that takes the
+  whole domain) by its domain.
 
 ## Open questions
 
