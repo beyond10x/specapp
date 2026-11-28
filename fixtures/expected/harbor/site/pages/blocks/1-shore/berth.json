@@ -1,0 +1,54 @@
+{
+  "format": "specapp-page/1",
+  "id": "blocks/1-shore/berth",
+  "kind": "block",
+  "front_matter": {
+    "title": "berth",
+    "sidebar_label": "berth",
+    "description": "A place at a quay where one vessel moors.",
+    "kicker": "Layer 1 · shore",
+    "source": "blocks/1-shore/berth.yaml"
+  },
+  "markdown": "<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nA place at a quay where one vessel moors.\n\n## Depends on\n\n- [quay](./quay.mdx) · layer 1 · shore · 4 references\n\n## Used by\n\n- [vessel](../2-craft/vessel.mdx) · layer 2 · craft · 4 references\n\n## Entities\n\n### Berth\n\nIdentified by `berth_id` (`BerthId`).\n\n| field | type |\n|---|---|\n| `quay_id` | `QuayId` |\n| `started_at` | `timestamp` |\n\nRelations:\n\n- `quay_id` references **Quay** of [quay](./quay.mdx) (one, by `quay_id`)\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetireBerth\n\n**Retire a berth.**\n\n| field | type |\n|---|---|\n| `berth_id` | `BerthId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-berth` (refused) | no such Berth | `BerthNotFound`: No berth of this identity exists. |\n| `retired` | otherwise | moves the **Berth** `Active` → `Retired`; emits `BerthRetired` |\n| `wrong-state` (refused) | the Berth is in a state that does not allow it | `BerthStateConflict`: The berth is not in a state this command acts from. |\n\n### StartBerth\n\n**Start a berth.**\n\n| field | type |\n|---|---|\n| `berth_id` | `BerthId` |\n| `quay_id` | `QuayId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Berth** in `Active`; emits `BerthStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `BerthRetired` | `berth_id` BerthId, `at` timestamp | `RetireBerth` |\n| `BerthStarted` | `berth_id` BerthId, `at` timestamp | `StartBerth` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Berths`<br/>Berths | each **Berth** | `berth_id` BerthId, `quay_id` QuayId, `started_at` timestamp, `state` State |\n\n## KPIs\n\n1 KPI from the [KPI catalogue](../../kpis.mdx).\n\n### Efficiency\n\n| KPI | unit | better | gate | status |\n|---|---|---|---|---|\n| `berth_idle_share`<br/>Share of the day a berth holds no vessel.<br/><small>By tides: flood: lower, ebb: ignore</small> | share | lower | – | sketched |\n\n## Documents using it\n\n- [cove](../../plan/cove.mdx) (Harbor plans) · 2 parts\n- [inlet](../../plan/inlet.mdx) (Harbor plans) · 1 part\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "berth",
+      "label": "berth",
+      "layer": 1,
+      "layer_name": "shore",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 1
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Berth",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@beyond10x/specapp-docusaurus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Docusaurus preset on @beyond10x/docs-system that adds the pages specapp docs build writes, their sidebar and the components of @beyond10x/specapp-ui.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@beyond10x/specapp-ui": "0.1.0",
+    "@docusaurus/core": "3.10.2",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/types": "3.10.2",
+    "@types/node": "24.19.4",
+    "typescript": "6.0.3"
+  }
+}

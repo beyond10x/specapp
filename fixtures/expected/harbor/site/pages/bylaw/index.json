@@ -1,0 +1,14 @@
+{
+  "format": "specapp-page/1",
+  "id": "bylaw/index",
+  "kind": "class",
+  "front_matter": {
+    "title": "Bylaws",
+    "sidebar_label": "Overview",
+    "description": "Bylaws of Harbor: 1 document.",
+    "source": "bylaws/*.yaml"
+  },
+  "markdown": "1 document of the class `bylaw` (`records/1`), read from `bylaws/*.yaml`.\n\n| document | Rules |\n|---|---|\n| [mooring](./mooring.mdx) | 4 |\n",
+  "components": [],
+  "data": {}
+}

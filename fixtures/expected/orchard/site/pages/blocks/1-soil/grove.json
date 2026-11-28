@@ -1,0 +1,54 @@
+{
+  "format": "specapp-page/1",
+  "id": "blocks/1-soil/grove",
+  "kind": "block",
+  "front_matter": {
+    "title": "grove",
+    "sidebar_label": "grove",
+    "description": "A planted piece of land.",
+    "kicker": "Layer 1 · soil",
+    "source": "blocks/1-soil/grove.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nA planted piece of land.\n\n## Depends on\n\nNothing: this block depends on no other block.\n\n## Used by\n\n- [tree](./tree.mdx) · layer 1 · soil · 4 references\n- [picker](../2-hands/picker.mdx) · layer 2 · hands · 4 references\n\n## Entities\n\n### Grove\n\nIdentified by `grove_id` (`GroveId`).\n\n| field | type |\n|---|---|\n| `started_at` | `timestamp` |\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetireGrove\n\n**Retire a grove.**\n\n| field | type |\n|---|---|\n| `grove_id` | `GroveId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-grove` (refused) | no such Grove | `GroveNotFound`: No grove of this identity exists. |\n| `retired` | otherwise | moves the **Grove** `Active` → `Retired`; emits `GroveRetired` |\n| `wrong-state` (refused) | the Grove is in a state that does not allow it | `GroveStateConflict`: The grove is not in a state this command acts from. |\n\n### StartGrove\n\n**Start a grove.**\n\n| field | type |\n|---|---|\n| `grove_id` | `GroveId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Grove** in `Active`; emits `GroveStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `GroveRetired` | `grove_id` GroveId, `at` timestamp | `RetireGrove` |\n| `GroveStarted` | `grove_id` GroveId, `at` timestamp | `StartGrove` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Groves`<br/>Groves | each **Grove** | `grove_id` GroveId, `started_at` timestamp, `state` State |\n\n## KPIs\n\n1 KPI from the [KPI catalogue](../../kpis.mdx).\n\n### Output\n\n| KPI | unit | better | gate | status |\n|---|---|---|---|---|\n| `grove_unpicked_share`<br/>Share of the trees of a grove that no picker reached.<br/><small>By seasons: spring: ignore, autumn: lower</small> | share | lower | – | drafted |\n\n## Documents using it\n\n- [hillside](../../layout/hillside.mdx) (Orchard layouts) · 1 part\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "grove",
+      "label": "grove",
+      "layer": 1,
+      "layer_name": "soil",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 1
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Grove",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

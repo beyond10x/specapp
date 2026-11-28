@@ -1,0 +1,362 @@
+{
+  "format": "specapp-page/1",
+  "id": "plan/reef",
+  "kind": "document",
+  "front_matter": {
+    "title": "reef",
+    "sidebar_label": "reef",
+    "description": "An invented reef anchorage whose mooring names a berth the plan does not have; its tool refuses it.",
+    "lede": "An invented reef anchorage whose mooring names a berth the plan does not have; its tool refuses it.",
+    "kicker": "Harbor plans",
+    "source": "harbors/reef.yaml"
+  },
+  "markdown": "## Check\n\nNot valid. The pack's tool reports 3 finding(s), 2 gated, 1 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 2 parts, 1 link, 2 finding marks. 1 dashed box for names that links give and no part has.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 3 parts, 1 link, 1 finding mark.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Findings\n\n<FindingsList data={page.data[\"findings\"]} presentation={site.presentation} />\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `outer_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `ketch` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 2m |\n| `pilot` | [tug](../blocks/2-craft/tug.mdx) | in `outer_quay` | `within` outer\\_quay |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `ketch` | `moors at` | `berth_x` | – |\n| `pilot` | `guides` | `ketch` | – |\n\n## Border\n\nThe parts on the border of the document: `ketch`, `sandbar`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
+  "components": [
+    "FindingsList",
+    "GraphView"
+  ],
+  "data": {
+    "scene-1": {
+      "format": "specapp-scene/1",
+      "document": "harbors/reef.yaml",
+      "view": {
+        "id": "layout",
+        "title": "Layout",
+        "layout": "nested",
+        "implicit": false
+      },
+      "width": 494.0,
+      "height": 117.0,
+      "rows": [],
+      "boxes": [
+        {
+          "id": "outer_quay",
+          "block": "quay",
+          "label": "outer_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 16.0,
+          "w": 118.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "outer_quay (block quay), shore"
+        },
+        {
+          "id": "ketch",
+          "block": "vessel",
+          "label": "ketch",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 182.0,
+          "y": 16.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [
+            2
+          ],
+          "title": "ketch (block vessel), craft\ndraught: 2m"
+        },
+        {
+          "id": "berth_x",
+          "label": "berth_x",
+          "lines": [
+            "no part has this name"
+          ],
+          "colour": "slate",
+          "group": "a name no part has",
+          "x": 342.0,
+          "y": 16.0,
+          "w": 136.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": true,
+          "findings": [],
+          "title": "berth_x: a link names it, and no part of the document has this name"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ketch->berth_x:moors_at",
+          "from": "ketch",
+          "to": "berth_x",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              294.0,
+              45.6
+            ],
+            [
+              342.0,
+              43.5
+            ]
+          ],
+          "label_at": {
+            "x": 276.0,
+            "y": 83.0,
+            "w": 83.9,
+            "h": 18.0
+          },
+          "findings": [
+            1
+          ],
+          "title": "ketch->berth_x:moors_at"
+        }
+      ],
+      "marks": [
+        {
+          "finding": 1,
+          "rule": "mooring_without_berth",
+          "gate": true,
+          "subject": "link:ketch->berth_x:moors_at",
+          "x": 288.8,
+          "y": 92.0,
+          "w": 19.6
+        },
+        {
+          "finding": 2,
+          "rule": "vessel_without_berth",
+          "gate": true,
+          "subject": "part:ketch",
+          "x": 278.2,
+          "y": 16.0,
+          "w": 19.6
+        }
+      ],
+      "legend": [
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay"
+          ]
+        },
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel"
+          ]
+        },
+        {
+          "label": "a name no part has",
+          "colour": "slate",
+          "blocks": []
+        }
+      ]
+    },
+    "scene-2": {
+      "format": "specapp-scene/1",
+      "document": "harbors/reef.yaml",
+      "view": {
+        "id": "guidance",
+        "title": "Who guides whom",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 288.0,
+      "height": 245.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 38.0,
+          "h": 92.0
+        },
+        {
+          "title": "1 shore",
+          "y": 148.0,
+          "h": 77.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "pilot",
+          "block": "tug",
+          "label": "pilot",
+          "lines": [
+            "tug",
+            "in outer_quay"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 16.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "pilot (block tug), craft\nwithin: outer_quay"
+        },
+        {
+          "id": "ketch",
+          "block": "vessel",
+          "label": "ketch",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 160.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [
+            2
+          ],
+          "title": "ketch (block vessel), craft\ndraught: 2m"
+        },
+        {
+          "id": "outer_quay",
+          "block": "quay",
+          "label": "outer_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 172.0,
+          "w": 118.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "outer_quay (block quay), shore"
+        }
+      ],
+      "edges": [
+        {
+          "id": "pilot->ketch:guides",
+          "from": "pilot",
+          "to": "ketch",
+          "carries": "guides",
+          "label": "guides",
+          "points": [
+            [
+              72.0,
+              62.0
+            ],
+            [
+              144.0,
+              25.0
+            ],
+            [
+              216.0,
+              62.0
+            ]
+          ],
+          "label_at": {
+            "x": 119.4,
+            "y": 16.0,
+            "w": 49.2,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "pilot->ketch:guides"
+        }
+      ],
+      "marks": [
+        {
+          "finding": 2,
+          "rule": "vessel_without_berth",
+          "gate": true,
+          "subject": "part:ketch",
+          "x": 256.2,
+          "y": 62.0,
+          "w": 19.6
+        }
+      ],
+      "legend": [
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "tug",
+            "vessel"
+          ]
+        },
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay"
+          ]
+        }
+      ]
+    },
+    "findings": {
+      "findings": [
+        {
+          "n": 1,
+          "rule": "mooring_without_berth",
+          "gate": true,
+          "subject": "link:ketch->berth_x:moors_at",
+          "message": "The mooring names berth_x, which the plan does not have.",
+          "drawn_in": [
+            "layout"
+          ]
+        },
+        {
+          "n": 2,
+          "rule": "vessel_without_berth",
+          "gate": true,
+          "subject": "part:ketch",
+          "message": "The vessel is on the border and moors at no berth of the plan.",
+          "drawn_in": [
+            "layout",
+            "guidance"
+          ]
+        },
+        {
+          "n": 3,
+          "rule": "border_names_nothing",
+          "gate": false,
+          "subject": "document",
+          "message": "The border names sandbar, which is no part of the plan.",
+          "drawn_in": []
+        }
+      ],
+      "views": [
+        {
+          "id": "layout",
+          "title": "Layout"
+        },
+        {
+          "id": "guidance",
+          "title": "Who guides whom"
+        }
+      ]
+    }
+  }
+}

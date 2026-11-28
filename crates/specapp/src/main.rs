@@ -1,5 +1,6 @@
 //! specapp: one docs site and one studio for every specification pack.
 
+mod docs;
 mod page;
 mod render;
 
@@ -7,7 +8,7 @@ use clap::{Args, Parser, Subcommand};
 use specapp_core::{Issue, Manifest, Report, ess_compile, known, load_with, pack, tool, words};
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Parser)]
 #[command(
@@ -49,6 +50,39 @@ enum Command {
         /// The directory the pages are written to.
         #[arg(long, value_name = "DIR")]
         out: PathBuf,
+        /// Seconds one run of the tool may take before it is killed.
+        #[arg(long, value_name = "SECONDS", default_value_t = 30.0)]
+        deadline: f64,
+    },
+    /// The docs site of a pack.
+    Docs {
+        #[command(subcommand)]
+        command: DocsCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum DocsCommand {
+    /// Write the generated pages of a pack's docs site: one MDX page and its data
+    /// (specapp-page/1) per page, site.json (specapp-site/1: the sidebar, the pages, the
+    /// presentation table) and palette.css.
+    ///
+    /// Pages: the pack, the layer map, one per block, planned blocks, the KPI catalogue, per
+    /// document class an index and one per document, the rules. The tool's `check` runs only
+    /// for a trusted pack (`specapp trust`). OUT is specapp's: a file there that the build does
+    /// not write is removed, and a directory that holds other files is refused. With --check
+    /// nothing is written: exit 1 lists every file that differs, is missing or is not owned.
+    /// Exit 0 when written or equal, 1 when the pack is refused or a file differs, 2 on bad
+    /// usage.
+    Build {
+        #[command(flatten)]
+        pack: PackArgs,
+        /// The output directory.
+        #[arg(long, value_name = "DIR")]
+        out: PathBuf,
+        /// Compare with OUT byte for byte instead of writing.
+        #[arg(long)]
+        check: bool,
         /// Seconds one run of the tool may take before it is killed.
         #[arg(long, value_name = "SECONDS", default_value_t = 30.0)]
         deadline: f64,
@@ -207,6 +241,30 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Command::Trust { pack } => trust(&pack),
+        Command::Docs {
+            command:
+                DocsCommand::Build {
+                    pack,
+                    out,
+                    check,
+                    deadline,
+                },
+        } => {
+            if !(deadline.is_finite() && deadline > 0.0) {
+                eprintln!("specapp: --deadline takes a number of seconds above 0");
+                return ExitCode::from(2);
+            }
+            let started = Instant::now();
+            let (report, loaded) = match pack.load() {
+                Ok(loaded) => loaded,
+                Err(why) => return usage(why),
+            };
+            let Some(loaded) = loaded else {
+                eprint!("{}", report.text());
+                return ExitCode::from(1);
+            };
+            docs::build(&loaded, &out, check, deadline, started)
+        }
         Command::Render {
             pack,
             out,

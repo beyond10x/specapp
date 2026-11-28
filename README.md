@@ -16,10 +16,10 @@ manifest, and gives the pack:
 
 ## Status
 
-Waves 1 and 2 of 8 ("Contract", "Graph") are built: the manifest format `specapp-pack/2` with
-its JSON Schema, the manifests of the packs specapp knows (`packs/`), two invented fixture
-packs, `specapp pack check`, and a static page per document drawn with the findings of the
-pack's own tool. There is no docs site and no studio yet.
+Waves 1 to 3 of 8 ("Contract", "Graph", "Docs") are built: the manifest format `specapp-pack/2`
+with its JSON Schema, the manifests of the packs specapp knows (`packs/`), two invented fixture
+packs, `specapp pack check`, a static page per document drawn with the findings of the pack's
+own tool, and the docs site. There is no studio yet.
 
 ```sh
 cargo build -p specapp
@@ -28,6 +28,20 @@ target/debug/specapp pack check orgspec --pack <orgspec-checkout>
 target/debug/specapp pack check --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --json
 target/debug/specapp trust --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor
 target/debug/specapp render --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/pages
+target/debug/specapp docs build --manifest fixtures/manifests/harbor.yaml --pack fixtures/packs/harbor --out target/docs
+```
+
+`docs build` writes the pages of a pack's docs site (MDX with their data, `site.json`,
+`palette.css`); `--check` compares them with a directory. The site itself is Docusaurus on
+`@beyond10x/docs-system` with the two packages of `web/`: `@beyond10x/specapp-ui` (the
+components) and `@beyond10x/specapp-docusaurus` (the preset). To build and open the site of
+the docs build above:
+
+```sh
+task web:install web:build
+cd web/site
+SPECAPP_SITE_OUT=../../target/docs npx docusaurus build --out-dir build/local
+npx docusaurus serve --dir build/local --host 127.0.0.1 --port 3000
 ```
 
 A pack is named by its name when specapp knows it (`packs/<name>.yaml`); any other pack, such

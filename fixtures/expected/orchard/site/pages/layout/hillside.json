@@ -1,0 +1,334 @@
+{
+  "format": "specapp-page/1",
+  "id": "layout/hillside",
+  "kind": "document",
+  "front_matter": {
+    "title": "hillside",
+    "sidebar_label": "hillside",
+    "description": "An invented hillside orchard; every picker carries a basket of its own.",
+    "lede": "An invented hillside orchard; every picker carries a basket of its own.",
+    "kicker": "Orchard layouts",
+    "source": "orchards/hillside.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n## Check\n\nValid. The pack's tool reports 2 finding(s), 0 gated, 2 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Work\n\nLayout `rows`: 6 parts, 3 links, 2 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Findings\n\n<FindingsList data={page.data[\"findings\"]} presentation={site.presentation} />\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `upper` | [grove](../blocks/1-soil/grove.mdx) | – | – |\n| `apple` | [tree](../blocks/1-soil/tree.mdx) | – | `grove` upper |\n| `plum` | [tree](../blocks/1-soil/tree.mdx) | – | `grove` upper |\n| `picker` | [picker](../blocks/2-hands/picker.mdx) | – | `hands` 2 |\n| `basket` | [basket](../blocks/2-hands/basket.mdx) | per `picker` | `each` picker |\n| `crop` (on the border) | [harvest](../blocks/3-yield/harvest.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `picker` | `tends` | `apple` | – |\n| `picker` | `fills` | `basket` | – |\n| `basket` | `hauls_to` | `crop` | – |\n\n## Border\n\nThe parts on the border of the document: `crop`.\n\n## Marked places\n\nA marked place carries `vary`: the value as written and the values a search may try there.\n\n| place | as written | a search may try |\n|---|---|---|\n| `parts.picker.hands` | 2 | 1, 2, 3 |\n\n",
+  "components": [
+    "FindingsList",
+    "GraphView"
+  ],
+  "data": {
+    "scene-1": {
+      "format": "specapp-scene/1",
+      "document": "orchards/hillside.yaml",
+      "view": {
+        "id": "work",
+        "title": "Work",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 437.0,
+      "height": 375.0,
+      "rows": [
+        {
+          "title": "3 yield",
+          "y": 12.0,
+          "h": 92.0
+        },
+        {
+          "title": "2 hands",
+          "y": 130.0,
+          "h": 122.0
+        },
+        {
+          "title": "1 soil",
+          "y": 278.0,
+          "h": 77.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "picker",
+          "block": "picker",
+          "label": "picker",
+          "lines": [
+            "picker",
+            "varies: hands"
+          ],
+          "colour": "green",
+          "group": "2 hands",
+          "x": 16.0,
+          "y": 154.0,
+          "w": 122.0,
+          "h": 94.0,
+          "container": true,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "picker (block picker), 2 hands\nhands: 2\nvaries hands: 2 over [1, 2, 3]"
+        },
+        {
+          "id": "basket",
+          "block": "basket",
+          "label": "basket · basket",
+          "lines": [],
+          "colour": "green",
+          "group": "2 hands",
+          "x": 26.0,
+          "y": 216.0,
+          "w": 102.0,
+          "h": 24.0,
+          "parent": "picker",
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "basket (block basket), 2 hands\neach: picker"
+        },
+        {
+          "id": "apple",
+          "block": "tree",
+          "label": "apple",
+          "lines": [
+            "tree"
+          ],
+          "colour": "violet",
+          "group": "1 soil",
+          "x": 21.0,
+          "y": 302.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "apple (block tree), 1 soil\ngrove: upper"
+        },
+        {
+          "id": "crop",
+          "block": "harvest",
+          "label": "crop",
+          "lines": [
+            "harvest",
+            "on the border"
+          ],
+          "colour": "teal",
+          "group": "3 yield",
+          "x": 67.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [
+            1
+          ],
+          "title": "crop (block harvest), 3 yield"
+        },
+        {
+          "id": "upper",
+          "block": "grove",
+          "label": "upper",
+          "lines": [
+            "grove"
+          ],
+          "colour": "violet",
+          "group": "1 soil",
+          "x": 165.0,
+          "y": 302.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "upper (block grove), 1 soil"
+        },
+        {
+          "id": "plum",
+          "block": "tree",
+          "label": "plum",
+          "lines": [
+            "tree"
+          ],
+          "colour": "violet",
+          "group": "1 soil",
+          "x": 309.0,
+          "y": 302.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "plum (block tree), 1 soil\ngrove: upper"
+        }
+      ],
+      "edges": [
+        {
+          "id": "picker->apple:tends",
+          "from": "picker",
+          "to": "apple",
+          "carries": "tends",
+          "label": "tends",
+          "points": [
+            [
+              77.0,
+              248.0
+            ],
+            [
+              77.0,
+              265.0
+            ],
+            [
+              77.0,
+              302.0
+            ]
+          ],
+          "label_at": {
+            "x": 55.0,
+            "y": 256.0,
+            "w": 43.9,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "picker->apple:tends"
+        },
+        {
+          "id": "picker->basket:fills",
+          "from": "picker",
+          "to": "basket",
+          "carries": "fills",
+          "label": "fills",
+          "points": [
+            [
+              59.0,
+              154.0
+            ],
+            [
+              54.0,
+              117.0
+            ],
+            [
+              77.0,
+              154.0
+            ]
+          ],
+          "label_at": {
+            "x": 25.3,
+            "y": 108.0,
+            "w": 57.3,
+            "h": 18.0
+          },
+          "findings": [
+            2
+          ],
+          "title": "picker->basket:fills"
+        },
+        {
+          "id": "basket->crop:hauls_to",
+          "from": "basket",
+          "to": "crop",
+          "carries": "hauls_to",
+          "label": "hauls_to",
+          "points": [
+            [
+              95.0,
+              154.0
+            ],
+            [
+              123.0,
+              117.0
+            ],
+            [
+              123.0,
+              100.0
+            ]
+          ],
+          "label_at": {
+            "x": 93.2,
+            "y": 108.0,
+            "w": 59.6,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "basket->crop:hauls_to"
+        }
+      ],
+      "marks": [
+        {
+          "finding": 1,
+          "rule": "harvest_unhauled",
+          "gate": false,
+          "subject": "part:crop",
+          "x": 163.2,
+          "y": 36.0,
+          "w": 19.6
+        },
+        {
+          "finding": 2,
+          "rule": "fill_over_capacity",
+          "gate": false,
+          "subject": "link:picker->basket:fills",
+          "x": 38.1,
+          "y": 117.0,
+          "w": 19.6
+        }
+      ],
+      "legend": [
+        {
+          "label": "2 hands",
+          "colour": "green",
+          "blocks": [
+            "picker",
+            "basket"
+          ]
+        },
+        {
+          "label": "1 soil",
+          "colour": "violet",
+          "blocks": [
+            "tree",
+            "grove"
+          ]
+        },
+        {
+          "label": "3 yield",
+          "colour": "teal",
+          "blocks": [
+            "harvest"
+          ]
+        }
+      ]
+    },
+    "findings": {
+      "findings": [
+        {
+          "n": 1,
+          "rule": "harvest_unhauled",
+          "gate": false,
+          "subject": "part:crop",
+          "message": "Only one of two trees is tended, so half of the harvest is never hauled.",
+          "drawn_in": [
+            "work"
+          ]
+        },
+        {
+          "n": 2,
+          "rule": "fill_over_capacity",
+          "gate": false,
+          "subject": "link:picker->basket:fills",
+          "message": "Two hands fill one basket faster than it is hauled away.",
+          "drawn_in": [
+            "work"
+          ]
+        }
+      ],
+      "views": [
+        {
+          "id": "work",
+          "title": "Work"
+        }
+      ]
+    }
+  }
+}

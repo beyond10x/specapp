@@ -9,7 +9,8 @@
 # packs/<NAME>.yaml). Without --pack the packs are the fixture packs: fixtures/packs/<name>
 # with fixtures/manifests/<name>.yaml. The acceptance script adds the real packs.
 #
-# Searched: every file under crates/ and under web/*/src (when they exist). Not searched: the
+# Searched: every file under crates/ and, when they exist, web/src/ and web/*/src/ (the source
+# of each web package; their tests, node_modules and dist/ are not searched). Not searched: the
 # manifests under packs/ and fixtures/manifests/, which are where a pack's words belong.
 #
 #   - a word with an underscore, a hyphen or a digit (reports_to, a KPI id, a rule id) is found
@@ -80,7 +81,7 @@ awk '$2 !~ /^[A-Za-z]+$/ { print $2 }' "$work/words" | sort -u > "$work/whole"
 awk '{ k[$2] = ($2 in k) ? k[$2] "," $1 : $1 } END { for (w in k) print w, k[w] }' "$work/words" > "$work/kinds"
 
 set -- "$root/crates"
-for src in "$root"/web/*/src; do
+for src in "$root"/web/src "$root"/web/*/src; do
   [ -d "$src" ] && set -- "$@" "$src"
 done
 

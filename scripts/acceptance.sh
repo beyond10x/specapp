@@ -1,6 +1,6 @@
 #!/bin/sh
-# acceptance.sh: the acceptance of waves 1 ("Contract") and 2 ("Graph") on both fixture packs and
-# both real packs.
+# acceptance.sh: the acceptance of waves 1 ("Contract"), 2 ("Graph") and 3 ("Docs") on both fixture
+# packs and both real packs.
 #
 #   scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>
 #
@@ -35,6 +35,12 @@
 # and every finding about a part or link is marked in a scene. The findings come from
 # `orgspec check --json` itself, mapped by the adapter in packs/orgspec.yaml. Pages are under
 # target/acceptance/pages-<pack>/.
+#
+# Wave 3: `specapp docs build` writes the docs site of every pack under target/acceptance/docs-<pack>;
+# its block pages, KPI rows and document pages equal the counts of `specapp pack check`, and each
+# fixture pack's site equals the committed one (--check). The site shell of web/site builds the
+# orgspec site (target/acceptance/site-orgspec; needs `task web:install web:build`). The parity
+# of the generated agenticspec site with its own pages is printed as a summary (scripts/parity.sh).
 #
 # Then runs scripts/check-vocabulary.sh with all four packs.
 #
@@ -215,6 +221,58 @@ row orgspec broken:findings-drawn "$(awk '{ s += $4 } END { print s + 0 }' "$wor
 row orgspec examples:rules-matched "$(awk '{ s += $2 } END { print s + 0 }' "$work/examples.rows")" "$(awk '{ s += $3 } END { print s + 0 }' "$work/examples.rows")" "rule ids of each page = orgspec check --json"
 row orgspec examples:findings-drawn "$(awk '{ s += $4 } END { print s + 0 }' "$work/examples.rows")" "$(awk '{ s += $5 } END { print s + 0 }' "$work/examples.rows")" "findings on a part or link marked in a scene"
 
+# --- wave 3: docs sites ---
+# docs_rows <name> <dir> <name|manifest-file>: specapp docs build of a pack into
+# $work/docs-<name> (its tool trusted above under $work/state); the counts of its pages against
+# the counts of specapp pack check
+docs_rows() {
+  name=$1 dir=$2 out=$work/docs-$1
+  case "$3" in
+    */*) set -- --manifest "$3" ;;
+    *) set -- "$3" ;;
+  esac
+  "$specapp" docs build "$@" --pack "$dir" --out "$out" > "$out.log" || { echo "acceptance: docs build $name failed" >&2; cat "$out.log" >&2; exit 1; }
+  kinds=$(jq -r '.pages[].kind' "$out/site.json")
+  row "$name" docs:block-pages "$(echo "$kinds" | grep -cx block || true)" "$(of "$name" .counts.blocks)" "pack check blocks"
+  row "$name" docs:kpi-rows "$(jq '.data.catalogue.kpis | length' "$out/pages/kpis.json")" "$(of "$name" .counts.kpis)" "pack check kpis"
+  row "$name" docs:document-pages "$(echo "$kinds" | grep -cxE 'document|record' || true)" "$(of "$name" .counts.documents)" "pack check documents"
+}
+
+for manifest in "$root"/fixtures/manifests/*.yaml; do
+  name=$(basename "$manifest" .yaml)
+  dir=$root/fixtures/packs/$name
+  docs_rows "$name" "$dir" "$manifest"
+  if "$specapp" docs build --manifest "$manifest" --pack "$dir" --out "$root/fixtures/expected/$name/site" --check > "$work/docs-check-$name.log"; then
+    row "$name" docs:committed-site 1 1 "specapp docs build --check"
+  else
+    row "$name" docs:committed-site 0 1 "specapp docs build --check"
+  fi
+done
+docs_rows orgspec "$org" orgspec
+docs_rows agenticspec "$agentic" agenticspec
+
+# The orgspec site: the site shell of web/site over its pages, built into $work/site-orgspec.
+# Needs `task web:install` and `task web:build`. The job stays on this host (slot --here): a
+# build node does not have the pages under target/.
+if [ -d "$root/web/node_modules" ] && [ -f "$root/web/docusaurus/dist/index.js" ]; then
+  if (cd "$root/web/site" && SPECAPP_SITE_OUT="$work/docs-orgspec" slot --here --timeout 15m npx docusaurus build --out-dir "$work/site-orgspec") > "$work/site-orgspec.log" 2>&1; then
+    row orgspec docs:site-builds 1 1 "docusaurus build of web/site over the orgspec pages"
+    # A page is <route>.html; <route>/index.html is the redirect docs-system writes beside it,
+    # and the pack's own page is the site's index.html.
+    n=$(find "$work/site-orgspec" -mindepth 2 -name '*.html' ! -name index.html | wc -l | tr -d ' ')
+    n=$((n + $(find "$work/site-orgspec" -maxdepth 1 -name '*.html' ! -name 404.html | wc -l | tr -d ' ')))
+    row orgspec docs:site-pages "$n" "$(jq '.pages | length' "$work/docs-orgspec/site.json")" "built HTML pages"
+  else
+    row orgspec docs:site-builds 0 1 "docusaurus build of web/site ($work/site-orgspec.log)"
+  fi
+else
+  row orgspec docs:site-builds - 1 "web/ not installed and built (task web:install web:build)"
+fi
+
+# agenticspec parity: scripts/parity.sh, its summary line
+"$root/scripts/parity.sh" "$agentic" > "$work/parity.log" 2>&1 || true
+grep -E '^(green|missing|expected-missing) ' "$work/parity.log" > "$work/parity.items" || true
+
 # --- the table ---
 printf '%-12s %-24s %8s %8s  %-5s %s\n' pack count specapp own equal source
 while IFS="$(printf '\t')" read -r pack count mine own source; do
@@ -224,6 +282,11 @@ done < "$rows"
 for name in $(cd "$work" && ls -1 *.json | sed 's/\.json$//'); do
   printf 'warnings of %s: %s\n' "$name" "$(jq '.warnings | length' "$work/$name.json")"
 done
+
+echo
+echo "parity of the generated agenticspec site:"
+sed 's/^/  /' "$work/parity.items"
+tail -n 1 "$work/parity.log" | sed 's/^/  /'
 
 echo
 set --

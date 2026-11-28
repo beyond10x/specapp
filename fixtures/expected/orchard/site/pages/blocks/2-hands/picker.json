@@ -1,0 +1,54 @@
+{
+  "format": "specapp-page/1",
+  "id": "blocks/2-hands/picker",
+  "kind": "block",
+  "front_matter": {
+    "title": "picker",
+    "sidebar_label": "picker",
+    "description": "A hand that picks fruit in a grove.",
+    "kicker": "Layer 2 · hands",
+    "source": "blocks/2-hands/picker.yaml"
+  },
+  "markdown": ":::warning[Private pack]\n\nThis page is of a private pack. It is not for publication.\n\n:::\n\n<BlockHeader data={page.data[\"header\"]} presentation={site.presentation} />\n\nA hand that picks fruit in a grove.\n\n## Depends on\n\n- [grove](../1-soil/grove.mdx) · layer 1 · soil · 4 references\n\n## Used by\n\n- [basket](./basket.mdx) · layer 2 · hands · 4 references\n\n## Entities\n\n### Picker\n\nIdentified by `picker_id` (`PickerId`).\n\n| field | type |\n|---|---|\n| `grove_id` | `GroveId` |\n| `started_at` | `timestamp` |\n\nRelations:\n\n- `grove_id` references **Grove** of [grove](../1-soil/grove.mdx) (one, by `grove_id`)\n\n<Lifecycle data={page.data[\"lifecycle-1\"]} presentation={site.presentation} />\n\n## Commands\n\n### RetirePicker\n\n**Retire a picker.**\n\n| field | type |\n|---|---|\n| `picker_id` | `PickerId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `no-such-picker` (refused) | no such Picker | `PickerNotFound`: No picker of this identity exists. |\n| `retired` | otherwise | moves the **Picker** `Active` → `Retired`; emits `PickerRetired` |\n| `wrong-state` (refused) | the Picker is in a state that does not allow it | `PickerStateConflict`: The picker is not in a state this command acts from. |\n\n### StartPicker\n\n**Start a picker.**\n\n| field | type |\n|---|---|\n| `picker_id` | `PickerId` |\n| `grove_id` | `GroveId` |\n| `at` | `timestamp` |\n\n| outcome | when | result |\n|---|---|---|\n| `started` | otherwise | creates a **Picker** in `Active`; emits `PickerStarted` |\n\n## Events\n\n| event | fields | emitted by |\n|---|---|---|\n| `PickerRetired` | `picker_id` PickerId, `at` timestamp | `RetirePicker` |\n| `PickerStarted` | `picker_id` PickerId, `at` timestamp | `StartPicker` |\n\n## Views\n\n| view | rows | fields |\n|---|---|---|\n| `Pickers`<br/>Pickers | each **Picker** | `picker_id` PickerId, `grove_id` GroveId, `started_at` timestamp, `state` State |\n\n## KPIs\n\nNo KPI of this block is in the catalogue.\n\n## Documents using it\n\n- [hillside](../../layout/hillside.mdx) (Orchard layouts) · 1 part\n",
+  "components": [
+    "BlockHeader",
+    "Lifecycle"
+  ],
+  "data": {
+    "header": {
+      "name": "picker",
+      "label": "picker",
+      "layer": 2,
+      "layer_name": "hands",
+      "planned": false,
+      "counts": {
+        "entities": 1,
+        "commands": 2,
+        "events": 2,
+        "views": 1,
+        "refusals": 2,
+        "kpis": 0
+      }
+    },
+    "lifecycle-1": {
+      "entity": "Picker",
+      "initial": "Active",
+      "states": [
+        "Active",
+        "Retired"
+      ],
+      "terminal": [
+        "Retired"
+      ],
+      "transitions": [
+        {
+          "name": "retire",
+          "from": [
+            "Active"
+          ],
+          "to": "Retired"
+        }
+      ]
+    }
+  }
+}

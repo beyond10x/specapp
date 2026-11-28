@@ -779,6 +779,7 @@ dependencies = [
  "serde",
  "serde_json",
  "specapp-core",
+ "specapp-docs",
  "specapp-layout",
 ]
 
@@ -793,6 +794,17 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "sha2",
+]
+
+[[package]]
+name = "specapp-docs"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "specapp-core",
+ "specapp-layout",
 ]
 
 [[package]]

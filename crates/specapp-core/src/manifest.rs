@@ -36,6 +36,9 @@ pub struct Manifest {
     pub visibility: Visibility,
     #[serde(default)]
     pub source_url: Option<String>,
+    /// Where one file of the pack is read on the web, with the placeholder `{path}`.
+    #[serde(default)]
+    pub source_file_url: Option<String>,
     #[serde(default)]
     pub extends: Option<String>,
     pub blocks: Blocks,

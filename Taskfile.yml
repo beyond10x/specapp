@@ -1,5 +1,9 @@
 version: '3'
 
+vars:
+  SLOT:
+    sh: command -v slot > /dev/null 2>&1 && echo slot || true
+
 tasks:
   check:
     desc: Run the repository gate.
@@ -9,6 +13,8 @@ tasks:
       - task: check:fixtures
       - task: check:rust
       - task: test
+      - task: check:docs
+      - task: check:web
       - task: check:vocabulary
 
   check:public:
@@ -60,10 +66,56 @@ tasks:
           exit $status
 
   check:vocabulary:
-    desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/ or web/*/src (scripts/check-vocabulary.sh). The manifests under packs/ and fixtures/manifests/ are not searched. scripts/acceptance.sh runs it with the real packs too.
+    desc: Fail when a block, layer, link, KPI or rule name of a fixture pack appears under crates/, web/src/ or web/*/src/ (scripts/check-vocabulary.sh). The manifests under packs/ and fixtures/manifests/ are not searched. scripts/acceptance.sh runs it with the real packs too.
     cmds:
       - cargo build --quiet --locked -p specapp
       - scripts/check-vocabulary.sh
+
+  check:docs:
+    desc: Generate the docs site of each fixture pack (fixtures/packs/<pack> with fixtures/manifests/<pack>.yaml) with specapp docs build --check and compare it byte for byte with the committed fixtures/expected/<pack>/site. The fixture tools are trusted in target/docs-state, apart from the user's trust.
+    cmds:
+      - cargo build --quiet --locked -p specapp
+      - |
+        set -eu
+        state=target/docs-state
+        mkdir -p "$state"
+        for manifest in fixtures/manifests/*.yaml; do
+          pack=$(basename "$manifest" .yaml)
+          XDG_STATE_HOME="$state" target/debug/specapp trust --manifest "$manifest" --pack "fixtures/packs/$pack" > /dev/null
+          XDG_STATE_HOME="$state" target/debug/specapp docs build --manifest "$manifest" --pack "fixtures/packs/$pack" --out "fixtures/expected/$pack/site" --check
+        done
+
+  web:install:
+    desc: Install the node packages of web/ (npm ci) when web/node_modules is missing or older than web/package-lock.json. Needs the network; check does not run it.
+    cmds:
+      - |
+        if [ ! -d web/node_modules ] || [ web/package-lock.json -nt web/node_modules/.package-lock.json ]; then
+          cd web && npm ci --no-audit --no-fund
+        fi
+
+  web:build:
+    desc: Build dist/ of web/ui and web/docusaurus, which a site installs.
+    cmds:
+      - cd web && {{.SLOT}} npm run build --workspace ui && {{.SLOT}} npm run build --workspace docusaurus
+
+  check:web:
+    desc: Typecheck web/ui and web/docusaurus, then run the vitest suite of web/ui on the committed pages of both fixture packs (a test is killed at 60 s). Needs task web:install first.
+    cmds:
+      - |
+        [ -d web/node_modules ] || { echo "check:web: web/node_modules is missing; run task web:install"; exit 1; }
+      - cd web/ui && {{.SLOT}} npx tsc -p tsconfig.json --noEmit
+      - cd web/docusaurus && {{.SLOT}} npx tsc -p tsconfig.json --noEmit
+      - cd web/ui && {{.SLOT}} npx vitest run --maxWorkers=4
+
+  ux:
+    desc: The UX lane, not part of check. Builds the docs sites of both fixture packs and runs the Playwright gates on every page at 1440x900 and 1280x800, light and dark, with no serious or critical axe-core violation (scripts/ux.sh). Needs task web:install and a Chromium for Playwright.
+    cmds:
+      - scripts/ux.sh
+
+  parity:
+    desc: The parity of the generated agenticspec site with agenticspec's own pages, not part of check. Its manifest is packs/agenticspec.yaml, or the file given second. task parity -- <agenticspec-dir> [<manifest>]
+    cmds:
+      - scripts/parity.sh {{.CLI_ARGS}}
 
   acceptance:
     desc: The acceptance of a wave, not part of check (it needs checkouts of the real packs; their manifests are packs/orgspec.yaml and packs/agenticspec.yaml). task acceptance -- <orgspec-dir> <agenticspec-dir>

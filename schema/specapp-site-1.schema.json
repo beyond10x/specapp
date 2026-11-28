@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beyond10x/specapp/schema/specapp-site-1.schema.json",
+  "title": "specapp-site/1",
+  "description": "site.json of `specapp docs build`: the pack's identity, its counts, the sidebar of the generated pages, the list of pages, and the presentation table every component reads. One producer: specapp. Read by @beyond10x/specapp-docusaurus.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "pack", "title", "summary", "visibility", "source_url", "level", "counts", "sidebar", "pages", "presentation"],
+  "properties": {
+    "format": { "const": "specapp-site/1" },
+    "pack": { "type": "string" },
+    "title": { "type": "string" },
+    "summary": { "type": ["string", "null"] },
+    "visibility": { "description": "A private pack's site refuses a publication target.", "enum": ["public", "private"] },
+    "source_url": { "type": ["string", "null"] },
+    "level": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blocks", "layers", "kpis", "planned_blocks", "documents", "pages"],
+      "properties": {
+        "blocks": { "type": "integer", "minimum": 0 },
+        "layers": { "type": "integer", "minimum": 0 },
+        "kpis": { "type": "integer", "minimum": 0 },
+        "planned_blocks": { "type": "integer", "minimum": 0 },
+        "documents": { "type": "integer", "minimum": 0 },
+        "pages": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sidebar": {
+      "description": "Docusaurus sidebar items: a page id, or a category.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "slug", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "slug": { "type": "string", "pattern": "^/" },
+          "title": { "type": "string" }
+        }
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blocks", "groups", "icons", "vocabulary"],
+      "properties": {
+        "blocks": {
+          "description": "Per block of the pack, and per planned block: how it is drawn and where its page is.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "colour", "icon", "group", "layer", "layer_name", "route"],
+            "properties": {
+              "label": { "description": "The block in the pack's words.", "type": "string" },
+              "colour": { "description": "A colour of specapp's palette; palette.css has a class sa-c-<colour>.", "type": "string" },
+              "icon": { "type": ["string", "null"] },
+              "group": { "description": "What the colour stands for: the family, the layer, or planned.", "type": "string" },
+              "layer": { "type": ["integer", "null"] },
+              "layer_name": { "type": ["string", "null"] },
+              "route": { "description": "The slug of the block's page, with an anchor for a planned block.", "type": ["string", "null"] }
+            }
+          }
+        },
+        "groups": {
+          "description": "The legend: each group with its colour and icon, in the order of the blocks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "colour", "icon"],
+            "properties": {
+              "label": { "type": "string" },
+              "colour": { "type": "string" },
+              "icon": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "icons": {
+          "description": "The 14 by 14 stroke path of each icon in use that specapp draws; any other icon is drawn as its first letter.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "vocabulary": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "item": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "label", "collapsed", "items"],
+          "properties": {
+            "type": { "const": "category" },
+            "label": { "type": "string" },
+            "collapsed": { "type": "boolean" },
+            "link": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "id"],
+              "properties": { "type": { "const": "doc" }, "id": { "type": "string" } }
+            },
+            "items": { "type": "array", "items": { "$ref": "#/$defs/item" } }
+          }
+        }
+      ]
+    }
+  }
+}

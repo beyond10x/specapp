@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+- Wave 3, "Docs".
+- `crates/specapp-docs` and `specapp docs build [NAME | --manifest <file>] --pack <dir> --out
+  <dir> [--check] [--deadline <s>]`: the docs site of a pack as MDX pages with their data
+  (`specapp-page/1`, `schema/specapp-page-1.schema.json`), `site.json` (`specapp-site/1`,
+  `schema/specapp-site-1.schema.json`: counts, pages, sidebar, presentation table) and
+  `palette.css`. Pages: the pack, the layer map, one per block, planned blocks, the KPI
+  catalogue (`specapp-kpis/1` rows), per document class an index and one page per document
+  (views, findings, parts, links, border, marked places) or per record document its tables, and
+  the rules page. The same bytes for the same pack; `--check` lists changed, missing and
+  not-owned files and exits 1; a write refuses a directory it did not write.
+- `specapp-pack/2` takes `source_file_url` (`https://...{path}`), the link of each page's
+  source; `packs/orgspec.yaml` and `packs/agenticspec.yaml` set it.
+- `web/ui`, `@beyond10x/specapp-ui` (private): `LayerMap`, `BlockHeader`, `Lifecycle`,
+  `KpiCatalogue` (filters in the URL query), `GraphView` (a `specapp-scene/1` as inline SVG),
+  `FindingsList`, `RecordTable`, `ResultSections` (says that no result is committed), with
+  their CSS. Each takes data and a presentation table and knows no pack.
+- `web/docusaurus`, `@beyond10x/specapp-docusaurus` (private): `withSpecappSite(config, {out,
+  siteDir, routeBasePath})` on `@beyond10x/docs-system` (pinned at the commit agenticspec
+  uses).
+- `web/site`: the site shell over the committed pages of a fixture pack, or over any docs build
+  (`SPECAPP_SITE_OUT`).
+- The fixture packs' sites are committed under `fixtures/expected/<pack>/site`.
+- `task check` adds `check:docs` (`docs build --check` of both fixture packs, with their
+  manifests from `fixtures/manifests/`) and `check:web` (typecheck of `web/ui` and
+  `web/docusaurus`, vitest of `web/ui` on both fixture packs' pages); the vocabulary check
+  covers `web/src` and `web/*/src`. CI installs `web/` with `npm ci`.
+- `task ux` (`scripts/ux.sh`): the Playwright and axe-core gates on both fixture sites, every
+  page at 1440x900 and 1280x800 in both themes. `task parity` (`scripts/parity.sh
+  <agenticspec-dir> [<manifest>]`, by default the known manifest `packs/agenticspec.yaml`): the
+  generated agenticspec site against agenticspec's own pages.
+- `scripts/acceptance.sh` builds the docs of all four packs (page counts equal pack counts), the
+  orgspec site, and prints the agenticspec parity.
+- `specapp render` takes its document pages from `specapp-docs`; its output is unchanged.
+
 - Decided: reversed the dependency (2026-11-28, ordered by the owner). specapp knows the packs;
   a pack knows nothing of specapp.
 - The manifests of the public packs are specapp's: `packs/orgspec.yaml` and

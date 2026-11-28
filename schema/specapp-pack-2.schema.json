@@ -13,6 +13,11 @@
     "summary": { "type": "string" },
     "visibility": { "enum": ["public", "private"] },
     "source_url": { "type": "string", "pattern": "^https://" },
+    "source_file_url": {
+      "description": "Where one file of the pack is read on the web: a URL with the placeholder {path}, which specapp replaces by the path of the file relative to the pack. Without it a generated page names the file and links nowhere.",
+      "type": "string",
+      "pattern": "^https://[^ ]*\\{path\\}"
+    },
     "extends": {
       "description": "The name of the public pack this pack builds on: a pack specapp knows (packs/<name>.yaml), or one whose manifest is given at run time (--extends).",
       "$ref": "#/$defs/name"

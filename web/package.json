@@ -1,0 +1,16 @@
+{
+  "name": "specapp-web",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "ui",
+    "docusaurus",
+    "site"
+  ],
+  "dependencies": {
+    "@beyond10x/docs-system": "git+https://github.com/beyond10x/docs-system.git#da660f7b9108c8b310b8e2365c5160d2b7fdf204"
+  },
+  "engines": {
+    "node": ">=20.0"
+  }
+}

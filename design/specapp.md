@@ -1,11 +1,12 @@
 # specapp: one docs site and one studio for every specification pack (draft 1, 2026-11-27)
 
-Status: waves 1 ("Contract") and 2 ("Graph") are built: the manifest, the schemas, two fixture
-packs, `specapp pack check`, the `parts-links/1` reader, the layout, `specapp trust` and
-`specapp render` (a static page per document with the findings of the pack's tool). The build
-order is at the end; "Decided in wave 1" and "Decided in wave 2" list what the builds decided
-that this design had left open. On 2026-11-28 the owner reversed the dependency between specapp
-and the packs: specapp knows the packs, a pack knows nothing of specapp ("Decided: reversed the
+Status: waves 1 ("Contract"), 2 ("Graph") and 3 ("Docs") are built: the manifest, the schemas,
+two fixture packs, `specapp pack check`, the `parts-links/1` reader, the layout, `specapp trust`,
+`specapp render` (a static page per document with the findings of the pack's tool) and
+`specapp docs build` with the components and the Docusaurus preset of `web/`. The build order is
+at the end; "Decided in wave 1" to "Decided in wave 3" list what the builds decided that this
+design had left open. On 2026-11-28 the owner reversed the dependency between specapp and the
+packs: specapp knows the packs, a pack knows nothing of specapp ("Decided: reversed the
 dependency"). Where an older section below says otherwise, that section wins.
 
 ## What it is
@@ -331,9 +332,9 @@ in agenticspec.
 
 ## Docs
 
-`specapp docs build --pack <dir> --out <dir>` writes pages and data; `--check` compares bytes
-with a fresh generation and lists files it does not own. No file of the output is edited by
-hand.
+`specapp docs build [NAME | --manifest <file>] --pack <dir> --out <dir>` writes pages and data;
+`--check` compares bytes with a fresh generation and lists files it does not own. No file of the
+output is edited by hand.
 
 Pages, all generated:
 
@@ -709,6 +710,78 @@ describe` that answered specapp's protocol. What changed:
   No feature is built for one pack only; a feature one pack's tool supports is offered for
   every pack through the adapter, and each pack's gaps are listed ("Gaps per pack"). cloudspec
   is the third known pack; its manifest comes when it has blocks.
+
+## Decided in wave 3
+
+What the build of wave 3 decided where this design was open or wrong. Q1, Q2 and Q4 kept their
+defaults. Rebased onto "Decided: reversed the dependency": the docs build takes the pack like
+every other command.
+
+- `specapp docs build [NAME | --manifest <file>] --pack <dir> --out <dir> [--check]
+  [--deadline <s>]` writes four kinds of file: `docs/<id>.mdx` (front matter, imports, Markdown, component tags),
+  `pages/<id>.json` (`specapp-page/1`: id, kind, front matter, the components the page draws and
+  their data), `site.json` (`specapp-site/1`: counts, page list, sidebar, presentation table) and
+  `palette.css` (the colour classes `sa-c-<name>` and the page variables, light and dark). The
+  output is the same bytes for the same pack and tool answers; `--check` prints `changed:`,
+  `missing:` and `not owned:` lines and exits 1 when there is one. A write refuses a directory
+  that holds files and no `site.json` of a docs build, and removes the files it no longer owns.
+- A page's MDX imports its own JSON, `site.json` and the components from
+  `@beyond10x/specapp-ui`, and writes a tag per drawing:
+  `<GraphView data={page.data["scene-1"]} presentation={site.presentation} />`. No MDX
+  component table is swizzled, and a page is readable as Markdown without the components.
+- Page ids: `index` (the pack: what it holds and its counts), `blocks/index` (layer map),
+  `blocks/<N>-<layer>/<block>` (or `blocks/no-layer/<block>`), `blocks/planned`, `kpis`,
+  `rules`, and per class `<class>/index` plus `<class>/<file stem>`. A class whose name is one
+  of `blocks`, `kpis`, `rules`, `index`, `documents` gets `documents/<class>`. Repeated stems get
+  `-2`, `-3`; a stem `index` gets `index-document`.
+- A block's file comes from `ess-inputs.yaml`, and a block's domain is the longest domain prefix
+  of a name (agenticspec's generator took two segments). The layer map is agenticspec's layout
+  made generic: the lowest layer is drawn as a band only when it holds one block that every other
+  block depends on; up to 5,040 orders per row are searched, above that barycentre sweeps.
+- KPIs are grouped by the value of the manifest's `measure` field and filtered by measure,
+  status, gate and block; the filter state is the URL query, so a filtered view is a link.
+- A document page shows the check sentence, one section per view (`GraphView`), the findings
+  (`FindingsList`), parts, links, border and marked places as tables, and `ResultSections` only
+  when the manifest declares the verb `simulate` or `search` (`specapp-pack/2` declares only
+  `check` so far, so no page draws it yet). With no result committed beside the document it
+  says so; the docs build runs no simulation. A `records/1` document is one `RecordTable` per
+  table of its class.
+- New field of `specapp-pack/2`, `source_file_url` (optional, `https://...{path}`): the front
+  matter's `source_url` of each page, so the docs-system header links the file a page was
+  written from. It joins `/2` before any release of `/2`, so the version stays.
+  `packs/orgspec.yaml` and `packs/agenticspec.yaml` set it to the file on the pack's `main`
+  branch; the fixture manifests leave it out.
+- A pack that is not public is refused by the preset unless the site's `url` is localhost or
+  127.0.0.1, and every page of such a pack carries a banner that says so.
+- `@beyond10x/specapp-docusaurus` exports `withSpecappSite(config, {out, siteDir,
+  routeBasePath})`: one docs plugin instance (id `specapp`, `numberPrefixParser: false` so
+  `1-shore` stays in the route) over `<out>/docs` with the sidebar of `site.json`, and a plugin
+  that loads the components' CSS and `palette.css` and passes Docusaurus's `Link` and the route
+  base to the components (`configure`). Paths in the plugin options are relative to the site, so
+  no machine path reaches the bundle. The site then wraps the config with docs-system's
+  `withProductSite`. The packages are private and built to `dist/` (Docusaurus does not compile
+  TypeScript under `node_modules`); a site outside `web/` installs them with
+  `npm install --no-save --install-links <dir>`, which copies rather than links, so React is
+  loaded once.
+- A site needs a `browserslist` like agenticspec's: without one, Docusaurus's CSS step raises
+  the specificity of Infima's defaults over docs-system's colours and links fail contrast.
+- The fixture packs' sites are committed (`fixtures/expected/<pack>/site`), compared byte for
+  byte by a test (`SPECAPP_BLESS=1` rewrites them) and by `task check:docs`; the vitest suite of
+  `web/ui` draws every component tag of every committed page. A real pack's site is generated at
+  build time and not committed.
+- A pack carries nothing of specapp ("Decided: reversed the dependency"). A real pack's site is
+  built from specapp's side: `specapp docs build orgspec --pack <orgspec>` and the site shell
+  of `web/site` over the output (`SPECAPP_SITE_OUT`). Where a real pack's site shell lives in
+  specapp (for example `sites/`) is the next step's decision. This replaces "A pack's
+  `website/` holds its identity" above.
+- The Playwright and axe-core gates (both fixture sites, 1440x900 and 1280x800, both themes,
+  no serious or critical violation, no sideways scroll) are the lane `task ux`, outside
+  `task check`: building two sites does not fit the 120 s step with the rest of the gate.
+- Parity with agenticspec (`scripts/parity.sh`, outside `task check`): every block page, the
+  layer map, planned blocks, every architecture page, the KPI catalogue with all rows and every
+  component have a counterpart. Missing: the `Policies` section of an architecture page (the
+  marked places outside parts and links are in the graph, `markers`, but not drawn as a section
+  of their own). Expected missing: the catalog and every section of a run result.
 
 ## Open questions
 

@@ -1,0 +1,260 @@
+{
+  "format": "specapp-site/1",
+  "pack": "harbor",
+  "title": "Harbor",
+  "summary": "An invented pack of a small harbor, for the tests of specapp.",
+  "visibility": "public",
+  "source_url": "https://example.org/harbor",
+  "level": "L3",
+  "counts": {
+    "blocks": 5,
+    "layers": 3,
+    "kpis": 4,
+    "planned_blocks": 1,
+    "documents": 4,
+    "pages": 16
+  },
+  "sidebar": [
+    "index",
+    {
+      "type": "category",
+      "label": "Building blocks",
+      "collapsed": true,
+      "link": {
+        "type": "doc",
+        "id": "blocks/index"
+      },
+      "items": [
+        {
+          "type": "category",
+          "label": "0 · bedrock",
+          "collapsed": true,
+          "items": [
+            "blocks/0-bedrock/ledger"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "1 · shore",
+          "collapsed": true,
+          "items": [
+            "blocks/1-shore/quay",
+            "blocks/1-shore/berth"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "2 · craft",
+          "collapsed": true,
+          "items": [
+            "blocks/2-craft/vessel",
+            "blocks/2-craft/tug"
+          ]
+        },
+        "blocks/planned"
+      ]
+    },
+    "kpis",
+    {
+      "type": "category",
+      "label": "Harbor plans",
+      "collapsed": true,
+      "link": {
+        "type": "doc",
+        "id": "plan/index"
+      },
+      "items": [
+        "plan/cove",
+        "plan/inlet",
+        "plan/reef"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Bylaws",
+      "collapsed": true,
+      "link": {
+        "type": "doc",
+        "id": "bylaw/index"
+      },
+      "items": [
+        "bylaw/mooring"
+      ]
+    },
+    "rules"
+  ],
+  "pages": [
+    {
+      "id": "index",
+      "kind": "pack",
+      "slug": "/",
+      "title": "Harbor"
+    },
+    {
+      "id": "blocks/index",
+      "kind": "layer-map",
+      "slug": "/blocks",
+      "title": "Building blocks"
+    },
+    {
+      "id": "blocks/0-bedrock/ledger",
+      "kind": "block",
+      "slug": "/blocks/0-bedrock/ledger",
+      "title": "ledger"
+    },
+    {
+      "id": "blocks/1-shore/quay",
+      "kind": "block",
+      "slug": "/blocks/1-shore/quay",
+      "title": "quay"
+    },
+    {
+      "id": "blocks/1-shore/berth",
+      "kind": "block",
+      "slug": "/blocks/1-shore/berth",
+      "title": "berth"
+    },
+    {
+      "id": "blocks/2-craft/vessel",
+      "kind": "block",
+      "slug": "/blocks/2-craft/vessel",
+      "title": "vessel"
+    },
+    {
+      "id": "blocks/2-craft/tug",
+      "kind": "block",
+      "slug": "/blocks/2-craft/tug",
+      "title": "tug"
+    },
+    {
+      "id": "blocks/planned",
+      "kind": "planned",
+      "slug": "/blocks/planned",
+      "title": "Planned blocks"
+    },
+    {
+      "id": "kpis",
+      "kind": "kpis",
+      "slug": "/kpis",
+      "title": "KPI catalogue"
+    },
+    {
+      "id": "plan/index",
+      "kind": "class",
+      "slug": "/plan",
+      "title": "Harbor plans"
+    },
+    {
+      "id": "plan/cove",
+      "kind": "document",
+      "slug": "/plan/cove",
+      "title": "cove"
+    },
+    {
+      "id": "plan/inlet",
+      "kind": "document",
+      "slug": "/plan/inlet",
+      "title": "inlet"
+    },
+    {
+      "id": "plan/reef",
+      "kind": "document",
+      "slug": "/plan/reef",
+      "title": "reef"
+    },
+    {
+      "id": "bylaw/index",
+      "kind": "class",
+      "slug": "/bylaw",
+      "title": "Bylaws"
+    },
+    {
+      "id": "bylaw/mooring",
+      "kind": "record",
+      "slug": "/bylaw/mooring",
+      "title": "mooring"
+    },
+    {
+      "id": "rules",
+      "kind": "rules",
+      "slug": "/rules",
+      "title": "Rules"
+    }
+  ],
+  "presentation": {
+    "blocks": {
+      "ledger": {
+        "label": "ledger",
+        "colour": "teal",
+        "icon": "anchor",
+        "group": "shore",
+        "layer": 0,
+        "layer_name": "bedrock",
+        "route": "/blocks/0-bedrock/ledger"
+      },
+      "quay": {
+        "label": "quay",
+        "colour": "teal",
+        "icon": "anchor",
+        "group": "shore",
+        "layer": 1,
+        "layer_name": "shore",
+        "route": "/blocks/1-shore/quay"
+      },
+      "berth": {
+        "label": "berth",
+        "colour": "teal",
+        "icon": "anchor",
+        "group": "shore",
+        "layer": 1,
+        "layer_name": "shore",
+        "route": "/blocks/1-shore/berth"
+      },
+      "vessel": {
+        "label": "vessel",
+        "colour": "amber",
+        "icon": "sailboat",
+        "group": "craft",
+        "layer": 2,
+        "layer_name": "craft",
+        "route": "/blocks/2-craft/vessel"
+      },
+      "tug": {
+        "label": "tug",
+        "colour": "amber",
+        "icon": "sailboat",
+        "group": "craft",
+        "layer": 2,
+        "layer_name": "craft",
+        "route": "/blocks/2-craft/tug"
+      },
+      "crane": {
+        "label": "crane",
+        "colour": "slate",
+        "icon": null,
+        "group": "planned",
+        "layer": null,
+        "layer_name": null,
+        "route": "/blocks/planned#crane"
+      }
+    },
+    "groups": [
+      {
+        "label": "shore",
+        "colour": "teal",
+        "icon": "anchor"
+      },
+      {
+        "label": "craft",
+        "colour": "amber",
+        "icon": "sailboat"
+      }
+    ],
+    "icons": {
+      "anchor": "M7 4.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM7 4.2v8.3M4.5 6.5h5M2 8.5c0 2.3 2.2 4 5 4s5-1.7 5-4"
+    },
+    "vocabulary": {
+      "moors_at": "moors at"
+    }
+  }
+}

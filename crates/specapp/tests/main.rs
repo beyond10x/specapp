@@ -582,6 +582,187 @@ fn a_tool_without_the_verb_check_is_drawn_without_a_check() {
     assert!(String::from_utf8_lossy(&run.stdout).contains("check no_check"));
 }
 
+// --- docs build ---
+
+/// `specapp docs build --manifest <the fixture's manifest> --pack <pack> --out <out> <extra>`.
+fn docs(state: &Path, pack: &Path, out: &Path, extra: &[&str]) -> Output {
+    let mut args: Vec<OsString> = vec!["docs".into(), "build".into()];
+    args.extend(pack_args(pack));
+    args.push("--out".into());
+    args.push(out.into());
+    args.extend(extra.iter().map(OsString::from));
+    specapp_with(state, &args)
+}
+
+/// Builds the docs of a trusted fixture pack into a scratch directory.
+fn docs_of(name: &str, dir: &Path) -> PathBuf {
+    let state = scratch(&format!("docs-state-{name}"));
+    assert_eq!(trust(&state, dir).status.code(), Some(0), "{name}");
+    let out = scratch(&format!("docs-{name}"));
+    let run = docs(&state, dir, &out, &[]);
+    assert_eq!(
+        run.status.code(),
+        Some(0),
+        "{name}: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    out
+}
+
+#[test]
+fn docs_build_of_a_trusted_fixture_pack_writes_the_committed_site() {
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let out = docs_of(&name, &dir);
+        let expected = repo().join(format!("fixtures/expected/{name}/site"));
+        let bless = std::env::var("SPECAPP_BLESS").as_deref() == Ok("1");
+        if bless {
+            let _ = std::fs::remove_dir_all(&expected);
+        }
+        let got = files(&out);
+        for rel in &got {
+            let text = std::fs::read_to_string(out.join(rel)).unwrap();
+            assert!(
+                !text.contains(&*repo().to_string_lossy()),
+                "{name} {rel}: a path of this machine"
+            );
+            if bless {
+                let path = expected.join(rel);
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                std::fs::write(&path, &text).unwrap();
+            } else {
+                let want = std::fs::read_to_string(expected.join(rel))
+                    .unwrap_or_else(|e| panic!("{name} {rel}: {e} (SPECAPP_BLESS=1 writes it)"));
+                assert!(
+                    want == text,
+                    "{name} {rel} differs from the committed site (SPECAPP_BLESS=1 rewrites it)"
+                );
+            }
+        }
+        assert_eq!(got, files(&expected), "{name}: the same files");
+    }
+}
+
+#[test]
+fn every_page_and_the_site_follow_their_schemas_and_the_counts_of_the_pack() {
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let root = repo().join(format!("fixtures/expected/{name}/site"));
+        let site: Value =
+            serde_json::from_str(&std::fs::read_to_string(root.join("site.json")).unwrap())
+                .unwrap();
+        assert_eq!(
+            schema("specapp-site-1.schema.json", &site),
+            Vec::<String>::new(),
+            "{name}"
+        );
+        let mut kinds: std::collections::BTreeMap<String, usize> = Default::default();
+        let mut pages = 0;
+        for rel in files(&root.join("pages")) {
+            let page: Value = serde_json::from_str(
+                &std::fs::read_to_string(root.join("pages").join(&rel)).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(
+                schema("specapp-page-1.schema.json", &page),
+                Vec::<String>::new(),
+                "{name} {rel}"
+            );
+            let id = rel.trim_end_matches(".json");
+            assert_eq!(page["id"], id, "{name} {rel}");
+            assert!(
+                root.join("docs").join(format!("{id}.mdx")).is_file(),
+                "{name} {id}.mdx"
+            );
+            *kinds
+                .entry(page["kind"].as_str().unwrap().to_string())
+                .or_default() += 1;
+            pages += 1;
+        }
+        let report = on_pack(&["pack", "check"], &dir, &["--json"]);
+        let report: Value = serde_json::from_slice(&report.stdout).unwrap();
+        let counts = &report["counts"];
+        let n = |k: &str| kinds.get(k).copied().unwrap_or(0) as u64;
+        assert_eq!(
+            n("block"),
+            counts["blocks"].as_u64().unwrap(),
+            "{name}: block pages"
+        );
+        assert_eq!(
+            n("document") + n("record"),
+            counts["documents"].as_u64().unwrap(),
+            "{name}: document pages"
+        );
+        assert_eq!(
+            n("class"),
+            counts["document_classes"].as_u64().unwrap(),
+            "{name}"
+        );
+        assert_eq!(site["counts"]["pages"].as_u64().unwrap(), pages, "{name}");
+        let catalogue: Value =
+            serde_json::from_str(&std::fs::read_to_string(root.join("pages/kpis.json")).unwrap())
+                .unwrap();
+        assert_eq!(
+            catalogue["data"]["catalogue"]["kpis"]
+                .as_array()
+                .unwrap()
+                .len() as u64,
+            counts["kpis"].as_u64().unwrap(),
+            "{name}: KPI rows"
+        );
+    }
+}
+
+#[test]
+fn docs_build_check_names_changed_missing_and_foreign_files_and_exits_1() {
+    let dir = &packs()[0];
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let out = docs_of(&format!("check-{name}"), dir);
+    let state = scratch(&format!("docs-state-check-{name}"));
+    trust(&state, dir);
+    let equal = docs(&state, dir, &out, &["--check"]);
+    assert_eq!(equal.status.code(), Some(0));
+    let again = docs(&state, dir, &out, &[]);
+    assert!(String::from_utf8_lossy(&again.stdout).contains("0 written, 0 removed"));
+    std::fs::write(out.join("rules.json.extra"), "x").unwrap();
+    std::fs::write(out.join("site.json"), "{}").unwrap();
+    std::fs::remove_file(out.join("palette.css")).unwrap();
+    let run = docs(&state, dir, &out, &["--check"]);
+    assert_eq!(run.status.code(), Some(1));
+    let text = String::from_utf8_lossy(&run.stdout);
+    for line in [
+        "docs: changed: site.json",
+        "docs: missing: palette.css",
+        "docs: not owned: rules.json.extra",
+    ] {
+        assert!(text.contains(line), "{line} in:\n{text}");
+    }
+}
+
+#[test]
+fn docs_build_refuses_a_directory_it_did_not_write_and_removes_its_stale_files() {
+    let dir = &packs()[0];
+    let state = scratch("docs-state-foreign");
+    trust(&state, dir);
+    let foreign = scratch("docs-foreign");
+    std::fs::write(foreign.join("notes.md"), "mine").unwrap();
+    let run = docs(&state, dir, &foreign, &[]);
+    assert_eq!(run.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&run.stderr).contains("no site.json of a docs build"));
+    assert_eq!(
+        std::fs::read_to_string(foreign.join("notes.md")).unwrap(),
+        "mine"
+    );
+    let own = scratch("docs-own");
+    assert_eq!(docs(&state, dir, &own, &[]).status.code(), Some(0));
+    std::fs::create_dir_all(own.join("docs/gone")).unwrap();
+    std::fs::write(own.join("docs/gone/old.mdx"), "old").unwrap();
+    let run = docs(&state, dir, &own, &[]);
+    assert_eq!(run.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&run.stdout).contains("docs: removed: docs/gone/old.mdx"));
+    assert!(!own.join("docs/gone").exists());
+}
+
 fn copy(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
     for entry in std::fs::read_dir(from).unwrap().flatten() {

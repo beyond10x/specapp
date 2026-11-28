@@ -63,8 +63,25 @@ other.
   the deny check and says so), script tests, `ess specify validate` of the fixture packs' blocks
   and `scripts/check-pack-dirs.sh` (no fixture pack holds anything of specapp), `cargo fmt` and
   clippy with `-D warnings`, the tests under cargo-nextest (a test is killed at 60 s, the step
-  fails over 120 s; `.config/nextest.toml`), and `scripts/check-vocabulary.sh` on the fixture
-  packs (it searches `crates/` and `web/*/src`, not the manifests).
+  fails over 120 s; `.config/nextest.toml`), `check:docs` (`specapp docs build --manifest
+  fixtures/manifests/<pack>.yaml --pack fixtures/packs/<pack> --check` against
+  `fixtures/expected/<pack>/site`), `check:web` (tsc of `web/ui` and `web/docusaurus`, vitest of
+  `web/ui` on the committed pages of both fixture packs; needs `task web:install`), and
+  `scripts/check-vocabulary.sh` on the fixture packs (it searches `crates/`, `web/src` and
+  `web/*/src`, not the manifests). A command of the gate that is no cargo call starts with
+  `{{.SLOT}}`, which is `slot` where slot is installed and empty in CI.
+- `task ux` (`scripts/ux.sh`) is the UX lane, outside `task check`: it builds both fixture sites
+  and runs the Playwright and axe-core gates (every page, 1440x900 and 1280x800, both themes, no
+  serious or critical violation, no sideways scroll; a test is killed at 60 s, the run at
+  120 s). Run it after a change under `web/` or of the generated pages.
+- `web/` is one npm workspace (`ui`, `docusaurus`, `site`). Its packages are private and never
+  published. `@beyond10x/docs-system` is a git dependency of the workspace root, pinned at the
+  commit agenticspec uses; `.npmrc` allows git for the root only. `npm ci` runs without slot;
+  builds and tests run through it.
+- A pack's site is built from here, never from the pack: `specapp docs build [NAME | --manifest
+  <file>] --pack <dir> --out <dir>` and a site shell over the output (`web/site` with
+  `SPECAPP_SITE_OUT` today). A pack carries no site shell, no dependency on these packages and
+  no task of specapp.
 - `.github/workflows/gate.yml` runs `task check` (job `gate`) with the toolchain
   `rust-toolchain.toml` names, `ess` 0.99.2 and cargo-nextest 0.9.143. A pull request that
   changes only planning or prose files passes it without `task check`; the path list is
@@ -76,12 +93,16 @@ other.
   (pages = documents) with the tools trusted in a state directory of the run, and for every
   broken design and example of orgspec the rule ids of the page equal to
   `orgspec check --json` and every finding about a part or link marked; then the vocabulary
-  check with all four packs. It is not part of `task check` and not run in CI.
+  check with all four packs; `specapp docs build` of all four packs (block pages, KPI rows and
+  document pages equal the counts of `pack check`; each fixture site equal to the committed
+  one), the orgspec site through `web/site`, and the agenticspec parity summary
+  (`scripts/parity.sh <agenticspec-dir> [<manifest>]`). It is not part of `task check` and not
+  run in CI.
 - Tests read `fixtures/expected/<pack>.json` for what a fixture pack must count, so no test
   names a word of a pack. The compiled model of a fixture's blocks is made once per digest of
   its sources under the target directory (`tests/cases/common.rs`).
-- The scenes and pages of the fixture packs are committed under `fixtures/expected/<pack>/`
-  and compared byte for byte. A change of the layout or the page rewrites them with
+- The scenes, pages and docs sites (`site/`) of the fixture packs are committed under
+  `fixtures/expected/<pack>/` and compared byte for byte. A change of the layout or the page rewrites them with
   `SPECAPP_BLESS=1 cargo nextest run`; the diff of those files is part of the review.
 - A test or script that runs a pack's tool trusts it in a state directory of its own
   (`XDG_STATE_HOME`), never in the user's.

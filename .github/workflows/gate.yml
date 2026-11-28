@@ -77,6 +77,18 @@ jobs:
           echo "$dir/bin" >> "$GITHUB_PATH"
           "$dir/bin/ess" --version
 
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        if: steps.paths.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install the node packages of web/ (npm ci)
+        if: steps.paths.outputs.skip != 'true'
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+
       - name: Run the gate
         if: steps.paths.outputs.skip != 'true'
         run: task check

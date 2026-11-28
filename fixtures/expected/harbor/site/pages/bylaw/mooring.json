@@ -1,0 +1,53 @@
+{
+  "format": "specapp-page/1",
+  "id": "bylaw/mooring",
+  "kind": "record",
+  "front_matter": {
+    "title": "mooring",
+    "sidebar_label": "mooring",
+    "description": "The rules the harbor tool checks a plan against.",
+    "lede": "The rules the harbor tool checks a plan against.",
+    "kicker": "Bylaws",
+    "source": "bylaws/mooring.yaml"
+  },
+  "markdown": "## Rules\n\n4 rows at `rules`.\n\n<RecordTable data={page.data.tables[0]} presentation={site.presentation} />\n\n",
+  "components": [
+    "RecordTable"
+  ],
+  "data": {
+    "tables": [
+      {
+        "title": "Rules",
+        "at": "rules",
+        "key": "id",
+        "columns": [
+          "id",
+          "summary",
+          "gate"
+        ],
+        "rows": [
+          [
+            "berth_without_quay",
+            "Every berth lies within a quay.",
+            "true"
+          ],
+          [
+            "vessel_without_berth",
+            "Every vessel on the border moors at a berth.",
+            "true"
+          ],
+          [
+            "mooring_without_berth",
+            "Every mooring names a berth of the plan.",
+            "true"
+          ],
+          [
+            "border_names_nothing",
+            "Every name on the border is a part of the plan.",
+            "false"
+          ]
+        ]
+      }
+    ]
+  }
+}

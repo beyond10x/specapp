@@ -1,0 +1,129 @@
+{
+  "format": "specapp-page/1",
+  "id": "kpis",
+  "kind": "kpis",
+  "front_matter": {
+    "title": "KPI catalogue",
+    "sidebar_label": "KPI catalogue",
+    "description": "Every KPI of every building block of Harbor: what it measures, which way is better, whether it is a gate, and its status.",
+    "source": "kpis/catalogue.yaml",
+    "hide_table_of_contents": true
+  },
+  "markdown": "4 KPIs over 4 blocks, 1 of them planned; 1 of the KPIs are gates. The column `gauge` is the pack's measure of a KPI, and `tides` its direction per mode. Filter by block, gauge, status or gate, search by name, and sort by any column; the address keeps the filters.\n\n<KpiCatalogue data={page.data[\"catalogue\"]} presentation={site.presentation} />\n\n## By block\n\n- [berth](./blocks/1-shore/berth.mdx#kpis): `berth_idle_share`\n- [vessel](./blocks/2-craft/vessel.mdx#kpis): `vessel_unmoored_count`\n- [tug](./blocks/2-craft/tug.mdx#kpis): `tug_wait_minutes`\n- [crane](./blocks/planned.mdx#crane) (planned): `crane_lift_rate`\n",
+  "components": [
+    "KpiCatalogue"
+  ],
+  "data": {
+    "catalogue": {
+      "format": "specapp-kpis/1",
+      "measure": "gauge",
+      "modes": "tides",
+      "kpis": [
+        {
+          "id": "berth_idle_share",
+          "block": "berth",
+          "measure": "efficiency",
+          "unit": "share",
+          "summary": "Share of the day a berth holds no vessel.",
+          "how": "",
+          "direction": "lower",
+          "modes": [
+            {
+              "mode": "flood",
+              "direction": "lower"
+            },
+            {
+              "mode": "ebb",
+              "direction": "ignore"
+            }
+          ],
+          "gate": false,
+          "reads": [],
+          "status": "sketched",
+          "extra": {},
+          "layer": 1,
+          "planned": false,
+          "route": "/blocks/1-shore/berth#kpis"
+        },
+        {
+          "id": "vessel_unmoored_count",
+          "block": "vessel",
+          "measure": "soundness",
+          "unit": "count",
+          "summary": "Vessels in the harbor that are moored at no berth.",
+          "how": "",
+          "direction": "lower",
+          "modes": [
+            {
+              "mode": "flood",
+              "direction": "lower"
+            },
+            {
+              "mode": "ebb",
+              "direction": "lower"
+            }
+          ],
+          "gate": true,
+          "reads": [],
+          "status": "sketched",
+          "extra": {},
+          "layer": 2,
+          "planned": false,
+          "route": "/blocks/2-craft/vessel#kpis"
+        },
+        {
+          "id": "tug_wait_minutes",
+          "block": "tug",
+          "measure": "efficiency",
+          "unit": "minutes",
+          "summary": "Minutes a vessel waits for a tug at the harbor mouth.",
+          "how": "",
+          "direction": "lower",
+          "modes": [
+            {
+              "mode": "flood",
+              "direction": "lower"
+            },
+            {
+              "mode": "ebb",
+              "direction": "ignore"
+            }
+          ],
+          "gate": false,
+          "reads": [],
+          "status": "sketched",
+          "extra": {},
+          "layer": 2,
+          "planned": false,
+          "route": "/blocks/2-craft/tug#kpis"
+        },
+        {
+          "id": "crane_lift_rate",
+          "block": "crane",
+          "measure": "efficiency",
+          "unit": "count",
+          "summary": "Loads a crane lifts per hour. The crane block is planned.",
+          "how": "",
+          "direction": "higher",
+          "modes": [
+            {
+              "mode": "flood",
+              "direction": "higher"
+            },
+            {
+              "mode": "ebb",
+              "direction": "ignore"
+            }
+          ],
+          "gate": false,
+          "reads": [],
+          "status": "planned",
+          "extra": {},
+          "layer": null,
+          "planned": true,
+          "route": "/blocks/planned#crane"
+        }
+      ]
+    }
+  }
+}

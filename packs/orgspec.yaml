@@ -4,6 +4,7 @@ title: orgspec
 summary: Building blocks of an organization, organization types and invented example designs.
 visibility: public
 source_url: https://github.com/beyond10x/orgspec
+source_file_url: https://github.com/beyond10x/orgspec/blob/main/{path}
 
 blocks:
   path: blocks

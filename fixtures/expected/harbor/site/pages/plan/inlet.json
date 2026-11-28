@@ -1,0 +1,260 @@
+{
+  "format": "specapp-page/1",
+  "id": "plan/inlet",
+  "kind": "document",
+  "front_matter": {
+    "title": "inlet",
+    "sidebar_label": "inlet",
+    "description": "An invented inlet whose only berth has no quay; its tool refuses it.",
+    "lede": "An invented inlet whose only berth has no quay; its tool refuses it.",
+    "kicker": "Harbor plans",
+    "source": "harbors/inlet.yaml"
+  },
+  "markdown": "## Check\n\nNot valid. The pack's tool reports 1 finding(s), 1 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 2 parts, 1 link, 1 finding mark.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 2 parts, 0 links, 1 finding mark.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Findings\n\n<FindingsList data={page.data[\"findings\"]} presentation={site.presentation} />\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `lone_berth` | [berth](../blocks/1-shore/berth.mdx) | – | – |\n| `barge` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 3m |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `barge` | `moors at` | `lone_berth` | – |\n\n## Border\n\nThe parts on the border of the document: `barge`.\n\n## Marked places\n\nA marked place carries `vary`: the value as written and the values a search may try there.\n\n| place | as written | a search may try |\n|---|---|---|\n| `parts.barge.draught` | 3m | 2m, 3m, 4m |\n\n",
+  "components": [
+    "FindingsList",
+    "GraphView"
+  ],
+  "data": {
+    "scene-1": {
+      "format": "specapp-scene/1",
+      "document": "harbors/inlet.yaml",
+      "view": {
+        "id": "layout",
+        "title": "Layout",
+        "layout": "nested",
+        "implicit": false
+      },
+      "width": 306.0,
+      "height": 132.0,
+      "rows": [],
+      "boxes": [
+        {
+          "id": "lone_berth",
+          "block": "berth",
+          "label": "lone_berth",
+          "lines": [
+            "berth"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 16.0,
+          "w": 114.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [
+            1
+          ],
+          "title": "lone_berth (block berth), shore"
+        },
+        {
+          "id": "barge",
+          "block": "vessel",
+          "label": "barge",
+          "lines": [
+            "vessel",
+            "varies: draught",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 178.0,
+          "y": 16.0,
+          "w": 112.0,
+          "h": 79.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [],
+          "title": "barge (block vessel), craft\ndraught: 3m\nvaries draught: 3m over [2m, 3m, 4m]"
+        }
+      ],
+      "edges": [
+        {
+          "id": "barge->lone_berth:moors_at",
+          "from": "barge",
+          "to": "lone_berth",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              178.0,
+              50.3
+            ],
+            [
+              130.0,
+              45.8
+            ]
+          ],
+          "label_at": {
+            "x": 123.4,
+            "y": 98.0,
+            "w": 61.3,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "barge->lone_berth:moors_at"
+        }
+      ],
+      "marks": [
+        {
+          "finding": 1,
+          "rule": "berth_without_quay",
+          "gate": true,
+          "subject": "part:lone_berth",
+          "x": 114.2,
+          "y": 16.0,
+          "w": 19.6
+        }
+      ],
+      "legend": [
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "berth"
+          ]
+        },
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel"
+          ]
+        }
+      ]
+    },
+    "scene-2": {
+      "format": "specapp-scene/1",
+      "document": "harbors/inlet.yaml",
+      "view": {
+        "id": "guidance",
+        "title": "Who guides whom",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 146.0,
+      "height": 234.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 12.0,
+          "h": 107.0
+        },
+        {
+          "title": "1 shore",
+          "y": 137.0,
+          "h": 77.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "lone_berth",
+          "block": "berth",
+          "label": "lone_berth",
+          "lines": [
+            "berth"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 161.0,
+          "w": 114.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [
+            1
+          ],
+          "title": "lone_berth (block berth), shore"
+        },
+        {
+          "id": "barge",
+          "block": "vessel",
+          "label": "barge",
+          "lines": [
+            "vessel",
+            "varies: draught",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 16.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 79.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [],
+          "title": "barge (block vessel), craft\ndraught: 3m\nvaries draught: 3m over [2m, 3m, 4m]"
+        }
+      ],
+      "edges": [],
+      "marks": [
+        {
+          "finding": 1,
+          "rule": "berth_without_quay",
+          "gate": true,
+          "subject": "part:lone_berth",
+          "x": 114.2,
+          "y": 161.0,
+          "w": 19.6
+        }
+      ],
+      "legend": [
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "berth"
+          ]
+        },
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel"
+          ]
+        }
+      ]
+    },
+    "findings": {
+      "findings": [
+        {
+          "n": 1,
+          "rule": "berth_without_quay",
+          "gate": true,
+          "subject": "part:lone_berth",
+          "message": "The berth lies within no quay.",
+          "drawn_in": [
+            "layout",
+            "guidance"
+          ]
+        }
+      ],
+      "views": [
+        {
+          "id": "layout",
+          "title": "Layout"
+        },
+        {
+          "id": "guidance",
+          "title": "Who guides whom"
+        }
+      ]
+    }
+  }
+}

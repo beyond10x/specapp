@@ -5,6 +5,7 @@ use crate::render::{DocumentPage, Rendered, state_word};
 use specapp_core::manifest::Shape;
 use specapp_core::pack::Pack;
 use specapp_core::tool::CheckState;
+use specapp_docs::document::check_sentence;
 use specapp_layout::text::{esc, value};
 use specapp_layout::{icons, palette, svg};
 use std::fmt::Write as _;
@@ -44,42 +45,6 @@ fn head(title: &str) -> String {
         CSS,
         svg::CSS
     )
-}
-
-fn check_sentence(p: &DocumentPage) -> (String, bool) {
-    let gated = p.findings.iter().filter(|f| f.gate).count();
-    let other = p.findings.len() - gated;
-    match (p.check.state, &p.check.result) {
-        (CheckState::Ran, Some(result)) if result.valid => (
-            format!(
-                "Valid. The pack's tool reports {} finding(s), {gated} gated, {other} not gated.",
-                p.findings.len()
-            ),
-            false,
-        ),
-        (CheckState::Ran, _) => (
-            format!(
-                "Not valid. The pack's tool reports {} finding(s), {gated} gated, {other} not gated.",
-                p.findings.len()
-            ),
-            true,
-        ),
-        (CheckState::TimedOut, _) => (
-            format!(
-                "Not checked: {}.",
-                p.check.message.as_deref().unwrap_or("the check timed out")
-            ),
-            true,
-        ),
-        (state, _) => (
-            format!(
-                "Not checked ({}): {}.",
-                state_word(state),
-                p.check.message.as_deref().unwrap_or("")
-            ),
-            matches!(state, CheckState::Refused | CheckState::Failed),
-        ),
-    }
 }
 
 fn swatch(colour: &str, icon: Option<&str>) -> String {
