@@ -1,8 +1,9 @@
 #!/bin/sh
 # Tests of scripts/check-spec-conform.sh, its validation step, with a stub `ess` on PATH: the
 # script is copied into a tree whose path holds the word "warnings", and the dispatcher's note,
-# which names that path, is not a warning; a warning ess prints is one. The stub refuses to
-# synthesize, so a run that passes validation ends at synthesis.
+# which names that path, is not a warning; a warning ess prints is one, also one that says "is
+# the dispatcher". The stub refuses to synthesize, so a run that passes validation ends at
+# synthesis.
 
 set -eu
 
@@ -60,4 +61,14 @@ unset STUB_WARN
 grep -q 'a warning is not clean' "$work/out" || { cat "$work/out" >&2; fail "a warning: not reported"; }
 grep -q 'warning: sample: a field is never read' "$work/out" || fail "a warning: not printed"
 
-echo "check-spec-conform.test: 2 cases passed"
+d=$(tree words)
+STUB_WARN="sample: the part that is the dispatcher has no link"
+export STUB_WARN
+run "$d"
+unset STUB_WARN
+[ "$got" -eq 2 ] || { cat "$work/out" >&2; fail "a warning that says \"is the dispatcher\": exit $got, wanted 2"; }
+grep -q 'a warning is not clean' "$work/out" || { cat "$work/out" >&2; fail "a warning that says \"is the dispatcher\": not reported"; }
+grep -q 'warning: sample: the part that is the dispatcher has no link' "$work/out" \
+  || fail "a warning that says \"is the dispatcher\": not printed"
+
+echo "check-spec-conform.test: 3 cases passed"

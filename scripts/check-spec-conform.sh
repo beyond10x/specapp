@@ -92,17 +92,21 @@ if [ "$mode" = --digest ]; then
 fi
 
 mkdir -p "$work"
+# The dispatcher's note, `note: ess <version> is the dispatcher; delegating to ess <version> (pin:
+# ... in <path>/ess-inputs.yaml)`: it names the checkout's path, so it is left out before a
+# warning is looked for. Any other line that says "is the dispatcher" stays.
+note='^note: ess [^ ]* is the dispatcher; delegating to ess '
 if ! ess specify validate --path . --strict-requires > "$work/validate.txt" 2>&1; then
-  grep -v 'is the dispatcher' "$work/validate.txt" >&2
+  grep -v "$note" "$work/validate.txt" >&2
   echo "check-spec-conform: ess specify validate --path spec --strict-requires refused the specification" >&2
   exit 2
 fi
-if grep -v 'is the dispatcher' "$work/validate.txt" | grep -q 'warning'; then
-  grep -v 'is the dispatcher' "$work/validate.txt" >&2
+if grep -v "$note" "$work/validate.txt" | grep -q 'warning'; then
+  grep -v "$note" "$work/validate.txt" >&2
   echo "check-spec-conform: ess specify validate warned; a warning is not clean" >&2
   exit 2
 fi
-echo "check-spec-conform: $(grep -v 'is the dispatcher' "$work/validate.txt" | tail -n 1)"
+echo "check-spec-conform: $(grep -v "$note" "$work/validate.txt" | tail -n 1)"
 
 suite=$work/$key.json
 report=$work/report.json

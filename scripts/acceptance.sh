@@ -358,8 +358,9 @@ for class in architecture broken-architecture; do
     "$(awk '{ s += $5 } END { print s + 0 }' "$work/cloud-$name.named")" "parts and links of each graph = cloudspec check --json"
 done
 # The warnings of `cloudspec check --json` (entries with `gate: false`) on the page of
-# architectures/journeys.yaml: as many findings not gated as warnings, as many gated as gated
-# entries of its answer, and the page's verdict is cloudspec's. Every number is read at run time.
+# architectures/journeys.yaml: as many findings not gated as warnings, and at least one; as many
+# gated as gated entries of its answer; and the page says the document is valid. Every number is
+# read at run time.
 f=architectures/journeys.yaml
 (cd "$cloud" && { target/debug/cloudspec check --json "$f" || true; }) > "$work/journeys.answer"
 page=$work/pages-cloudspec/architecture/$(basename "$f" .yaml).html
@@ -372,9 +373,12 @@ else
   echo "acceptance: no page for $f" >&2
   set -- - - -
 fi
-row cloudspec journeys:warnings "$1" "$(jq '.[0].warnings | length' "$work/journeys.answer")" "findings not gated on the page of $f = warnings of cloudspec check --json"
+# an answer without a warning tests nothing: the row then wants "1 or more"
+own=$(jq '.[0].warnings | length' "$work/journeys.answer")
+case "$own" in '' | 0) own="1 or more" ;; esac
+row cloudspec journeys:warnings "$1" "$own" "findings not gated on the page of $f = warnings of cloudspec check --json, at least one"
 row cloudspec journeys:gated "$2" "$(jq '[(.[0].violations[]?, .[0].warnings[]?) | select(.gate)] | length' "$work/journeys.answer")" "gated findings on the page of $f = gated entries of cloudspec check --json"
-row cloudspec journeys:valid "$3" "$(jq -r '.[0].valid' "$work/journeys.answer")" "valid on the page of $f = cloudspec check --json"
+row cloudspec journeys:valid "$3" true "valid on the page of $f"
 
 # --- wave 3: docs sites ---
 # docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of the site of one pack into
