@@ -219,7 +219,9 @@ Rules of the manifest:
 - Every path is inside the pack. A path that leaves it is refused.
 - A document class may name `exclude: [<glob>]`: a file its `paths` match and an `exclude` glob
   matches is not read. The glob matches the whole path in the pack and `*` does not cross a
-  slash (a glob has no negation, and a pack may keep other files beside its documents).
+  slash (a glob has no negation, and a pack may keep other files beside its documents). A
+  leading `./` is no part of the match. An exclude that matches none of the files the paths
+  match is named (`exclude_matches_nothing`).
 - `presentation` is optional. Without it a block's row is the layer of its domain and its colour
   is the colour of its layer, from a palette of metaspec. This is the one place a pack states a
   colour or an icon; a pack that needs none writes none.
@@ -1210,9 +1212,13 @@ wave 2.
 - A field name of ESS's compiled model is ESS's format word, which metaspec has to read, not a
   pack's word (coordinator's decision, 2026-11-28): cloudspec's blocks `actors` and `identity`
   are also fields of that model, which `metaspec-docs` reads. Like the property names of the
-  schemas, `scripts/check-vocabulary.sh` leaves out every key without a dot of
-  `ess specify compile --format json` of the fixture packs' blocks; a dotted key is a qualified
-  name of a pack and is not left out. `scripts/check-vocabulary.test.sh` holds both sides.
+  schemas, `scripts/check-vocabulary.sh` leaves out the field names of the declarations of
+  `ess specify compile --format json` of the fixture packs' blocks: a key without a dot below a
+  qualified name (a domain, an entity). A dotted key is a name of a pack, and a top-level key of
+  the model is a collection that no declaration carries (`workloads`, a block of cloudspec, is
+  one), so neither is left out. `scripts/check-vocabulary.test.sh` holds both sides.
+- A link without `carries` is `<from>-><to>:?` in `metaspec-graph/1`; a tool that names it
+  `<from>-><to>:` (the empty text) is mapped to it, so its finding is on the link.
 
 ## Open questions
 

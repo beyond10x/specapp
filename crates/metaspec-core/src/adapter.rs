@@ -181,6 +181,26 @@ fn subject(
     } else {
         SubjectKind::Part
     };
+    // A tool writes a link without `carries` with the empty text, `<from>-><to>:`; the graph's
+    // id of that link writes it `?`.
+    let id = match graph {
+        Some(g)
+            if kind == SubjectKind::Link
+                && id.ends_with(':')
+                && !g.links.iter().any(|l| l.id == id) =>
+        {
+            let carriesless = format!("{id}?");
+            if g.links
+                .iter()
+                .any(|l| l.id == carriesless && l.carries.is_none())
+            {
+                carriesless
+            } else {
+                id
+            }
+        }
+        _ => id,
+    };
     let known = |kind: SubjectKind| match (graph, kind) {
         (Some(g), SubjectKind::Part) => g.parts.iter().any(|p| p.id == id),
         (Some(g), SubjectKind::Link) => g.links.iter().any(|l| l.id == id),

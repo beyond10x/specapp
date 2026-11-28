@@ -338,7 +338,7 @@ named() {
           | sort | join(",")' "$work/answer.tmp")
     page_data "$page" > "$work/page-data.tmp"
     mine=$(jq -r '[.findings[] | select(.subject != "document") | select(.drawn_in | length > 0)
-          | .rule + " " + (.subject | sub("^(part|link):"; ""))] | sort | join(",")' "$work/page-data.tmp")
+          | .rule + " " + (.subject | if startswith("link:") then .[5:] | sub(":[?]$"; ":") else sub("^part:"; "") end)] | sort | join(",")' "$work/page-data.tmp")
     if [ "$mine" = "$theirs" ]; then same=1; else same=0; echo "acceptance: $f: drawn [$mine], cloudspec on its parts and links [$theirs]" >&2; fi
     drawn=$(jq -r '"\(.graph.parts | length) \(.graph.links | length)"' "$work/page-data.tmp")
     counted=$(jq -r '.[0] | "\(.parts) \(.links)"' "$work/answer.tmp")

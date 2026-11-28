@@ -59,16 +59,17 @@ printf '{ not json\n' > "$d/schema/metaspec-b-1.schema.json"
 expect 2 "a schema that is no JSON is refused" "$d"
 
 # ess <dir> <exit>: a fixture pack's blocks in the tree and a stand-in for `ess` on PATH that
-# prints a compiled model with the field `identity` and the dotted key `x.seawall`, then exits
+# prints a compiled model with the field `identity` of a declaration, the dotted key `x.seawall`
+# and the top-level collection `tidewater` (no field of a declaration), then exits
 # with <exit>
 ess() {
   mkdir -p "$1/fixtures/packs/x/blocks" "$1/bin"
   printf '%s\n' '#!/bin/sh' \
-    "printf '%s\\n' '{\"entities\": {\"x.berths.Berth\": {\"identity\": {\"name\": \"id\"}}}, \"x.seawall\": 1}'" \
+    "printf '%s\\n' '{\"tidewater\": {}, \"entities\": {\"x.berths.Berth\": {\"identity\": {\"name\": \"id\"}}}, \"x.seawall\": 1}'" \
     "exit $2" > "$1/bin/ess"
   chmod +x "$1/bin/ess"
-  printf '%s\n' '#!/bin/sh' 'printf "block identity\nblock seawall\n"' > "$1/metaspec"
-  printf '%s\n' 'let id = &e["identity"];' 'const WALL: &str = "seawall";' > "$1/crates/a/src/lib.rs"
+  printf '%s\n' '#!/bin/sh' 'printf "block identity\nblock seawall\nblock tidewater\n"' > "$1/metaspec"
+  printf '%s\n' 'let id = &e["identity"];' 'const WALL: &str = "seawall";' 'let t = &ir["tidewater"];' > "$1/crates/a/src/lib.rs"
 }
 old_path=$PATH
 
@@ -79,7 +80,8 @@ expect 1 "a field name of the compiled ESS model is not reported, any other pack
 PATH=$old_path
 if grep -q ' identity$' "$work/out"; then cat "$work/out" >&2; fail "ess-words: a field of the compiled model is reported"; fi
 grep -qx 'crates/a/src/lib.rs:2: block seawall' "$work/out" || { cat "$work/out" >&2; fail "ess-words: a pack word under a dotted key is not reported"; }
-grep -qx 'check-vocabulary: 1 word(s) of a pack in the code' "$work/out" || { cat "$work/out" >&2; fail "ess-words: wrong count"; }
+grep -qx 'crates/a/src/lib.rs:3: block tidewater' "$work/out" || { cat "$work/out" >&2; fail "ess-words: a top-level collection of the model is left out"; }
+grep -qx 'check-vocabulary: 2 word(s) of a pack in the code' "$work/out" || { cat "$work/out" >&2; fail "ess-words: wrong count"; }
 
 d=$(tree ess-refuses)
 ess "$d" 1
