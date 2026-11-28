@@ -41,12 +41,18 @@ types:
 
   - name: metaspec.documents.Contain
     kind: struct
+    naming:
+      summary: >-
+        The manifest's `contain`: `{in: <field>}`, `{per: <field>}` or both; the schema
+        metaspec-pack-1 refuses one with neither key (`minProperties: 1`). Each
+        value is the name of the part's field that names the containing part.
     fields:
-      - name: kind
-        type: metaspec.documents.ContainKind
-      - name: field
-        type: String
-        summary: The name of the part's field that names the containing part.
+      - name: inside
+        type: Optional<String>
+        summary: The manifest's key `in`, the field that names the part a part sits in.
+      - name: per
+        type: Optional<String>
+        summary: The field that names the part a part exists once per instance of.
 
   - name: metaspec.documents.Table
     kind: struct
@@ -109,10 +115,8 @@ entities:
         type: String
         summary: The key of a document that holds its name.
       - name: contain
-        type: List<metaspec.documents.Contain>
-        summary: >-
-          Empty, one of `in` and `per`, or both: the manifest's `contain` takes `{in: <field>}`,
-          `{per: <field>}` or `{in: <field>, per: <field>}`.
+        type: Optional<metaspec.documents.Contain>
+        summary: Absent for a class whose parts contain no part; else `in`, `per` or both.
       - name: tables
         type: List<metaspec.documents.Table>
         summary: Empty for a parts-links/1 class.
