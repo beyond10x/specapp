@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:collapsed-regions
 kind: story
-status: active
+status: implemented
 title: A region is drawn collapsed, with drill-down
 summary: A view collapses regions to one box with rolled-up border links and a drill-down view.
 relations:
@@ -58,10 +58,11 @@ scope:
   path: schema/metaspec-scene-1.schema.json
 - confidence: inferred
   path: spec/domains/documents.yaml
-revision: 28
+revision: 29
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:51:13Z", actor: "human:operator", revision: 3}
+- {from: "active", to: "implemented", at: "2026-11-28T19:39:33Z", actor: "human:operator", revision: 29, decided_on: {"recorded":{"test_result":1,"review_outcome":1}}}
 ---
 # A region is drawn collapsed, with drill-down
 
