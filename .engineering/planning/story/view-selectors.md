@@ -8,6 +8,7 @@ summary: 'View gains carries prefix patterns and where: {field: values}.'
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
+- depends_on: story:part-block-aliases
 scope:
 - confidence: inferred
   path: CHANGELOG.md

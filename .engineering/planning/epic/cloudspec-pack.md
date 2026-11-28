@@ -5,7 +5,7 @@ kind: epic
 status: draft
 title: metaspec draws the architectures of cloudspec
 summary: A cloudspec manifest, containment by in and per, views by field and link pattern, collapsed regions, later runs.
-revision: 2
+revision: 3
 ---
 # metaspec draws the architectures of cloudspec
 
@@ -30,6 +30,13 @@ own repository; an architecture of about 100 parts and 200 links. Nothing of it 
   patterns (for example data, edge and messaging).
 - A region (`in:`) can be drawn collapsed, with the links that cross its border rolled up, and a
   drill-down to the region's own view.
+- The page of a document shows the warnings of cloudspec's check as findings that do not gate
+  (story:cloudspec-warnings).
+- A part whose block word names an entity inside a cloudspec block (for example `group`,
+  `node_pool`, `endpoints`) is drawn in that block, through an alias map in the manifest
+  (story:part-block-aliases; the coordinator's D41, 2026-11-28).
+- A pack that `extends: cloudspec` inherits its blocks and tool from the base pack's directory
+  given at run time, so the consumer copies neither (story:extends-inherits; D42).
 - Later: cloudspec's runs (simulate, search) once metaspec has runs (build order, wave 7) and
   cloudspec has a verb that reads an architecture and answers in JSON.
 

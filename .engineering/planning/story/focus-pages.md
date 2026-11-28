@@ -8,6 +8,7 @@ summary: One page per part with its one-hop neighbourhood, linked from the docum
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
+- depends_on: story:part-block-aliases
 scope:
 - confidence: inferred
   path: CHANGELOG.md

@@ -8,6 +8,7 @@ summary: A view collapses regions to one box with rolled-up border links and a d
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
+- depends_on: story:part-block-aliases
 scope:
 - confidence: inferred
   path: CHANGELOG.md

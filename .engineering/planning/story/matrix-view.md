@@ -8,6 +8,7 @@ summary: 'layout: matrix draws callers as rows, targets as columns, link names i
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
+- depends_on: story:part-block-aliases
 scope:
 - confidence: inferred
   path: CHANGELOG.md
