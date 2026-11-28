@@ -1,0 +1,14 @@
+[
+  {
+    "plan": "cove",
+    "passes": true,
+    "breaches": [],
+    "notices": [],
+    "gauges": {
+      "berth_idle_share": 0.5,
+      "crane_lift_rate": 0,
+      "vessel_unmoored_count": 0,
+      "pilot_boardings": 2
+    }
+  }
+]

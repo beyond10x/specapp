@@ -22,7 +22,8 @@
 #                  `orgspec type check --json types/*.yaml`.
 #   agenticspec    blocks: scripts/check-layers.sh; layers: the layer numbers of
 #                  scripts/check-layers.sh --graph and the rows of its generated
-#                  website/src/generated/blocks.json; KPIs: scripts/check-kpis.sh;
+#                  website/src/generated/blocks.json; KPIs: scripts/check-kpis.sh (the count
+#                  of the catalogue at the manifest's kpis.path);
 #                  architectures: the pages its generator wrote, docs/architectures/*.md
 #                  without index.md.
 #
@@ -112,6 +113,20 @@ graph_layers() {
     | awk 'NF == 6 && $4 == "->" { print $2; print $5 }' | sort -u | wc -l | tr -d ' '
 }
 
+# kpis_ok <dir> <name>: the KPI count scripts/check-kpis.sh of a pack prints for the catalogue its
+# manifest packs/<name>.yaml names at kpis.path. A pack that reads several catalogues prints
+# "check-kpis: N KPIs ok in M catalogue(s): <path> <n>, ..."; one that reads one prints
+# "check-kpis: N KPIs ok".
+kpis_ok() {
+  path=$(yq -r .kpis.path "$root/packs/$2.yaml")
+  line=$(cd "$1" && scripts/check-kpis.sh | sed -n '/^check-kpis: /p')
+  case "$line" in
+    *' catalogue(s): '*)
+      printf '%s\n' "${line#*catalogue(s): }" | tr ',' '\n' | awk -v p="$path" '$1 == p { print $2 }' ;;
+    *) printf '%s\n' "$line" | sed -n 's/^check-kpis: \([0-9]*\) KPIs ok$/\1/p' ;;
+  esac
+}
+
 # --- fixture packs ---
 for manifest in "$root"/fixtures/manifests/*.yaml; do
   name=$(basename "$manifest" .yaml)
@@ -137,7 +152,7 @@ check orgspec "$org" orgspec
 own=$(cd "$org" && scripts/check-layers.sh | sed -n 's/^layers: \([0-9]*\) domains.*/\1/p')
 row orgspec blocks "$(of orgspec .counts.blocks)" "$own" "scripts/check-layers.sh"
 row orgspec layers "$(of orgspec .counts.layers)" "$(graph_layers "$org")" "scripts/check-layers.sh --graph"
-own=$(cd "$org" && scripts/check-kpis.sh | sed -n 's/^check-kpis: \([0-9]*\) KPIs ok$/\1/p')
+own=$(kpis_ok "$org" orgspec)
 row orgspec kpis "$(of orgspec .counts.kpis)" "$own" "scripts/check-kpis.sh"
 own=$(cd "$org" && { target/debug/orgspec check --json organizations/*.yaml || true; } | jq length)
 row orgspec documents:organization "$(documents orgspec organization)" "$own" "orgspec check --json"
@@ -151,7 +166,7 @@ own=$(cd "$agentic" && scripts/check-layers.sh | sed -n 's/^layers: \([0-9]*\) d
 row agenticspec blocks "$(of agenticspec .counts.blocks)" "$own" "scripts/check-layers.sh"
 row agenticspec layers "$(of agenticspec .counts.layers)" "$(graph_layers "$agentic")" "scripts/check-layers.sh --graph"
 row agenticspec layers "$(of agenticspec .counts.layers)" "$(jq '.rows | length' "$agentic/website/src/generated/blocks.json")" "generated blocks.json rows"
-own=$(cd "$agentic" && scripts/check-kpis.sh | sed -n 's/^check-kpis: \([0-9]*\) KPIs ok$/\1/p')
+own=$(kpis_ok "$agentic" agenticspec)
 row agenticspec kpis "$(of agenticspec .counts.kpis)" "$own" "scripts/check-kpis.sh"
 own=$(find "$agentic/docs/architectures" -maxdepth 1 -name '*.md' ! -name index.md | wc -l | tr -d ' ')
 row agenticspec documents:architecture "$(documents agenticspec architecture)" "$own" "generated docs/architectures pages"

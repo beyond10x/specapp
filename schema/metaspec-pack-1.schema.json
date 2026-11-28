@@ -159,6 +159,10 @@
           "description": "Findings per rule: a mapping from a rule to a count. Left out of the answer: no counts.",
           "$ref": "#/$defs/pointer"
         },
+        "kpis": {
+          "description": "KPI values of the document: a mapping from a KPI id (of the pack's KPI catalogue, or any other) to a number. Left out of the answer: no KPI values.",
+          "$ref": "#/$defs/pointer"
+        },
         "findings": {
           "description": "The lists of findings in the result, in the order they are shown.",
           "type": "array",

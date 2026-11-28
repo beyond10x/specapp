@@ -125,6 +125,7 @@ fn an_answer_in_another_version_or_shape_is_refused() {
             message: String::new(),
         }],
         counts: None,
+        kpis: None,
     })
     .unwrap();
     assert!(tool::findings(&bad).is_ok());

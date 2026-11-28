@@ -278,6 +278,42 @@ fn exit_codes_errors_and_wrong_answers_are_told_apart() {
 }
 
 #[test]
+fn kpi_values_are_read_as_numbers_and_left_out_when_the_answer_has_none() {
+    let a = adapter_of("kpis: /m\n");
+    let f = findings(adapter::check(
+        &a,
+        &exit(0, json!({"m": {"size": 3, "share": 0.25}})),
+        None,
+    ));
+    let kpis = f.kpis.expect("kpis");
+    assert_eq!(kpis["size"].as_u64(), Some(3));
+    assert_eq!(kpis["share"].as_f64(), Some(0.25));
+    let json = serde_json::to_value(findings(adapter::check(
+        &a,
+        &exit(0, json!({"m": {"size": 3}})),
+        None,
+    )))
+    .unwrap();
+    assert!(tool::findings(&json).is_ok(), "{json}");
+    assert_eq!(json["kpis"], json!({"size": 3}), "an integer stays one");
+    for absent in [json!({}), json!({"m": null})] {
+        assert!(matches!(
+            adapter::check(&a, &exit(0, absent), None),
+            Mapped::Findings(f) if f.kpis.is_none()
+        ));
+    }
+    for wrong in [json!({"m": {"size": "3"}}), json!({"m": [3]})] {
+        assert!(
+            matches!(
+                adapter::check(&a, &exit(0, wrong.clone()), None),
+                Mapped::Failed(_)
+            ),
+            "{wrong}"
+        );
+    }
+}
+
+#[test]
 fn a_template_keeps_text_and_fills_numbers_and_booleans() {
     let v = json!({"a": "x", "n": 2, "b": true, "deep": {"k": "y"}});
     assert_eq!(adapter::template("plain", &v).unwrap(), "plain");

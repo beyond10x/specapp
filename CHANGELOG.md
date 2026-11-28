@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- `scripts/acceptance.sh` reads the KPI count of a real pack with one helper: when
+  `scripts/check-kpis.sh` prints the count per catalogue (agenticspec main:
+  `check-kpis: N KPIs ok in M catalogue(s): <path> <n>, ...`), the count of the catalogue at
+  the manifest's `kpis.path`, else the total of `check-kpis: N KPIs ok` (orgspec). The row
+  `agenticspec kpis` was empty since agenticspec added its packs' and fields' catalogues.
+  "Gaps per pack" names those catalogues as not read by metaspec.
+
+- KPI values per document: the `check` adapter has a new pointer `kpis`, a mapping from a KPI id
+  to a number in the tool's answer, read into `metaspec-findings/1` as `kpis` (both schemas
+  extended). A document's page gets a section "KPIs" with each value, in the order of the KPI
+  catalogue, with its unit and summary and a link to its block's KPIs; an id the catalogue does
+  not hold is listed after them. `packs/agenticspec.yaml` reads `/kpis` of
+  `agenticspec sim check --json`, the KPIs of an architecture as a whole (agenticspec main,
+  `agents_total` to `capacity_ratio`), so every accepted architecture shows them. The
+  recorded answers of agenticspec are re-recorded against its main. The fixture pack harbor
+  answers values for `cove` (`kpis: /gauges`), held in the committed site. `scripts/parity.sh`
+  counts agenticspec's section "The architecture as a whole" as the section "KPIs".
+
 - `task ux` keeps its test budget: axe-core runs once per page and theme, at 1440x900, and in the
   page itself (`setLegacyMode`, no blank page per call); 1280x800 checks the layout (no sideways
   scroll, the navbar and every component of the page visible). On a host at load 26 to 51 the

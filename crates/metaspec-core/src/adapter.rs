@@ -112,11 +112,29 @@ fn read(adapter: &CheckAdapter, result: &Value, graph: Option<&Graph>) -> Result
             Some(_) => return Err(format!("the answer has no mapping of counts at {at:?}")),
         },
     };
+    let kpis = match &adapter.kpis {
+        None => None,
+        Some(at) => match result.pointer(at) {
+            None | Some(Value::Null) => None,
+            Some(Value::Object(map)) => {
+                let mut kpis = BTreeMap::new();
+                for (kpi, v) in map {
+                    let Value::Number(n) = v else {
+                        return Err(format!("the value of the KPI {kpi} at {at:?} is no number"));
+                    };
+                    kpis.insert(kpi.clone(), n.clone());
+                }
+                Some(kpis)
+            }
+            Some(_) => return Err(format!("the answer has no mapping of KPIs at {at:?}")),
+        },
+    };
     Ok(Findings {
         format: String::from(FINDINGS_FORMAT),
         valid,
         findings,
         counts,
+        kpis,
     })
 }
 
