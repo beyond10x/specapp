@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T14:22:06Z",
+  "actor": "human:operator",
+  "artifact": "story:spec-quality-static",
+  "kind": "story",
+  "revision": 13,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "slot --here task check (integration/2026-11-28-7 at d18d12abbfb91bd84ab1d9b53bfb0409e8f67515): check exit 0, 140 tests run: 140 passed, 135 spec scenarios passed; task acceptance against orgspec and agenticspec exit 0, 129 rows equal"
+  }
+}

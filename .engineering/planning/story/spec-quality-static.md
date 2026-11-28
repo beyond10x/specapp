@@ -2,7 +2,7 @@
 format: aep.planning-md/3
 id: story:spec-quality-static
 kind: story
-status: active
+status: implemented
 title: metaspec quality spec reports validity, ESS completeness, honesty and adoption level for every pack
 summary: The specification command on the shared format, with the measures read from ess outputs, the block sources and the manifest.
 relations:
@@ -54,10 +54,11 @@ scope:
   path: fixtures/expected/orchard/quality/validity.warnings.json
 - confidence: cited
   path: scripts/acceptance.d/spec-quality-static.sh
-revision: 12
+revision: 14
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 11, decided_on: {"recorded":{"review_outcome":1}}}
 - {from: "proposed", to: "active", at: "2026-11-28T10:35:33Z", actor: "human:operator", revision: 12, decided_on: {"recorded":{"review_outcome":1}}}
+- {from: "active", to: "implemented", at: "2026-11-28T14:22:06Z", actor: "human:operator", revision: 14, decided_on: {"recorded":{"test_result":1,"review_outcome":3}}}
 ---
 # `metaspec quality spec` reports validity, ESS completeness, honesty and adoption level for every pack
 
@@ -153,3 +154,10 @@ the refusals and warnings of `ess specify validate --format json` on the same bl
 completeness counts equal to that answer's `completeness.counts`, its `honesty` equal to the
 number of `UNMAPPED:` lines `grep` finds under the pack's `blocks.path`, its adoption level equal
 to `metaspec pack check` `level`, and agenticspec listing `check` as a verb gap.
+
+Correction (2026-11-28, wave 3, by the coordinator): the last clause no longer holds for the real
+pack. `packs/agenticspec.yaml` declares the verb `check` since b788cc3 (2026-11-28), so
+agenticspec has no verb gap and is at level 3. The row compares the verbs metaspec offers minus
+the verbs the manifest declares (agenticspec: none, equal), and an extra row runs agenticspec with
+a manifest without `tool`, which lists `check` (needs L3) as its verb gap and level 2. That row
+stands for the clause.
