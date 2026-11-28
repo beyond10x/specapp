@@ -10,7 +10,7 @@
     "kicker": "Harbor plans",
     "source": "harbors/lagoon.yaml"
   },
-  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 3 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 4 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `east_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `ferry` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 2m |\n| `ferry_berth` | [berth](../blocks/1-shore/berth.mdx) | in `east_quay`, per `ferry` | `within` east\\_quay; `one_per` ferry |\n| `escort` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `ferry` | `moors at` | `ferry_berth` | – |\n| `escort` | `guides` | `ferry` | – |\n\n## Border\n\nThe parts on the border of the document: `ferry`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
+  "markdown": "## Check\n\nValid. The pack's tool reports 0 finding(s), 0 gated, 0 not gated.\n\nA finding is a numbered mark on the part or link it names (filled: gated; outlined: not gated) and a row of the list of findings.\n\n## Layout\n\nLayout `nested`: 3 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-1\"]} presentation={site.presentation} />\n\n## Who guides whom\n\nLayout `rows`: 4 parts, 1 link, 0 finding marks.\n\n<GraphView data={page.data[\"scene-2\"]} presentation={site.presentation} />\n\n## Quays folded\n\nLayout `rows`: 3 parts, 2 links, 0 finding marks. 1 region drawn collapsed: it is one box with the number of parts inside, the links across its border are rolled up by far end and name with a count, and the box links the view of the region and its parts.\n\n<GraphView data={page.data[\"scene-3\"]} presentation={site.presentation} />\n\n## Quays folded: region east\\_quay\n\nLayout `rows`: 2 parts, 0 links, 0 finding marks.\n\n<GraphView data={page.data[\"scene-4\"]} presentation={site.presentation} />\n\n## Findings\n\nNone.\n\n## Parts\n\n| part | block | contained | fields |\n|---|---|---|---|\n| `east_quay` | [quay](../blocks/1-shore/quay.mdx) | – | – |\n| `ferry` (on the border) | [vessel](../blocks/2-craft/vessel.mdx) | – | `draught` 2m |\n| `ferry_berth` | [berth](../blocks/1-shore/berth.mdx) | in `east_quay`, per `ferry` | `within` east\\_quay; `one_per` ferry |\n| `escort` | [tug](../blocks/2-craft/tug.mdx) | – | – |\n\n## Links\n\n| from | carries | to | fields |\n|---|---|---|---|\n| `ferry` | `moors at` | `ferry_berth` | – |\n| `escort` | `guides` | `ferry` | – |\n\n## Border\n\nThe parts on the border of the document: `ferry`.\n\n## Marked places\n\nNone: no value of this document is marked for a search.\n\n",
   "components": [
     "GraphView"
   ],
@@ -294,6 +294,259 @@
           "blocks": [
             "berth",
             "quay"
+          ]
+        }
+      ]
+    },
+    "scene-3": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/lagoon.yaml",
+      "view": {
+        "id": "quays",
+        "title": "Quays folded",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 288.0,
+      "height": 268.0,
+      "rows": [
+        {
+          "title": "2 craft",
+          "y": 38.0,
+          "h": 92.0
+        },
+        {
+          "title": "1 shore",
+          "y": 156.0,
+          "h": 92.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "ferry",
+          "block": "vessel",
+          "label": "ferry",
+          "lines": [
+            "vessel",
+            "on the border"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 16.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": true,
+          "ghost": false,
+          "findings": [],
+          "title": "ferry (block vessel), craft\ndraught: 2m"
+        },
+        {
+          "id": "east_quay",
+          "block": "quay",
+          "label": "east_quay",
+          "lines": [
+            "quay",
+            "1 part inside"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 40.0,
+          "y": 180.0,
+          "w": 112.0,
+          "h": 64.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "collapsed": {
+            "parts": 1,
+            "view": "quays/east_quay",
+            "findings": []
+          },
+          "findings": [],
+          "title": "east_quay (block quay), shore\n1 part inside, drawn in the view quays/east_quay"
+        },
+        {
+          "id": "escort",
+          "block": "tug",
+          "label": "escort",
+          "lines": [
+            "tug"
+          ],
+          "colour": "amber",
+          "icon": "sailboat",
+          "group": "craft",
+          "x": 160.0,
+          "y": 62.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "escort (block tug), craft"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ferry->east_quay:moors_at",
+          "from": "ferry",
+          "to": "east_quay",
+          "carries": "moors_at",
+          "label": "moors at",
+          "points": [
+            [
+              72.0,
+              126.0
+            ],
+            [
+              86.0,
+              143.0
+            ],
+            [
+              96.0,
+              180.0
+            ]
+          ],
+          "label_at": {
+            "x": 55.4,
+            "y": 134.0,
+            "w": 61.3,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "1 link across the border of a collapsed region:\nferry->ferry_berth:moors_at",
+          "count": 1,
+          "links": [
+            "ferry->ferry_berth:moors_at"
+          ]
+        },
+        {
+          "id": "escort->ferry:guides",
+          "from": "escort",
+          "to": "ferry",
+          "carries": "guides",
+          "label": "guides",
+          "points": [
+            [
+              216.0,
+              62.0
+            ],
+            [
+              144.0,
+              25.0
+            ],
+            [
+              72.0,
+              62.0
+            ]
+          ],
+          "label_at": {
+            "x": 119.4,
+            "y": 16.0,
+            "w": 49.2,
+            "h": 18.0
+          },
+          "findings": [],
+          "title": "escort->ferry:guides"
+        }
+      ],
+      "marks": [],
+      "legend": [
+        {
+          "label": "craft",
+          "colour": "amber",
+          "icon": "sailboat",
+          "blocks": [
+            "vessel",
+            "tug"
+          ]
+        },
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay"
+          ]
+        }
+      ]
+    },
+    "scene-4": {
+      "format": "metaspec-scene/1",
+      "document": "harbors/lagoon.yaml",
+      "view": {
+        "id": "quays/east_quay",
+        "title": "Quays folded: region east_quay",
+        "layout": "rows",
+        "implicit": false
+      },
+      "width": 294.0,
+      "height": 139.0,
+      "rows": [
+        {
+          "title": "1 shore",
+          "y": 12.0,
+          "h": 107.0
+        }
+      ],
+      "boxes": [
+        {
+          "id": "east_quay",
+          "block": "quay",
+          "label": "east_quay",
+          "lines": [
+            "quay"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 16.0,
+          "y": 36.0,
+          "w": 112.0,
+          "h": 49.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "east_quay (block quay), shore"
+        },
+        {
+          "id": "ferry_berth",
+          "block": "berth",
+          "label": "ferry_berth",
+          "lines": [
+            "berth",
+            "in east_quay",
+            "per ferry"
+          ],
+          "colour": "teal",
+          "icon": "anchor",
+          "group": "shore",
+          "x": 160.0,
+          "y": 36.0,
+          "w": 118.0,
+          "h": 79.0,
+          "container": false,
+          "on_border": false,
+          "ghost": false,
+          "findings": [],
+          "title": "ferry_berth (block berth), shore\nwithin: east_quay\none_per: ferry"
+        }
+      ],
+      "edges": [],
+      "marks": [],
+      "legend": [
+        {
+          "label": "shore",
+          "colour": "teal",
+          "icon": "anchor",
+          "blocks": [
+            "quay",
+            "berth"
           ]
         }
       ]

@@ -69,7 +69,7 @@ pub fn layout(
             part: Some(i),
             id: parts[i].id.clone(),
             card: {
-                let mut c = card(&parts[i], style, &[]);
+                let mut c = card(&parts[i], style, &elision.lines(&parts[i].id));
                 grow(&mut c, &elision.widths(&parts[i].id));
                 c
             },
@@ -134,6 +134,7 @@ pub fn layout(
         if drawn_in != Some(per.as_str()) {
             noted.push(format!("per {per}"));
         }
+        noted.extend(elision.lines(&p.id));
         nodes[k].card = card(p, style, &noted);
         grow(&mut nodes[k].card, &elision.widths(&p.id));
     }
@@ -297,7 +298,7 @@ pub fn layout(
         ) else {
             continue;
         };
-        let label = crate::link_label(link, style);
+        let label = elision.label(li, link, style);
         let empty = Vec::new();
         let w = label_width(&label, marked.get(link.id.as_str()).unwrap_or(&empty));
         let pts: Vec<(f64, f64)> = if a == b {
@@ -390,6 +391,8 @@ pub fn layout(
             added_by: link.added_by.clone(),
             findings: Vec::new(),
             title: crate::link_title(link),
+            count: None,
+            links: Vec::new(),
         });
     }
 

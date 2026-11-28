@@ -49,6 +49,7 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
   const p = `sa-g${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const curved = scene.view.layout === 'rows';
   const badges = scene.badges ?? [];
+  const collapsed = scene.boxes.filter((b) => b.collapsed).length;
   const markWidth = (subject: string, n: number) =>
     scene.marks.find((m) => m.finding === n && m.subject === subject)?.w ?? 22;
   return (
@@ -63,7 +64,7 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
           aria-labelledby={`${p}-t ${p}-d`}>
           <title id={`${p}-t`}>{`${scene.view.title} of ${scene.document}`}</title>
           <desc id={`${p}-d`}>
-            {`${scene.boxes.length} boxes and ${scene.edges.length} edges, each edge labelled by what it carries${badges.length > 0 ? `; ${badges.length} links to a hub, each a badge on its caller's box` : ''}; ${scene.marks.length} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.`}
+            {`${scene.boxes.length} boxes and ${scene.edges.length} edges, each edge labelled by what it carries${badges.length > 0 ? `; ${badges.length} links to a hub, each a badge on its caller's box` : ''}${collapsed > 0 ? `; ${collapsed} collapsed regions, each one box that links the view of its parts` : ''}; ${scene.marks.length} findings marked with their number. The tables below the drawing list the same parts, links and findings as text.`}
           </desc>
           <defs>
             <marker id={`${p}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -91,8 +92,10 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
               if (child) classes.push('sa-scene__box--child');
               if (b.findings.length > 0) classes.push('sa-scene__box--marked');
               if (b.hub) classes.push('sa-scene__box--hub');
+              if (b.collapsed) classes.push('sa-scene__box--collapsed');
+              if (b.collapsed && b.collapsed.findings.length > 0) classes.push('sa-scene__box--inside-marked');
               let lx = b.x + PAD;
-              return (
+              const box = (
                 <g key={`${b.id}-${i}`} className={classes.join(' ')} id={`${p}-b${i}`} data-id={b.id}>
                   <title>{b.title}</title>
                   {b.on_border && (
@@ -127,6 +130,14 @@ export function GraphView({data, presentation}: {data: Scene; presentation?: Pre
                     </>
                   )}
                 </g>
+              );
+              // A collapsed region's box links the view of the region and its parts.
+              return b.collapsed ? (
+                <a key={`${b.id}-${i}`} href={`#view-${b.collapsed.view}`}>
+                  {box}
+                </a>
+              ) : (
+                box
               );
             })}
           </g>

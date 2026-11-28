@@ -932,6 +932,143 @@ fn hub_page_draws_badges_with_their_marks_and_the_edges_view_without_a_script() 
     assert!(marked >= 1, "a finding on a badge");
 }
 
+/// The parts of a page's graph inside `region` through `in`.
+fn parts_inside(graph: &Value, region: &str) -> Vec<String> {
+    let parts = graph["parts"].as_array().unwrap();
+    let holder = |id: &str| {
+        parts
+            .iter()
+            .find(|p| p["id"] == id)
+            .and_then(|p| p["inside"].as_str())
+            .map(String::from)
+    };
+    let mut out = Vec::new();
+    for p in parts {
+        let id = p["id"].as_str().unwrap();
+        let mut cur = holder(id);
+        let mut steps = 0;
+        while let Some(h) = cur {
+            if h == region {
+                out.push(id.to_string());
+                break;
+            }
+            steps += 1;
+            if steps > parts.len() {
+                break;
+            }
+            cur = holder(&h);
+        }
+    }
+    out
+}
+
+#[test]
+fn region_page_holds_the_parts_of_each_collapsed_region_and_its_box_links_them() {
+    let mut regions = 0;
+    let mut rolled = 0;
+    for dir in packs() {
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let state = scratch(&format!("region-state-{name}"));
+        let out = scratch(&format!("region-pages-{name}"));
+        trust(&state, &dir);
+        assert_eq!(render(&state, &dir, &out, &[]).status.code(), Some(0));
+        let site = committed_site().join(&name).join("pages");
+        for rel in files(&out).into_iter().filter(|f| f != "index.html") {
+            let html = std::fs::read_to_string(out.join(&rel)).unwrap();
+            let data = page_data(&html);
+            let scenes = data["scenes"].as_array().unwrap();
+            let docs_page: Option<Value> =
+                std::fs::read_to_string(site.join(rel.replace(".html", ".json")))
+                    .ok()
+                    .map(|t| serde_json::from_str(&t).unwrap());
+            for scene in scenes {
+                let id = scene["view"]["id"].as_str().unwrap();
+                for e in scene["edges"].as_array().unwrap() {
+                    let n = e["count"].as_u64().unwrap_or(1);
+                    if n < 2 {
+                        continue;
+                    }
+                    let label = e["label"].as_str().unwrap();
+                    assert!(label.ends_with(&format!(" ×{n}")), "{rel}: {label}");
+                    assert_eq!(
+                        e["links"].as_array().map(Vec::len),
+                        Some(n as usize),
+                        "{rel}"
+                    );
+                    assert!(
+                        svg_of_view(&html, id).contains(&format!(">{}</text>", label)),
+                        "{rel}: the page draws {label}"
+                    );
+                    let in_site = docs_page.as_ref().is_some_and(|p| {
+                        p["data"].as_object().unwrap().values().any(|d| {
+                            d["view"]["id"] == id
+                                && d["edges"]
+                                    .as_array()
+                                    .is_some_and(|es| es.iter().any(|x| x["label"] == label))
+                        })
+                    });
+                    assert!(in_site, "{rel}: the docs site draws {label} in {id}");
+                    rolled += 1;
+                }
+                for b in scene["boxes"].as_array().unwrap() {
+                    let Some(c) = b.get("collapsed") else {
+                        continue;
+                    };
+                    let region = b["id"].as_str().unwrap();
+                    let drill = c["view"].as_str().unwrap();
+                    assert_eq!(drill, format!("{id}/{region}"), "{rel}");
+                    let inner = scenes
+                        .iter()
+                        .find(|s| s["view"]["id"] == drill)
+                        .unwrap_or_else(|| panic!("{rel}: a scene {drill}"));
+                    let drawn: Vec<&str> = inner["boxes"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|b| b["id"].as_str().unwrap())
+                        .collect();
+                    let parts = parts_inside(&data["graph"], region);
+                    assert!(!parts.is_empty(), "{rel}: {region} holds parts");
+                    assert_eq!(c["parts"].as_u64(), Some(parts.len() as u64), "{rel}");
+                    for p in parts.iter().map(String::as_str).chain([region]) {
+                        assert!(drawn.contains(&p), "{rel}: {drill} draws {p}");
+                    }
+                    assert!(
+                        svg_of_view(&html, id).contains(&format!("<a href=\"#view-{drill}\">")),
+                        "{rel}: the box of {region} links its view"
+                    );
+                    assert!(
+                        svg_of_view(&html, drill).contains("<svg"),
+                        "{rel}: the page draws {drill}"
+                    );
+                    assert!(
+                        svg_of_view(&html, id).contains("drawn collapsed"),
+                        "{rel}: the view says what a collapsed box is"
+                    );
+                    let docs_page = docs_page
+                        .as_ref()
+                        .unwrap_or_else(|| panic!("{rel}: a page of the committed site"));
+                    let in_site = docs_page["data"]
+                        .as_object()
+                        .unwrap()
+                        .values()
+                        .any(|d| d["view"]["id"] == drill);
+                    assert!(in_site, "{rel}: the docs site draws {drill}");
+                    regions += 1;
+                }
+            }
+        }
+    }
+    assert!(
+        regions >= 2,
+        "{regions} collapsed regions in the fixture pages"
+    );
+    assert!(
+        rolled >= 1,
+        "a fixture page rolls two links or more into one edge: {rolled}"
+    );
+}
+
 #[test]
 fn hub_edges_view_svg_ids_stay_apart_from_a_declared_view_of_the_same_prefix() {
     let dir = packs()

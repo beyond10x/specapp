@@ -72,6 +72,27 @@ types:
         type: List<String>
         summary: The blocks whose parts are hubs; when given, one or more.
 
+  - name: metaspec.documents.Collapse
+    kind: struct
+    naming:
+      summary: >-
+        The view's `collapse`: the regions it draws collapsed, each one box with the number of
+        parts inside and a view `<id>/<region>` of the region and its parts. A region is a shown
+        part that a shown part sits `in`. The manifest writes a list of part ids (`parts`),
+        `all` (`all`: every region that sits in no shown region) or `{blocks: [<block>]}`
+        (`blocks`: every region whose block, after the manifest's aliases, is listed); exactly
+        one of the three, and a list names one entry or more (schema metaspec-pack-1).
+    fields:
+      - name: all
+        type: Boolean
+        summary: Every region that sits in no shown region collapses.
+      - name: parts
+        type: List<String>
+        summary: The ids of the regions that collapse.
+      - name: blocks
+        type: List<String>
+        summary: The blocks whose regions collapse.
+
   - name: metaspec.documents.Table
     kind: struct
     naming:
@@ -190,6 +211,11 @@ entities:
           Absent for a view that draws every link as an edge. A view with hubs that elides a
           link of a document is followed, for that document, by the view `<id>/edges`, the
           same view with every link an edge.
+      - name: collapse
+        type: Optional<metaspec.documents.Collapse>
+        summary: >-
+          Absent for a view that draws every part. A view with collapsed regions is followed,
+          for a document, by the view `<id>/<region>` of each region it collapses there.
       - {name: implicit, type: Boolean}
     lifecycle:
       initial: Loaded

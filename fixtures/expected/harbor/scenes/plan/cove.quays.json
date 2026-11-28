@@ -1,0 +1,178 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/cove.yaml",
+  "view": {
+    "id": "quays",
+    "title": "Quays folded",
+    "layout": "rows",
+    "implicit": false
+  },
+  "width": 288.0,
+  "height": 268.0,
+  "rows": [
+    {
+      "title": "2 craft",
+      "y": 38.0,
+      "h": 92.0
+    },
+    {
+      "title": "1 shore",
+      "y": 156.0,
+      "h": 92.0
+    }
+  ],
+  "boxes": [
+    {
+      "id": "skiff",
+      "block": "vessel",
+      "label": "skiff",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 16.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "skiff (block vessel), craft\ndraught: 1m"
+    },
+    {
+      "id": "north_quay",
+      "block": "quay",
+      "label": "north_quay",
+      "lines": [
+        "quay",
+        "2 parts inside"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 37.0,
+      "y": 180.0,
+      "w": 118.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "collapsed": {
+        "parts": 2,
+        "view": "quays/north_quay",
+        "findings": []
+      },
+      "findings": [],
+      "title": "north_quay (block quay), shore\n2 parts inside, drawn in the view quays/north_quay"
+    },
+    {
+      "id": "tug_one",
+      "block": "tug",
+      "label": "tug_one",
+      "lines": [
+        "tug"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 160.0,
+      "y": 62.0,
+      "w": 112.0,
+      "h": 49.0,
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "tug_one (block tug), craft"
+    }
+  ],
+  "edges": [
+    {
+      "id": "skiff->north_quay:moors_at",
+      "from": "skiff",
+      "to": "north_quay",
+      "carries": "moors_at",
+      "label": "moors at ×2",
+      "points": [
+        [
+          72.0,
+          126.0
+        ],
+        [
+          86.0,
+          143.0
+        ],
+        [
+          96.0,
+          180.0
+        ]
+      ],
+      "label_at": {
+        "x": 47.2,
+        "y": 134.0,
+        "w": 77.6,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "2 links across the border of a collapsed region:\nskiff->berth_a:moors_at\nskiff->berth_b:moors_at",
+      "count": 2,
+      "links": [
+        "skiff->berth_a:moors_at",
+        "skiff->berth_b:moors_at"
+      ]
+    },
+    {
+      "id": "tug_one->skiff:guides",
+      "from": "tug_one",
+      "to": "skiff",
+      "carries": "guides",
+      "label": "guides",
+      "points": [
+        [
+          216.0,
+          62.0
+        ],
+        [
+          144.0,
+          25.0
+        ],
+        [
+          72.0,
+          62.0
+        ]
+      ],
+      "label_at": {
+        "x": 119.4,
+        "y": 16.0,
+        "w": 49.2,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "tug_one->skiff:guides"
+    }
+  ],
+  "marks": [],
+  "legend": [
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel",
+        "tug"
+      ]
+    },
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay"
+      ]
+    }
+  ]
+}
