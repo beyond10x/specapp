@@ -9,9 +9,6 @@ relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:part-block-aliases
 - depends_on: story:collapsed-regions
-- depends_on: story:view-selectors
-- depends_on: story:matrix-view
-- depends_on: story:focus-pages
 scope:
 - confidence: inferred
   path: CHANGELOG.md
@@ -41,7 +38,7 @@ scope:
   path: scripts/acceptance.sh
 - confidence: inferred
   path: spec/domains/packs.yaml
-revision: 21
+revision: 23
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T16:19:55Z", actor: "human:operator", revision: 20}
 - {from: "proposed", to: "active", at: "2026-11-28T16:19:55Z", actor: "human:operator", revision: 21}
@@ -93,9 +90,13 @@ inside the base pack's directory.
   test.
 - `metaspec trust` covers the base's tool digest too: a changed base tool is untrusted until trusted
   again.
-- `kpis`, `documents` and `presentation` are not inherited.
+- `kpis` is inherited when the extending manifest omits it (the coordinator's D56, 2026-11-28,
+  from a second consumer whose documents live in its own repository): `kpis.path` resolves inside
+  the base pack. A manifest that declares `kpis` declares all of it, as for `blocks`.
+- `documents` and `presentation` are not inherited: the extending pack names its own documents,
+  which is how documents kept outside the base pack's checkout are drawn.
 - Fixture tests with an invented base pack and an extending pack under a new `fixtures/extends/`,
-  the tool a stub, each named `inherit_<case>`: `inherit_blocks`, `inherit_tool_runs_in_base_dir`,
+  the tool a stub, each named `inherit_<case>`: `inherit_blocks`, `inherit_kpis`, `inherit_tool_runs_in_base_dir`,
   `inherit_alias_target_checked_against_base_blocks`, `inherit_without_base_pack_is_refused`,
   `inherit_path_leaving_extending_pack_is_refused`, `inherit_path_leaving_base_pack_is_refused`,
   `inherit_refusal_names_the_pack`, `inherit_base_that_extends_is_refused`,
@@ -123,14 +124,15 @@ of core and of `metaspec`. Shared, by story:
 - story:search-score: `crates/metaspec-core/src/manifest.rs`, the schema, `design/metaspec.md`,
   `crates/metaspec/src/main.rs`. It lands after this story. The order is kept so the consumer's
   gaps land first; the alternative was an additive merge on those files.
-It depends on story:part-block-aliases, story:view-selectors, story:collapsed-regions,
-story:matrix-view and story:focus-pages, so it lands after all of them.
+It depends on story:part-block-aliases and story:collapsed-regions and lands before
+story:view-selectors, story:matrix-view and story:focus-pages, which depend on it (the
+coordinator's D57, 2026-11-28: two consumers need inheritance, none waits on the other three).
+The shared files are the same; only the order changed.
 
 ## Not in this story
 
-- Inheritance of `kpis`, `documents` and `presentation`. `kpis.directions` comes from
-  story:search-score, which lands after this story; an extending pack declares its own `kpis`
-  (and, once search-score lands, `directions`).
+- Inheritance of `documents` and `presentation`. `kpis.directions` comes from story:search-score,
+  which lands after this story; an inherited `kpis` carries it once search-score lands.
 - A merge of the base's blocks with blocks of the extending pack.
 - A base pack that is not given: no download, no search of the machine for it.
 - `--base-pack` on `docs build` with several packs.
@@ -140,6 +142,8 @@ story:matrix-view and story:focus-pages, so it lands after all of them.
 
 - `cargo nextest run -p metaspec-core -p metaspec inherit_blocks` passes: the blocks of an
   extending pack are the base's.
+- `cargo nextest run -p metaspec-core -p metaspec inherit_kpis` passes: an extending pack that
+  omits `kpis` reads the base's catalogue, and one that declares `kpis` reads its own.
 - `cargo nextest run -p metaspec-core -p metaspec inherit_tool_runs_in_base_dir` passes: the tool
   is the base's and runs with the base pack directory as its root.
 - `cargo nextest run -p metaspec-core -p metaspec inherit_alias_target_checked_against_base_blocks`

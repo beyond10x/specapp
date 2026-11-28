@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T19:04:12Z",
+  "actor": "human:operator",
+  "artifact": "story:part-block-aliases",
+  "kind": "story",
+  "revision": 22,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "slot --here task check (integration/2026-11-28-11 at 126260a): 188 tests, 135 scenarios, exit 0; task acceptance with orgspec, agenticspec and cloudspec 6259dce: 154 rows equal, exit 0"
+  }
+}
