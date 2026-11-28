@@ -1,6 +1,8 @@
 //! Every path a manifest names stays inside the pack; the manifest lies outside it.
 
-use super::common::{codes, compiled, copy_dir, load_changed, manifest_of, packs, scratch};
+use super::common::{
+    codes, compiled, copy_dir, load_changed, load_pack, manifest_of, packs, scratch,
+};
 use metaspec_core::paths::relative_inside;
 use metaspec_core::{load, load_with};
 
@@ -89,6 +91,151 @@ fn a_missing_pack_or_manifest_is_refused() {
     assert_eq!(codes(&report.errors), vec!["manifest_unreadable"]);
     let (report, _) = load(&missing, &manifest_of(&dir), &compiled);
     assert_eq!(codes(&report.errors), vec!["pack_missing"]);
+}
+
+/// A copy of a fixture pack with two files beside the documents of its first class: one its
+/// glob matches only (`zz-kept.yaml`, a copy of a document) and one that is no YAML document
+/// (`zz-left.side.yaml`). Returns the copy and the directory of the first class.
+fn pack_with_side_file(
+    test: &str,
+    name: &str,
+    fixture: &std::path::Path,
+) -> (std::path::PathBuf, String) {
+    let dir = scratch(&format!("exclude-{test}-{name}")).join(name);
+    copy_dir(fixture, &dir);
+    let manifest = metaspec_core::pack::read_manifest(&manifest_of(&dir)).expect("manifest");
+    let pattern = manifest.documents[0].paths[0].clone();
+    let (folder, _) = pattern.rsplit_once('/').expect("a glob inside a directory");
+    let first = std::fs::read_dir(dir.join(folder))
+        .unwrap()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "yaml"))
+        .min()
+        .expect("a document of the first class");
+    std::fs::copy(&first, dir.join(folder).join("zz-kept.yaml")).unwrap();
+    std::fs::write(dir.join(folder).join("zz-left.side.yaml"), "{ not: [yaml\n").unwrap();
+    (dir, folder.to_string())
+}
+
+#[test]
+fn exclude_leaves_a_matched_file_unread_and_reads_the_rest() {
+    for (name, fixture) in packs() {
+        let (_, base) = load_pack(&fixture);
+        let base = base.expect("the fixture pack loads").documents[0].len();
+        let (dir, folder) = pack_with_side_file("unread", &name, &fixture);
+
+        let (report, pack) = load_changed(&dir, |_| {});
+        let read: Vec<String> = pack.unwrap().documents[0]
+            .iter()
+            .map(|d| d.path.clone())
+            .collect();
+        assert_eq!(
+            read.len(),
+            base + 2,
+            "{name}: without exclude both are read"
+        );
+        assert!(
+            codes(&report.warnings).contains(&"document_unreadable"),
+            "{name}: {:?}",
+            report.warnings
+        );
+
+        let (report, pack) = load_changed(&dir, |m| {
+            m.documents[0].exclude = vec![format!("{folder}/*.side.yaml")];
+        });
+        assert!(report.valid, "{name}: {:?}", report.errors);
+        let read: Vec<String> = pack.unwrap().documents[0]
+            .iter()
+            .map(|d| d.path.clone())
+            .collect();
+        assert_eq!(read.len(), base + 1, "{name}: {read:?}");
+        assert!(read.contains(&format!("{folder}/zz-kept.yaml")), "{name}");
+        assert!(
+            !read.contains(&format!("{folder}/zz-left.side.yaml")),
+            "{name}"
+        );
+        assert!(
+            !codes(&report.warnings).contains(&"document_unreadable"),
+            "{name}: the excluded file is not read: {:?}",
+            report.warnings
+        );
+    }
+}
+
+#[test]
+fn exclude_matches_within_one_directory_and_leaves_the_others() {
+    let (name, fixture) = packs().remove(0);
+    let (dir, folder) = pack_with_side_file("one-directory", &name, &fixture);
+    let (_, pack) = load_changed(&dir, |m| {
+        m.documents[0].exclude = vec![String::from("*.side.yaml")];
+    });
+    let read: Vec<String> = pack.unwrap().documents[0]
+        .iter()
+        .map(|d| d.path.clone())
+        .collect();
+    assert!(
+        read.contains(&format!("{folder}/zz-left.side.yaml")),
+        "a glob without a directory does not reach into {folder}/: {read:?}"
+    );
+}
+
+#[test]
+fn exclude_that_leaves_the_pack_is_refused_before_anything_is_read() {
+    let (_, dir) = packs().remove(0);
+    let never = |_: &std::path::Path| -> Result<serde_json::Value, String> {
+        panic!("nothing is compiled for a refused manifest")
+    };
+    let mut manifest = metaspec_core::pack::read_manifest(&manifest_of(&dir)).expect("manifest");
+    manifest.documents[0].exclude = vec![String::from("../*.yaml")];
+    let (report, pack) = load_with(&dir, manifest, &never);
+    assert!(!report.valid);
+    assert!(pack.is_none());
+    assert_eq!(codes(&report.errors), vec!["path_leaves_pack"]);
+}
+
+#[test]
+fn exclude_that_matches_no_file_is_named() {
+    let (name, fixture) = packs().remove(0);
+    let (dir, folder) = pack_with_side_file("dead", &name, &fixture);
+    let dead = format!("{folder}/*.nothing.yaml");
+    let (report, pack) = load_changed(&dir, |m| {
+        m.documents[0].exclude = vec![format!("{folder}/*.side.yaml"), dead.clone()];
+    });
+    assert!(report.valid, "{:?}", report.errors);
+    assert!(pack.is_some());
+    let dead_ones: Vec<&metaspec_core::Issue> = report
+        .warnings
+        .iter()
+        .filter(|w| w.code == "exclude_matches_nothing")
+        .collect();
+    assert_eq!(dead_ones.len(), 1, "{:?}", report.warnings);
+    assert_eq!(dead_ones[0].subject, format!("path:{dead}"));
+}
+
+#[test]
+fn exclude_that_leaves_no_file_says_so_and_not_that_the_paths_match_none() {
+    let (name, fixture) = packs().remove(0);
+    let (dir, _) = pack_with_side_file("all-left-out", &name, &fixture);
+    let (report, _) = load_changed(&dir, |m| {
+        m.documents[0].exclude = m.documents[0].paths.clone();
+    });
+    let empty: Vec<&metaspec_core::Issue> = report
+        .warnings
+        .iter()
+        .filter(|w| w.code == "class_empty")
+        .collect();
+    assert_eq!(empty.len(), 1, "{:?}", report.warnings);
+    assert!(
+        empty[0].message.contains("exclude"),
+        "{:?}",
+        empty[0].message
+    );
+    assert!(
+        !empty[0].message.contains("match no file"),
+        "{:?}",
+        empty[0].message
+    );
 }
 
 #[test]

@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-28T15:02:29Z",
+  "actor": "human:operator",
+  "artifact": "story:contain-in-and-per",
+  "kind": "story",
+  "revision": 5,
+  "change": {
+    "change": "evidence",
+    "kind": "test_result",
+    "source": "slot --here task check (integration/2026-11-28-8 at 5ed7c0b): 149 tests, 135 scenarios, exit 0; task acceptance with orgspec and agenticspec: 129 rows, exit 0"
+  }
+}

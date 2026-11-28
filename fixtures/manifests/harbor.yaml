@@ -19,7 +19,7 @@ documents:
     paths: [harbors/*.yaml]
     shape: parts-links/1
     name: harbor
-    contain: { in: within }
+    contain: { in: within, per: one_per }
     views:
       - id: layout
         title: Layout

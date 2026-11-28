@@ -97,18 +97,19 @@ fn class_index(
     );
     p.set("source", class.paths.join(", "));
     let mut s = String::from(ctx.banner());
+    let globs = |list: &[String]| list.iter().map(|g| code(g)).collect::<Vec<_>>().join(", ");
+    let except = if class.exclude.is_empty() {
+        String::new()
+    } else {
+        format!(" except {}", globs(&class.exclude))
+    };
     let _ = writeln!(
         s,
-        "{} of the class {} ({}), read from {}.\n",
+        "{} of the class {} ({}), read from {}{except}.\n",
         plural(documents.len(), "document", "documents"),
         code(&class.class),
         code(class.shape.as_str()),
-        class
-            .paths
-            .iter()
-            .map(|g| code(g))
-            .collect::<Vec<_>>()
-            .join(", ")
+        globs(&class.paths)
     );
     match class.shape {
         Shape::PartsLinks => {
@@ -343,9 +344,10 @@ fn document_page(ctx: &Ctx, class: &DocumentClass, d: &DocumentPage) -> Page {
                 None => String::from("–"),
             };
             let contained = match (&part.inside, &part.per) {
-                (Some(i), _) => format!("in {}", code(i)),
-                (_, Some(per)) => format!("per {}", code(per)),
-                _ => String::from("–"),
+                (Some(i), Some(per)) => format!("in {}, per {}", code(i), code(per)),
+                (Some(i), None) => format!("in {}", code(i)),
+                (None, Some(per)) => format!("per {}", code(per)),
+                (None, None) => String::from("–"),
             };
             let fields: Vec<String> = part
                 .fields

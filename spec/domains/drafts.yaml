@@ -57,12 +57,20 @@ types:
   - name: metaspec.drafts.Move
     kind: struct
     naming:
-      summary: Change containment; the class's `contain` field names the field written.
+      summary: >-
+        Change one containment of a part: the move names its kind, `in` or `per`, and writes the
+        field the class's `contain` names for that kind.
     fields:
       - {name: part, type: String}
+      - name: kind
+        type: Optional<metaspec.documents.ContainKind>
+        summary: >-
+          `in` or `per`. May be left out when the class's `contain` has one key, which is then
+          the kind; a class with both keys refuses a move without it, and a move of a kind the
+          class does not have is refused.
       - name: into
         type: Optional<String>
-        summary: The containing part; absent takes the part out of every container.
+        summary: The containing part of that kind; absent takes the part out of that container.
   - name: metaspec.drafts.Mark
     kind: struct
     naming:

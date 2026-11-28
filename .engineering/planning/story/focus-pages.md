@@ -8,7 +8,50 @@ summary: One page per part with its one-hop neighbourhood, linked from the docum
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
-revision: 3
+scope:
+- confidence: inferred
+  path: CHANGELOG.md
+- confidence: cited
+  path: crates/metaspec-core/src/manifest.rs
+- confidence: cited
+  path: crates/metaspec-docs/src/document.rs
+- confidence: cited
+  path: crates/metaspec-docs/src/documents.rs
+- confidence: inferred
+  path: crates/metaspec-docs/src/site.rs
+- confidence: inferred
+  path: crates/metaspec-layout/src/lib.rs
+- confidence: cited
+  path: crates/metaspec/src/page.rs
+- confidence: cited
+  path: crates/metaspec/src/render.rs
+- confidence: inferred
+  path: crates/metaspec/tests/main.rs
+- confidence: inferred
+  path: design/metaspec.md
+- confidence: cited
+  path: fixtures/expected/harbor/pages/plan
+- confidence: cited
+  path: fixtures/expected/orchard/pages/layout
+- confidence: cited
+  path: fixtures/expected/site/harbor/docs/plan
+- confidence: cited
+  path: fixtures/expected/site/harbor/pages/plan
+- confidence: cited
+  path: fixtures/expected/site/orchard/docs/layout
+- confidence: cited
+  path: fixtures/expected/site/orchard/pages/layout
+- confidence: inferred
+  path: fixtures/manifests/harbor.yaml
+- confidence: inferred
+  path: fixtures/manifests/orchard.yaml
+- confidence: inferred
+  path: schema/metaspec-pack-1.schema.json
+- confidence: cited
+  path: scripts/acceptance.sh
+- confidence: inferred
+  path: spec/domains/documents.yaml
+revision: 24
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:54:29Z", actor: "human:operator", revision: 3}

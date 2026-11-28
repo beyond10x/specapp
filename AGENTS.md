@@ -8,7 +8,7 @@ them.
 The user interface (docs site and studio) of every specification pack, the top-level application
 over all of them. A pack is another repository. metaspec knows the packs; a pack knows nothing of
 metaspec. metaspec describes a pack in a manifest of its own: `packs/<name>.yaml` for a public pack
-it knows (agenticspec, orgspec; cloudspec once it has blocks), a file given at run time for any
+it knows (agenticspec, cloudspec, orgspec), a file given at run time for any
 other.
 
 ## Rules
@@ -98,16 +98,17 @@ other.
   `rust-toolchain.toml` names, `ess` 0.99.2 and cargo-nextest 0.9.143. A pull request that
   changes only planning or prose files passes it without `task check`; the path list is
   `scripts/planning-only.sh`, and `scripts/planning-only.test.sh` holds both sides of it.
-- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir>` is the acceptance of a wave: no pack
-  directory given holds a manifest of metaspec (`scripts/check-pack-dirs.sh`); `metaspec pack
-  check` on both fixture packs and both real packs (manifests from `packs/` by name), with the
-  counts compared to what each pack's own tooling prints; `metaspec render` of every pack
-  (pages = documents) with the tools trusted in a state directory of the run, and for every
-  broken design and example of orgspec the rule ids of the page equal to
-  `orgspec check --json` and every finding about a part or link marked; then the vocabulary
-  check with all four packs; `metaspec docs build` of all four packs (block pages, KPI rows and
+- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <cloudspec-dir>` is the acceptance of a
+  wave: no pack directory given holds a manifest of metaspec (`scripts/check-pack-dirs.sh`);
+  `metaspec pack check` on both fixture packs and the three real packs (manifests from `packs/`
+  by name), with the counts compared to what each pack's own tooling prints; `metaspec render`
+  of every pack (pages = documents) with the tools trusted in a state directory of the run, and
+  for every broken design and example of orgspec and every architecture and broken architecture
+  of cloudspec the rule ids of the page equal to the pack's own check (`orgspec check --json`,
+  `cloudspec check --json`) and every finding about a part or link marked; then the vocabulary
+  check with all five packs; `metaspec docs build` of all five packs (block pages, KPI rows and
   document pages equal the counts of `pack check`; each fixture site equal to the committed
-  one), the orgspec site through `web/site`, and the agenticspec parity summary
+  one), the site of the three real packs through `web/site`, and the agenticspec parity summary
   (`scripts/parity.sh <agenticspec-dir> [<manifest>]`). It is not part of `task check` and not
   run in CI.
 - Tests read `fixtures/expected/<pack>.json` for what a fixture pack must count, so no test

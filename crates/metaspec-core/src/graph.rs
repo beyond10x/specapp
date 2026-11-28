@@ -6,7 +6,7 @@
 //! marked places written `{value, vary}`. The reader executes nothing and implements no rule:
 //! what it cannot read it leaves out of the graph, and the pack's tool says what is wrong.
 
-use crate::manifest::{Contain, DocumentClass};
+use crate::manifest::DocumentClass;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
@@ -27,7 +27,7 @@ pub struct Graph {
     pub name: String,
     pub parts: Vec<Part>,
     pub links: Vec<Link>,
-    /// One group per part that contains other parts.
+    /// One group per part and word (`in`, `per`) by which it contains other parts.
     pub groups: Vec<Group>,
     /// The names the document's `border` lists, as written.
     pub border: Vec<String>,
@@ -45,7 +45,7 @@ pub struct Part {
     pub kind: Option<String>,
     /// Every field but `block`, a marked place read as its value.
     pub fields: Map<String, Value>,
-    /// The part this part sits in (`contain: { in: <field> }`).
+    /// The part this part sits in (`contain: { in: <field> }`); a part may also have `per`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inside: Option<String>,
     /// The part this part exists once per instance of (`contain: { per: <field> }`).
@@ -204,11 +204,10 @@ pub fn read(class: &DocumentClass, path: &str, doc: &Value) -> Graph {
                 Some(Value::String(s)) => Some(s.clone()),
                 _ => None,
             };
-            let (inside, per) = match &class.contain {
-                Some(Contain::In(field)) => (name_of(fields.get(field)), None),
-                Some(Contain::Per(field)) => (None, name_of(fields.get(field))),
-                None => (None, None),
-            };
+            let by = |field: Option<&String>| field.and_then(|f| name_of(fields.get(f)));
+            let contain = class.contain.as_ref();
+            let inside = by(contain.and_then(|c| c.inside.as_ref()));
+            let per = by(contain.and_then(|c| c.per.as_ref()));
             parts.push(Part {
                 on_border: border.iter().any(|b| b == id),
                 id: id.clone(),
@@ -253,30 +252,30 @@ pub fn read(class: &DocumentClass, path: &str, doc: &Value) -> Graph {
         }
     }
 
+    // One group per containing part and word: a part that holds parts `in` it and parts `per`
+    // it has two groups, the `in` group first.
     let mut groups: Vec<Group> = Vec::new();
-    let contain = match &class.contain {
-        Some(Contain::In(_)) => "in",
-        Some(Contain::Per(_)) => "per",
-        None => "",
-    };
     for part in &parts {
-        let Some(holder) = part.inside.as_ref().or(part.per.as_ref()) else {
-            continue;
-        };
-        if holder == &part.id || !parts.iter().any(|p| &p.id == holder) {
-            continue;
-        }
-        match groups.iter_mut().find(|g| &g.id == holder) {
-            Some(group) => group.members.push(part.id.clone()),
-            None => groups.push(Group {
-                id: holder.clone(),
-                contain: contain.to_string(),
-                members: vec![part.id.clone()],
-            }),
+        for (word, holder) in [("in", &part.inside), ("per", &part.per)] {
+            let Some(holder) = holder else { continue };
+            if holder == &part.id || !parts.iter().any(|p| &p.id == holder) {
+                continue;
+            }
+            match groups
+                .iter_mut()
+                .find(|g| &g.id == holder && g.contain == word)
+            {
+                Some(group) => group.members.push(part.id.clone()),
+                None => groups.push(Group {
+                    id: holder.clone(),
+                    contain: word.to_string(),
+                    members: vec![part.id.clone()],
+                }),
+            }
         }
     }
     let order = |id: &str| parts.iter().position(|p| p.id == id).unwrap_or(usize::MAX);
-    groups.sort_by_key(|g| order(&g.id));
+    groups.sort_by_key(|g| (order(&g.id), g.contain != "in"));
 
     let mut markers = Vec::new();
     if let Value::Object(map) = doc {

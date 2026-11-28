@@ -1,0 +1,125 @@
+{
+  "format": "metaspec-scene/1",
+  "document": "harbors/lagoon.yaml",
+  "view": {
+    "id": "layout",
+    "title": "Layout",
+    "layout": "nested",
+    "implicit": false
+  },
+  "width": 330.0,
+  "height": 155.0,
+  "rows": [],
+  "boxes": [
+    {
+      "id": "east_quay",
+      "block": "quay",
+      "label": "east_quay",
+      "lines": [
+        "quay"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 16.0,
+      "y": 16.0,
+      "w": 138.0,
+      "h": 123.0,
+      "container": true,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "east_quay (block quay), shore"
+    },
+    {
+      "id": "ferry_berth",
+      "block": "berth",
+      "label": "ferry_berth",
+      "lines": [
+        "berth",
+        "per ferry"
+      ],
+      "colour": "teal",
+      "icon": "anchor",
+      "group": "shore",
+      "x": 26.0,
+      "y": 65.0,
+      "w": 118.0,
+      "h": 64.0,
+      "parent": "east_quay",
+      "container": false,
+      "on_border": false,
+      "ghost": false,
+      "findings": [],
+      "title": "ferry_berth (block berth), shore\nwithin: east_quay\none_per: ferry"
+    },
+    {
+      "id": "ferry",
+      "block": "vessel",
+      "label": "ferry",
+      "lines": [
+        "vessel",
+        "on the border"
+      ],
+      "colour": "amber",
+      "icon": "sailboat",
+      "group": "craft",
+      "x": 202.0,
+      "y": 16.0,
+      "w": 112.0,
+      "h": 64.0,
+      "container": false,
+      "on_border": true,
+      "ghost": false,
+      "findings": [],
+      "title": "ferry (block vessel), craft\ndraught: 2m"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ferry->ferry_berth:moors_at",
+      "from": "ferry",
+      "to": "ferry_berth",
+      "carries": "moors_at",
+      "label": "moors at",
+      "points": [
+        [
+          202.0,
+          63.9
+        ],
+        [
+          144.0,
+          80.3
+        ]
+      ],
+      "label_at": {
+        "x": 151.0,
+        "y": 80.6,
+        "w": 61.3,
+        "h": 18.0
+      },
+      "findings": [],
+      "title": "ferry->ferry_berth:moors_at"
+    }
+  ],
+  "marks": [],
+  "legend": [
+    {
+      "label": "shore",
+      "colour": "teal",
+      "icon": "anchor",
+      "blocks": [
+        "quay",
+        "berth"
+      ]
+    },
+    {
+      "label": "craft",
+      "colour": "amber",
+      "icon": "sailboat",
+      "blocks": [
+        "vessel"
+      ]
+    }
+  ]
+}

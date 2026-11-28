@@ -3,7 +3,7 @@
 
 use super::common::{manifest_of, packs, repo, schema_errors};
 use metaspec_core::known;
-use metaspec_core::manifest::{self, Contain, PALETTE, Visibility, parse};
+use metaspec_core::manifest::{self, PALETTE, Visibility, parse};
 use serde_json::Value;
 
 fn minimal() -> String {
@@ -165,26 +165,33 @@ fn extends_names_another_pack() {
 }
 
 #[test]
-fn contain_takes_exactly_one_of_in_and_per() {
+fn contain_takes_in_per_or_both() {
     let class = |contain: &str| {
         format!(
             "{}documents:\n  - {{ class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n, contain: {contain} }}\n",
             minimal()
         )
     };
-    let m = parse(&class("{ in: holder }")).unwrap();
+    let written = |contain: &str| {
+        let m = parse(&class(contain)).unwrap_or_else(|e| panic!("{contain}: {e:?}"));
+        serde_json::to_value(&m.documents[0].contain).unwrap()
+    };
     assert_eq!(
-        m.documents[0].contain,
-        Some(Contain::In(String::from("holder")))
+        written("{ in: holder }"),
+        serde_json::json!({ "in": "holder" })
     );
-    let m = parse(&class("{ per: owner }")).unwrap();
     assert_eq!(
-        m.documents[0].contain,
-        Some(Contain::Per(String::from("owner")))
+        written("{ per: owner }"),
+        serde_json::json!({ "per": "owner" })
     );
-    assert!(parse(&class("{ in: a, per: b }")).is_err());
+    assert_eq!(
+        written("{ in: holder, per: owner }"),
+        serde_json::json!({ "in": "holder", "per": "owner" })
+    );
     assert!(parse(&class("{}")).is_err());
     assert!(parse(&class("{ field: in }")).is_err());
+    assert!(parse(&class("{ in: a, per: b, each: c }")).is_err());
+    assert!(parse(&class("{ in: '', per: b }")).is_err());
 }
 
 #[test]
@@ -234,4 +241,25 @@ fn a_manifest_path_with_dot_dot_is_refused_by_the_schema() {
     assert!(parse(&text).is_err());
     let text = minimal().replace("path: b", "path: a..b/c");
     assert!(parse(&text).is_ok());
+}
+
+#[test]
+fn exclude_takes_globs_inside_the_pack() {
+    let class = |extra: &str| {
+        format!(
+            "{}documents:\n  - {{ class: c, title: C, paths: [d/*.yaml], shape: parts-links/1, name: n{extra} }}\n",
+            minimal()
+        )
+    };
+    let m = parse(&class("")).unwrap();
+    assert!(m.documents[0].exclude.is_empty(), "no exclude by default");
+    let m = parse(&class(", exclude: [d/*.side.yaml, d/other.yaml]")).unwrap();
+    assert_eq!(
+        m.documents[0].exclude,
+        vec!["d/*.side.yaml", "d/other.yaml"]
+    );
+    assert!(parse(&class(", exclude: [../d/*.yaml]")).is_err());
+    assert!(parse(&class(", exclude: [/d/*.yaml]")).is_err());
+    assert!(parse(&class(", exclude: d/*.yaml")).is_err());
+    assert!(parse(&class(", exclude: ['']")).is_err());
 }

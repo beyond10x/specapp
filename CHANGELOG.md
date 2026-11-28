@@ -2,6 +2,53 @@
 
 ## Unreleased
 
+- `packs/cloudspec.yaml`: metaspec knows cloudspec, at levels L0, L2 and L3. Blocks from
+  `blocks` (prefix `cloud.`), two classes of `parts-links/1` documents contained by `in` and
+  `per`, `architecture` (`architectures/*.yaml`) and `broken-architecture`
+  (`architectures/broken/*.yaml`), and the verb `check` (`cloudspec check --json`: `valid`,
+  `kpis` as the counts per rule, `violations` as findings, a subject with `->` a link, one that
+  names no part or link the document). No `kpis:` until cloudspec has a KPI catalogue.
+- A document class takes `exclude: [<glob>]` (`metaspec-pack/1`): a file its `paths` match and
+  an `exclude` glob matches is not read. A glob is matched against the whole path in the pack,
+  and `*` does not cross a slash; like `paths` it stays inside the pack (`path_leaves_pack`). The
+  page of the class says `read from <paths> except <exclude>`; a class without `exclude` reads
+  and says what it did before. In `spec/`, `DocumentClass` has the field `exclude`. An exclude
+  written with `./` names what it names without it. An exclude that matches no file the paths
+  match is a warning, `exclude_matches_nothing`; a class whose exclude leaves out every file
+  says so in its `class_empty` warning.
+- The adapter maps a link subject without `carries`, `<from>-><to>:` (how a tool writes the
+  empty text), to the graph's link without `carries`, `<from>-><to>:?`, so the finding is on that
+  link and no longer on the document. A subject that names a link with `carries` maps as before.
+- `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <cloudspec-dir>` takes cloudspec as the
+  third real pack: its level, blocks (the domains of `blocks/system.yaml` and of `ess specify
+  compile`), layers and documents (the files `cloudspec check --json` reads as an architecture)
+  against metaspec's counts, one page per architecture and per broken architecture, the rule ids
+  of each page against `cloudspec check --json`, every finding on a part or link of the
+  document drawn with its rule and subject, the parts and links of each graph equal to those
+  `cloudspec check --json` counts, its docs site (a pack without a KPI catalogue has
+  no KPI rows) and the site of the three real packs, and its words in the vocabulary check.
+- `scripts/check-vocabulary.sh` leaves out the words of ESS's compiled model as it leaves out
+  those of metaspec's schemas: a field name of a declaration of `ess specify compile --format
+  json` of the fixture packs' blocks (a key without a dot below a qualified name, such as a
+  domain or an entity) is a word of the format metaspec reads, not a pack's word (cloudspec's
+  blocks `actors` and `identity` are such fields). The model's top-level keys (`workloads`,
+  a block and layer of cloudspec, is one), the qualified names and the values are not left out.
+  Blocks that ess refuses exit 2. `scripts/check-vocabulary.test.sh` holds a field left out, a
+  word under a dotted key and a top-level key still reported, and the refusal.
+
+- One document class may hold parts contained by `in` and by `per` at once: the manifest's
+  `contain` takes `{ in: <field> }`, `{ per: <field> }` or both (`metaspec-pack/1` drops
+  `maxProperties: 1`; `manifest::Contain` is a struct of two optional fields, serialized as
+  before). The graph keeps a part's `inside` and `per` both; `groups` stays one group per
+  containing part and word (`in` before `per`), so `metaspec-graph/1` is unchanged. `nested`
+  draws such a part inside its `in` container with a line `per <part>`; `rows` draws it inside
+  its `per` host with `· in <part>` on its line (left out when that part is the host); the table
+  of parts says `in <part>, per <part>`.
+  A part with one of the two is drawn as before. The fixture pack harbor gains `per: one_per`
+  and the plan `harbors/lagoon.yaml` (5 documents); its site and pages are re-blessed, and no
+  page or scene of another document changes. In `spec/`, `Contain` has the two optional fields
+  `inside` and `per`, and the draft edit `move` names the kind (`in` or `per`) whose field it
+  writes.
 - metaspec carries its own KPI catalogue, `kpis/catalogue.yaml` (format `metaspec-kpis/1`): one
   row per quality measure of the two questions, 10 of the KPI catalogue (`coverage.blocks` to
   `planned`) and 30 of the specification (`validity.refusals` to `drift`, with one

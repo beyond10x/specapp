@@ -173,6 +173,7 @@ pub fn load_with(
     named.extend(manifest.kpis.iter().map(|k| k.path.clone()));
     for class in &manifest.documents {
         named.extend(class.paths.iter().cloned());
+        named.extend(class.exclude.iter().cloned());
     }
     if let Some(program) = manifest.tool.as_ref().and_then(|t| t.run.first())
         && program.contains('/')
@@ -585,14 +586,40 @@ fn layer_of(dir: &str) -> Option<Layer> {
     })
 }
 
-/// The documents of one class: every file its globs match, inside the pack, read as YAML.
+/// The documents of one class: every file its globs match and no `exclude` glob matches, inside
+/// the pack, read as YAML.
 fn read_class(
     root: &Path,
     class: &DocumentClass,
     warnings: &mut Vec<Issue>,
 ) -> Result<Vec<Document>, Issue> {
     let base = glob::Pattern::escape(&root.to_string_lossy());
+    // An exclude is matched against the path in the pack as `shown` writes it, which has no `.`
+    // component and no empty one: `./d/*.yaml` names what `d/*.yaml` names.
+    let exclude = class
+        .exclude
+        .iter()
+        .map(|pattern| {
+            let whole = pattern
+                .split('/')
+                .filter(|part| !part.is_empty() && *part != ".")
+                .collect::<Vec<_>>()
+                .join("/");
+            glob::Pattern::new(&whole).map_err(|error| {
+                Issue::new(
+                    "path_invalid",
+                    format!("path:{pattern}"),
+                    format!("is no glob: {error}"),
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let whole_names = glob::MatchOptions {
+        require_literal_separator: true,
+        ..glob::MatchOptions::new()
+    };
     let mut files = BTreeSet::new();
+    let mut left_out = vec![0usize; exclude.len()];
     for pattern in &class.paths {
         let full = format!("{base}/{pattern}");
         let matches = glob::glob(&full).map_err(|error| {
@@ -606,16 +633,43 @@ fn read_class(
             if !path.is_file() {
                 continue;
             }
+            let rel = shown(root, &path);
+            let hits: Vec<usize> = (0..exclude.len())
+                .filter(|&i| exclude[i].matches_with(&rel, whole_names))
+                .collect();
+            if !hits.is_empty() {
+                for i in hits {
+                    left_out[i] += 1;
+                }
+                continue;
+            }
             resolved_inside(root, &path)
                 .map_err(|why| Issue::new("path_leaves_pack", format!("path:{pattern}"), why))?;
             files.insert(path);
         }
     }
+    for (glob, count) in class.exclude.iter().zip(&left_out) {
+        if *count == 0 {
+            warnings.push(Issue::new(
+                "exclude_matches_nothing",
+                format!("path:{glob}"),
+                format!(
+                    "the exclude of the class {} matches no file its paths match",
+                    class.class
+                ),
+            ));
+        }
+    }
     if files.is_empty() {
+        let message = if left_out.iter().any(|n| *n > 0) {
+            "the exclude of the class leaves out every file its paths match"
+        } else {
+            "the paths of the class match no file"
+        };
         warnings.push(Issue::new(
             "class_empty",
             format!("class:{}", class.class),
-            "the paths of the class match no file",
+            message,
         ));
     }
     let mut documents = Vec::new();

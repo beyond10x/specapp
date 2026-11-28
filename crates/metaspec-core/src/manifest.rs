@@ -108,6 +108,10 @@ pub struct DocumentClass {
     pub class: String,
     pub title: String,
     pub paths: Vec<String>,
+    /// Globs of files that `paths` match and that are no documents of the class: such a file
+    /// is not read. Each glob is matched against the whole path relative to the pack.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub exclude: Vec<String>,
     pub shape: Shape,
     pub name: String,
     #[serde(default)]
@@ -135,15 +139,18 @@ impl Shape {
     }
 }
 
-/// How one part of a document contains another. The value is the name of the part's field
-/// that names the containing part.
+/// How one part of a document contains another: `{ in: <field> }`, `{ per: <field> }` or both.
+/// Each value is the name of the part's field that names the containing part; the schema holds
+/// that at least one is given.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Contain {
+#[serde(deny_unknown_fields)]
+pub struct Contain {
     /// The part sits inside the part the field names.
-    In(String),
+    #[serde(rename = "in", default, skip_serializing_if = "Option::is_none")]
+    pub inside: Option<String>,
     /// The part exists once per instance of the part the field names.
-    Per(String),
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub per: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

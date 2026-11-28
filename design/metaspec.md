@@ -29,8 +29,7 @@ its own; the pack knows nothing of metaspec. metaspec's code contains no word of
 block name, no layer name, no colour of a block, no rule id. The words are in the manifests.
 
 metaspec is the top-level application over all spec packs. The packs it knows today are
-agenticspec and orgspec; cloudspec is the third (a planning store so far, no blocks), and
-`packs/cloudspec.yaml` is added once it has blocks.
+agenticspec, orgspec and cloudspec (`packs/cloudspec.yaml`, since cloudspec has blocks).
 
 ## What exists today
 
@@ -205,12 +204,24 @@ The same manifest for agenticspec differs in names and in four places: `strip_pr
 `target/debug/agenticspec sim check --json <architecture>` and reads `valid`, `counts` and the
 list `violations` (rule, gate at `/gate`, message, subject as for orgspec).
 
+cloudspec's (`packs/cloudspec.yaml`) has `strip_prefix: cloud.`, no `kpis`, two document classes
+of `parts-links/1` with `contain: { in: in, per: per }`, `architecture` (`architectures/*.yaml`)
+and `broken-architecture` (`architectures/broken/*.yaml`), each with an `exclude` for the
+bindings and contracts beside the architectures, and a `tool` whose `check` runs
+`target/debug/cloudspec check --json <architecture>` and reads the answer as orgspec's (`at: /0`,
+`error`, `valid`, `violations`) with `counts: /kpis`.
+
 Rules of the manifest:
 
 - It is metaspec's file and lies outside the pack: under `packs/` for a public pack metaspec
   knows, anywhere outside this repository for a private one. A pack directory holds no file
   named like it; `scripts/check-pack-dirs.sh` fails on one.
 - Every path is inside the pack. A path that leaves it is refused.
+- A document class may name `exclude: [<glob>]`: a file its `paths` match and an `exclude` glob
+  matches is not read. The glob matches the whole path in the pack and `*` does not cross a
+  slash (a glob has no negation, and a pack may keep other files beside its documents). A
+  leading `./` is no part of the match. An exclude that matches none of the files the paths
+  match is named (`exclude_matches_nothing`).
 - `presentation` is optional. Without it a block's row is the layer of its domain and its colour
   is the colour of its layer, from a palette of metaspec. This is the one place a pack states a
   colour or an icon; a pack that needs none writes none.
@@ -504,7 +515,7 @@ Taken from the rules agenticspec's site already holds, as the floor:
 
 metaspec must not become agenticspec's UI with a second skin, nor orgspec's. It is the top-level
 application over all spec packs: whatever it can do with one pack it must do with every pack it
-knows (agenticspec, orgspec, and cloudspec once it has blocks). Four gates:
+knows (agenticspec, orgspec and cloudspec). Four gates:
 
 - **Two fixture packs** in `fixtures/packs/`, both invented and small, with different words,
   different containment (`in` against `per`), different KPI field names and a tool written as a
@@ -518,7 +529,7 @@ knows (agenticspec, orgspec, and cloudspec once it has blocks). Four gates:
 - **No feature for one pack only.** A feature that one pack's tool supports is offered for
   every pack through the manifest's adapter. What a pack lacks for it is written down in "Gaps
   per pack", per pack, not worked around in the code.
-- **The acceptance test of each wave** loads both real packs from their checkouts
+- **The acceptance test of each wave** loads the three real packs from their checkouts
   (`metaspec pack check <name> --pack <dir>`, manifests from `packs/`) and compares counts with
   what each pack's own gate prints; no pack directory it is given holds a manifest of metaspec.
 
@@ -552,8 +563,18 @@ tool, its own documents) or in a neutral format, never by code for one pack.
   manifest's glob. metaspec reads one KPI catalogue, `kpis/catalogue.yaml` (the manifest's
   `kpis.path`); the KPI catalogues of its packs and fields (`packs/*/kpis.yaml`,
   `fields/*/kpis.yaml`, 33 KPIs at its main) are not read.
-- **cloudspec**. A planning store only, no blocks: no manifest yet. `packs/cloudspec.yaml` is
-  added once it has blocks.
+- **cloudspec** (L3). Its manifest reads `cloudspec check --json <architecture>`, a list with
+  one entry per file. No KPI catalogue yet, so no `kpis:`: the answer's `kpis` is a count per
+  rule and is read as `counts`. A violation whose subject names no part and no link of the
+  document (a border, a contract, a parity scope, the architecture itself) is a finding on the
+  document, its message led by the subject. `architectures/` also holds bindings
+  (`*.binding.yaml`) and contracts (`*.contract.yaml`); the manifest's `exclude` leaves them out,
+  so a contract (`cloudspec-contract/1`) is neither drawn nor checked. A view selects blocks and
+  exact `carries` names only, and cloudspec's `carries` are protocol names and contract
+  operations: views by a field of the part and by link name patterns, and a region (`in:`)
+  drawn collapsed, are the next stories of `epic:cloudspec-pack`. Not compared: its own page,
+  `cloudspec render html` (no parity script as for agenticspec). Its runs wait for `simulate`
+  (wave 7) and for a verb of cloudspec that reads an architecture and answers in JSON.
 
 ## What moves and what stays
 
@@ -606,7 +627,7 @@ ux/                     adapter, baseline, rounds of the UI loop
 
 ## Build order
 
-Each wave ends with its acceptance on both real packs and both fixture packs.
+Each wave ends with its acceptance on the real packs and both fixture packs.
 
 1. **Contract.** The manifest format, the schemas, the two fixture packs, `metaspec pack check`.
    Acceptance: both real packs load from a manifest written in their checkouts; the counts of
@@ -630,6 +651,7 @@ Q8 below kept their defaults.
 
 - `contain` is `{ in: <field> }` or `{ per: <field> }`, exactly one key; the value names the
   part's field. The first draft wrote `{ field: in }` for orgspec, which the schema refuses.
+  Both keys at once since 2026-11-28 ("Decided: containment by `in` and `per` at once").
 - `visibility` is required: a manifest that forgets it is refused rather than published.
 - `extends` is the name of a pack, not a path. Where that pack is checked out is given when
   metaspec is started, so a manifest names no path outside its pack.
@@ -1143,6 +1165,60 @@ metaspec", "or navigation". One site holds every pack; this replaces the site pe
   value of `schema/metaspec-*.schema.json` (read with jq) before it searches, and its last line
   says how many it left out (`37 word(s) of 2 pack(s), 0 of them metaspec's own, none in the
   code`); `scripts/check-vocabulary.test.sh` holds both sides.
+
+## Decided: containment by `in` and `per` at once (2026-11-28)
+
+`story:contain-in-and-per` of `epic:cloudspec-pack`: cloudspec places one part `in` a part and
+`per` another at once. This replaces "exactly one key" of wave 1 and "`inside` or `per`" of
+wave 2.
+
+- The manifest's `contain` is `{ in: <field> }`, `{ per: <field> }` or `{ in: <field>, per:
+  <field> }` (`metaspec-pack/1`, at least one key). The single forms read as before.
+- `metaspec-graph/1` is unchanged in shape: a part keeps `inside` and `per` both. `groups` stays
+  one group per containing part and word: a part that holds parts by `in` and by `per` has an
+  `in` group and a `per` group, the `in` group first, so `contain` stays `in` or `per`.
+- `nested` draws a part with both inside its `in` container (its `per` container when the `in`
+  one is not shown) and writes the other as a line of its box, `per <part>`. `rows` draws it
+  inside its `per` host as before, and its line there ends `· in <part>`. A part with one of the
+  two is drawn as before, so no existing scene changes.
+- The table of parts on a document's page says `in <part>, per <part>`.
+- The fixture pack harbor holds it: `contain: { in: within, per: one_per }` and the plan
+  `harbors/lagoon.yaml`, whose berth sits in the quay and exists once per ferry.
+- `spec/`: `metaspec.documents.Contain` has the two optional fields of the code (`inside` for
+  the key `in`, and `per`), so it cannot hold two entries of one kind; Part's invariant "not
+  both" is gone. The draft edit `move` names its kind, `in` or `per`, and writes the field the
+  class names for that kind; the kind may be left out only when the class has one key.
+
+## Decided: the cloudspec manifest (2026-11-28)
+
+`story:cloudspec-manifest` of `epic:cloudspec-pack`: metaspec knows cloudspec
+(`packs/cloudspec.yaml`, levels L0, L2 and L3).
+
+- A document class takes `exclude: [<glob>]` (`metaspec-pack/1`, optional, a list of paths
+  inside the pack): a file its `paths` match and an `exclude` glob matches is not read. The glob
+  matches the whole path in the pack and `*` does not cross a slash. The `glob` crate has no
+  negation, and cloudspec keeps its bindings and contracts beside its architectures. The page of
+  the class says `read from <paths> except <exclude>`. `spec/`: `DocumentClass` has the field.
+- Broken documents are a second class of the same shape, `broken-architecture`
+  (`architectures/broken/*.yaml`), as the acceptance does for orgspec's broken designs with a
+  manifest of its run; a class of its own puts them on the site.
+- The acceptance takes cloudspec as the third real pack: level L3; blocks against the domains of
+  `blocks/system.yaml` and of `ess specify compile`; layers against the numbered directories of
+  `blocks/`; each class against the files `cloudspec check --json` reads as an architecture; one
+  page per document of each class; per page the rule ids equal to `cloudspec check --json`, and
+  every finding on a part (a key of `parts`) or a link (`<from>-><to>:<carries>` of `links`) of
+  the document drawn with its rule and subject; its docs site, the site of the three real packs,
+  and its words in the vocabulary check.
+- A field name of ESS's compiled model is ESS's format word, which metaspec has to read, not a
+  pack's word (coordinator's decision, 2026-11-28): cloudspec's blocks `actors` and `identity`
+  are also fields of that model, which `metaspec-docs` reads. Like the property names of the
+  schemas, `scripts/check-vocabulary.sh` leaves out the field names of the declarations of
+  `ess specify compile --format json` of the fixture packs' blocks: a key without a dot below a
+  qualified name (a domain, an entity). A dotted key is a name of a pack, and a top-level key of
+  the model is a collection that no declaration carries (`workloads`, a block of cloudspec, is
+  one), so neither is left out. `scripts/check-vocabulary.test.sh` holds both sides.
+- A link without `carries` is `<from>-><to>:?` in `metaspec-graph/1`; a tool that names it
+  `<from>-><to>:` (the empty text) is mapped to it, so its finding is on the link.
 
 ## Open questions
 

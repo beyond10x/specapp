@@ -235,17 +235,21 @@
           "minItems": 1,
           "items": { "$ref": "#/$defs/path" }
         },
+        "exclude": {
+          "description": "Globs of files that `paths` match and that are no documents of the class: such a file is not read. Each glob is matched against the whole path relative to the pack; `*` does not cross a slash.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/path" }
+        },
         "shape": { "enum": ["parts-links/1", "records/1"] },
         "name": {
           "description": "The key of a document that holds its name.",
           "$ref": "#/$defs/key"
         },
         "contain": {
-          "description": "How one part contains another: `in` names the field of a part that names the part it sits in; `per` names the field of a part that names the part it exists once per instance of.",
+          "description": "How one part contains another: `in` names the field of a part that names the part it sits in; `per` names the field of a part that names the part it exists once per instance of. One of them or both.",
           "type": "object",
           "additionalProperties": false,
           "minProperties": 1,
-          "maxProperties": 1,
           "properties": {
             "in": { "$ref": "#/$defs/key" },
             "per": { "$ref": "#/$defs/key" }

@@ -20,13 +20,18 @@
 #
 # A pack word that is also a word of one of metaspec's own formats is metaspec's word, not a
 # leak, and is not searched: every property name and every string enum or const value of the
-# schemas schema/metaspec-*.schema.json (read with jq). The last line says how many pack words
-# were left out that way.
+# schemas schema/metaspec-*.schema.json (read with jq). So is a word of the format metaspec reads
+# every pack's blocks in: a field name of a declaration of ESS's compiled model (`ess specify
+# compile --format json`) of the fixture packs fixtures/packs/*/blocks, a key without a dot
+# below a qualified name (a dotted key, such as a domain or an entity). The model's top-level
+# keys, the qualified names and the values are not left out. The last line says how many pack
+# words were left out that way.
 #
 # Exit 0: no word found. Exit 1: at least one, listed as `<file>:<line>: <kind> <word>`.
 # Exit 2: bad usage, or a pack that metaspec refuses.
 #
-# Needs jq and the metaspec binary: $METASPEC, or target/debug/metaspec.
+# Needs jq, ess (for the fixture packs' blocks) and the metaspec binary: $METASPEC, or
+# target/debug/metaspec.
 
 set -eu
 
@@ -90,6 +95,20 @@ for schema in "$root"/schema/metaspec-*.schema.json; do
       ((.enum? // []) | if type == "array" then .[] | strings else empty end),
       (.const? | strings)] | .[]' "$schema" >> "$work/own" \
     || { echo "check-vocabulary: $schema cannot be read" >&2; exit 2; }
+done
+# and the words of the format metaspec reads every pack's blocks in: the field names of the
+# declarations of ESS's compiled model (`ess specify compile --format json`) of the fixture
+# packs, the keys without a dot below a qualified name (a dotted key, such as a domain or an
+# entity). A dotted key is a name of a pack, and a key of the model's top level is the name of a
+# collection, so neither is left out; no value is.
+for blocks in "$root"/fixtures/packs/*/blocks; do
+  [ -d "$blocks" ] || continue
+  (cd "$blocks" && ess specify compile --path . --format json) > "$work/model.json" \
+    || { echo "check-vocabulary: ess specify compile refused $blocks" >&2; exit 2; }
+  jq -r '[paths | . as $p | range(1; length) as $i
+      | select(any($p[:$i][]; type == "string" and contains(".")))
+      | $p[$i] | strings | select(contains(".") | not)] | unique | .[]' "$work/model.json" >> "$work/own" \
+    || { echo "check-vocabulary: the compiled model of $blocks is no JSON" >&2; exit 2; }
 done
 sort -u "$work/own" -o "$work/own"
 awk 'NR == FNR { own[$0] = 1; next } !($2 in own)' "$work/own" "$work/words" > "$work/searched"

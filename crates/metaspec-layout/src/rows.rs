@@ -149,8 +149,9 @@ pub fn layout(
             .collect();
         let head_h = c.h;
         for &k in &children {
-            let w =
-                crate::text::width(&child_label(graph, style, k), 11.0, false) + 16.0 + 2.0 * PAD;
+            let w = crate::text::width(&child_label(graph, style, k, &part.id), 11.0, false)
+                + 16.0
+                + 2.0 * PAD;
             c.w = c.w.max(w.ceil());
             c.h += CHILD_H + CHILD_GAP;
         }
@@ -530,7 +531,7 @@ pub fn layout(
         for (k, &c) in n.children.iter().enumerate() {
             let child = &parts[c];
             let text = Card {
-                label: child_label(graph, style, c),
+                label: child_label(graph, style, c, &n.id),
                 lines: Vec::new(),
                 title: card(child, style, &[format!("per {}", n.id)]).title,
                 w: n.card.w - 2.0 * PAD,
@@ -636,11 +637,16 @@ pub fn layout(
     }
 }
 
-/// The one line of a part drawn inside its host: its id and block.
-fn child_label(graph: &Graph, style: &Style, part: usize) -> String {
+/// The one line of a part drawn inside its host: its id and block, and the part it sits in when
+/// that is not the host it is drawn in.
+fn child_label(graph: &Graph, style: &Style, part: usize, host: &str) -> String {
     let p = &graph.parts[part];
-    match &p.block {
+    let mut label = match &p.block {
         Some(b) => format!("{} · {}", p.id, style.word(b)),
         None => p.id.clone(),
+    };
+    if let Some(inside) = p.inside.as_deref().filter(|&inside| inside != host) {
+        label.push_str(&format!(" · in {inside}"));
     }
+    label
 }

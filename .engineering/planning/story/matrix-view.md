@@ -8,7 +8,48 @@ summary: 'layout: matrix draws callers as rows, targets as columns, link names i
 relations:
 - decomposes: epic:cloudspec-pack
 - depends_on: story:cloudspec-manifest
-revision: 3
+scope:
+- confidence: inferred
+  path: CHANGELOG.md
+- confidence: cited
+  path: crates/metaspec-core/src/manifest.rs
+- confidence: inferred
+  path: crates/metaspec-core/tests/cases/manifest.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/lib.rs
+- confidence: inferred
+  path: crates/metaspec-layout/src/matrix.rs
+- confidence: cited
+  path: crates/metaspec-layout/src/scene.rs
+- confidence: cited
+  path: crates/metaspec/src/page.rs
+- confidence: inferred
+  path: crates/metaspec/tests/main.rs
+- confidence: inferred
+  path: design/metaspec.md
+- confidence: inferred
+  path: fixtures/expected/harbor/pages/plan
+- confidence: inferred
+  path: fixtures/expected/orchard/pages/layout
+- confidence: inferred
+  path: fixtures/expected/site/harbor/docs/plan
+- confidence: inferred
+  path: fixtures/expected/site/harbor/pages/plan
+- confidence: inferred
+  path: fixtures/expected/site/orchard/docs/layout
+- confidence: inferred
+  path: fixtures/expected/site/orchard/pages/layout
+- confidence: inferred
+  path: fixtures/manifests/harbor.yaml
+- confidence: inferred
+  path: fixtures/manifests/orchard.yaml
+- confidence: inferred
+  path: schema/metaspec-pack-1.schema.json
+- confidence: cited
+  path: schema/metaspec-scene-1.schema.json
+- confidence: inferred
+  path: spec/domains/documents.yaml
+revision: 23
 transitions:
 - {from: "draft", to: "proposed", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 2}
 - {from: "proposed", to: "active", at: "2026-11-28T13:54:28Z", actor: "human:operator", revision: 3}

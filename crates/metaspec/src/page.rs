@@ -206,9 +206,10 @@ pub fn document(p: &DocumentPage) -> String {
     h.push_str("<section id=\"parts\" aria-labelledby=\"parts-h\"><h2 id=\"parts-h\">Parts</h2><div class=\"table-wrap\"><table><thead><tr><th>Part</th><th>Block</th><th>Contained</th><th>Fields</th></tr></thead><tbody>\n");
     for part in &p.graph.parts {
         let contained = match (&part.inside, &part.per) {
-            (Some(i), _) => format!("in {i}"),
-            (_, Some(per)) => format!("per {per}"),
-            _ => String::new(),
+            (Some(i), Some(per)) => format!("in {i}, per {per}"),
+            (Some(i), None) => format!("in {i}"),
+            (None, Some(per)) => format!("per {per}"),
+            (None, None) => String::new(),
         };
         let fields: Vec<String> = part
             .fields

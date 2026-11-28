@@ -41,12 +41,18 @@ types:
 
   - name: metaspec.documents.Contain
     kind: struct
+    naming:
+      summary: >-
+        The manifest's `contain`: `{in: <field>}`, `{per: <field>}` or both; the schema
+        metaspec-pack-1 refuses one with neither key (`minProperties: 1`). Each
+        value is the name of the part's field that names the containing part.
     fields:
-      - name: kind
-        type: metaspec.documents.ContainKind
-      - name: field
-        type: String
-        summary: The name of the part's field that names the containing part.
+      - name: inside
+        type: Optional<String>
+        summary: The manifest's key `in`, the field that names the part a part sits in.
+      - name: per
+        type: Optional<String>
+        summary: The field that names the part a part exists once per instance of.
 
   - name: metaspec.documents.Table
     kind: struct
@@ -103,6 +109,11 @@ entities:
         type: String
       - name: paths
         type: List<String>
+      - name: exclude
+        type: List<String>
+        summary: >-
+          Globs of files the paths match that are no documents of the class, matched against the
+          whole path in the pack; such a file is not read. Empty when the manifest names none.
       - name: shape
         type: metaspec.documents.Shape
       - name: name
@@ -110,6 +121,7 @@ entities:
         summary: The key of a document that holds its name.
       - name: contain
         type: Optional<metaspec.documents.Contain>
+        summary: Absent for a class whose parts contain no part; else `in`, `per` or both.
       - name: tables
         type: List<metaspec.documents.Table>
         summary: Empty for a parts-links/1 class.
@@ -254,14 +266,11 @@ entities:
         summary: The part it sits in (contain in).
       - name: per
         type: Optional<metaspec.documents.PartId>
-        summary: The part it exists once per instance of (contain per).
+        summary: The part it exists once per instance of (contain per). A part may have both inside and per.
       - name: on_border
         type: Boolean
       - name: markers
         type: List<metaspec.documents.Marker>
-    invariants:
-      # `contain` has exactly one key, so a part sits in another part or exists per another, not both.
-      - {any: [not defined(inside), not defined(per)]}
     relations:
       - name: block
         kind: references

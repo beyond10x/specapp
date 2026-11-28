@@ -1,6 +1,8 @@
 mod answers;
 mod common;
+mod contain_edges;
 mod containment;
+mod exclude_edges;
 mod fixtures;
 mod graph;
 mod manifest;
