@@ -13,6 +13,30 @@
   direction outside the two words, every refusal named. The format has its schema at last,
   `schema/metaspec-kpis-1.schema.json`; it takes metaspec's catalogue and the KpiCatalogue data
   of the generated KPI pages, and a test holds both fixture sites' pages to it.
+- `metaspec quality kpis <NAME | --manifest FILE> --pack <DIR> [--json] [--deadline SECONDS]`
+  measures a pack's KPI catalogue: one measurement per measure of the question `kpi_catalogue`
+  of metaspec's catalogue, in its order, a value with the names behind it or a gap. It executes
+  nothing of the pack but `ess specify compile`. New format `metaspec-quality/1`
+  (`schema/metaspec-quality-1.schema.json`), shared by both questions: pack, question, source
+  digest, `measurements[{measure, unit, direction, reading, behind}]` where a reading is
+  `{kind: value, value}` or `{kind: gap, gap}`, and `gaps[{kind, feature, needs, summary}]`;
+  each gap reading is also a gap of kind `measure`, with no name behind it. The command
+  validates its report against the schema before it prints it. Three measures are built:
+  `coverage.blocks` (blocks with a KPI over blocks), `completeness.fields` (KPIs with unit,
+  direction, a direction for every mode the catalogue writes, and a threshold where `gate` sets
+  a gate; `gate: true` counts as incomplete) and `planned` (KPIs whose block the pack does not
+  have). A KPI row with no id or a blank one is named `#<index>`. A pack without a `kpis`
+  section has a gap naming it for each, with `needs: L1`. The seven other measures of the
+  question answer the gap reading "not built yet" (`needs: null`). Goldens:
+  `fixtures/expected/{harbor,orchard}/quality/{coverage.blocks,completeness.fields,planned}.json`.
+- The layout every later story of the quality initiative fills: `metaspec quality spec` and
+  `metaspec quality ratchet`, and `metaspec render --quality <report.json>` (repeatable), are
+  wired and exit 2 with "not built yet". `metaspec_core::quality::registry` maps each of the 40
+  measures of metaspec's catalogue to a function in the module file of its story (`kpis/` and
+  `spec/`, stubs where not built) and refuses a catalogue whose `measured` row has a stub or no
+  entry, and a registry measure without a row. `scripts/acceptance.sh` sources every
+  `scripts/acceptance.d/*.sh` in name order after its wave rows; `Taskfile.yml` includes
+  `taskfiles/slow.yml` and `taskfiles/quality.yml` when they exist.
 
 ## 0.1.0 (2026-11-28)
 

@@ -1,0 +1,15 @@
+{
+  "measure": "completeness.fields",
+  "unit": "share",
+  "direction": "higher_is_better",
+  "reading": {
+    "kind": "value",
+    "value": 0.75
+  },
+  "behind": [
+    {
+      "kind": "kpi",
+      "name": "vessel_unmoored_count"
+    }
+  ]
+}

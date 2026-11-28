@@ -1,5 +1,13 @@
 version: '3'
 
+includes:
+  slow:
+    taskfile: ./taskfiles/slow.yml
+    optional: true
+  quality:
+    taskfile: ./taskfiles/quality.yml
+    optional: true
+
 vars:
   SLOT:
     sh: command -v slot > /dev/null 2>&1 && echo slot || true

@@ -452,6 +452,7 @@ dependencies = [
  "metaspec-layout",
  "serde",
  "serde_json",
+ "serde_yaml_ng",
 ]
 
 [[package]]
