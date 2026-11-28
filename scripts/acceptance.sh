@@ -47,10 +47,11 @@
 # `agenticspec sim check --json`, mapped by the adapter in packs/agenticspec.yaml; its tool is
 # built first. The same for cloudspec: every architecture and every broken architecture (the
 # classes architecture and broken-architecture of packs/cloudspec.yaml), against
-# `cloudspec check --json`, and every finding whose subject names a part or a link of the
-# document (a key of `parts`, or `<from>-><to>:<carries>` of `links`, read with yq) is drawn in a
-# scene, and each graph has the parts and links cloudspec counts. Pages are under
-# target/acceptance/pages-<pack>/.
+# `cloudspec check --json` (its `violations` and `warnings`), and every finding whose subject
+# names a part or a link of the document (a key of `parts`, or `<from>-><to>:<carries>` of
+# `links`, read with yq) is drawn in a scene, and each graph has the parts and links cloudspec
+# counts. The page of architectures/journeys.yaml shows the warnings of its check, none gated,
+# and stays valid. Pages are under target/acceptance/pages-<pack>/.
 #
 # Wave 3: `metaspec docs build` writes a site of each pack alone under target/acceptance/docs-<pack>;
 # its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and the
@@ -258,7 +259,7 @@ theirs_agenticspec() {
   { target/debug/agenticspec sim check --json "$1" || true; } | jq -r '[.violations[]?.rule] | unique | join(" ")'
 }
 theirs_cloudspec() {
-  { target/debug/cloudspec check --json "$1" || true; } | jq -r '[.[0].violations[]?.rule] | unique | join(" ")'
+  { target/debug/cloudspec check --json "$1" || true; } | jq -r '[(.[0].violations[]?, .[0].warnings[]?).rule] | unique | join(" ")'
 }
 
 # rules <pack> <pages> <class> <file...>: per document (run in the pack's directory), the rule
@@ -321,9 +322,9 @@ rule_rows agenticspec cases "$work/agentic-cases.rows" "agenticspec sim check --
 # cloudspec: every architecture and every broken architecture, against `cloudspec check --json`,
 # mapped by the adapter in packs/cloudspec.yaml.
 # named <pages> <class> <file...>: per document (run in the pack's directory), whether the
-# findings `cloudspec check --json` reports on a part or a link of the document itself (a key of
-# `parts`, or `<from>-><to>:<carries>` of `links`) are, rule and subject, the findings the page
-# draws in a scene; then whether the page's graph has as many parts and links as cloudspec counts
+# findings `cloudspec check --json` reports (`violations` and `warnings`) on a part or a link of
+# the document itself (a key of `parts`, or `<from>-><to>:<carries>` of `links`) are, rule and
+# subject, the findings the page draws in a scene; then whether the page's graph has as many parts and links as cloudspec counts
 # (`parts`, `links` of its answer). Prints `<file> <named equal> 1 <counts equal> 1`.
 named() {
   out=$1 class=$2
@@ -334,7 +335,7 @@ named() {
     yq -r '(.parts // {} | keys | .[]), (.links // [] | .[] | .from + "->" + .to + ":" + (.carries // ""))' "$f" > "$work/named.tmp"
     { target/debug/cloudspec check --json "$f" || true; } > "$work/answer.tmp"
     theirs=$(jq -r --rawfile named "$work/named.tmp" '($named | split("\n")) as $n
-          | [.[0].violations[]? | select(.subject as $s | any($n[]; . == $s)) | .rule + " " + .subject]
+          | [(.[0].violations[]?, .[0].warnings[]?) | select(.subject as $s | any($n[]; . == $s)) | .rule + " " + .subject]
           | sort | join(",")' "$work/answer.tmp")
     page_data "$page" > "$work/page-data.tmp"
     mine=$(jq -r '[.findings[] | select(.subject != "document") | select(.drawn_in | length > 0)
@@ -356,6 +357,24 @@ for class in architecture broken-architecture; do
   row cloudspec "$name:parts-links" "$(awk '{ s += $4 } END { print s + 0 }' "$work/cloud-$name.named")" \
     "$(awk '{ s += $5 } END { print s + 0 }' "$work/cloud-$name.named")" "parts and links of each graph = cloudspec check --json"
 done
+# The warnings of `cloudspec check --json` (entries with `gate: false`) on the page of
+# architectures/journeys.yaml: as many findings not gated as warnings, as many gated as gated
+# entries of its answer, and the page's verdict is cloudspec's. Every number is read at run time.
+f=architectures/journeys.yaml
+(cd "$cloud" && { target/debug/cloudspec check --json "$f" || true; }) > "$work/journeys.answer"
+page=$work/pages-cloudspec/architecture/$(basename "$f" .yaml).html
+if [ -f "$page" ]; then
+  page_data "$page" > "$work/journeys.page"
+  set -- "$(jq '[.findings[] | select(.gate | not)] | length' "$work/journeys.page")" \
+    "$(jq '[.findings[] | select(.gate)] | length' "$work/journeys.page")" \
+    "$(jq -r '.check.result.valid' "$work/journeys.page")"
+else
+  echo "acceptance: no page for $f" >&2
+  set -- - - -
+fi
+row cloudspec journeys:warnings "$1" "$(jq '.[0].warnings | length' "$work/journeys.answer")" "findings not gated on the page of $f = warnings of cloudspec check --json"
+row cloudspec journeys:gated "$2" "$(jq '[(.[0].violations[]?, .[0].warnings[]?) | select(.gate)] | length' "$work/journeys.answer")" "gated findings on the page of $f = gated entries of cloudspec check --json"
+row cloudspec journeys:valid "$3" "$(jq -r '.[0].valid' "$work/journeys.answer")" "valid on the page of $f = cloudspec check --json"
 
 # --- wave 3: docs sites ---
 # docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of the site of one pack into

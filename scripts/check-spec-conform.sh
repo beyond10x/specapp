@@ -97,7 +97,7 @@ if ! ess specify validate --path . --strict-requires > "$work/validate.txt" 2>&1
   echo "check-spec-conform: ess specify validate --path spec --strict-requires refused the specification" >&2
   exit 2
 fi
-if grep -q 'warning' "$work/validate.txt"; then
+if grep -v 'is the dispatcher' "$work/validate.txt" | grep -q 'warning'; then
   grep -v 'is the dispatcher' "$work/validate.txt" >&2
   echo "check-spec-conform: ess specify validate warned; a warning is not clean" >&2
   exit 2
