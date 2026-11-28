@@ -25,7 +25,7 @@ documents:
   - class: broken-architecture
     title: Broken architectures
     paths: [architectures/broken/*.yaml]
-    exclude: [architectures/broken/*.binding.yaml, architectures/broken/*.contract.yaml]
+    exclude: [architectures/broken/*.contract.yaml]
     shape: parts-links/1
     name: architecture
     contain: { in: in, per: per }

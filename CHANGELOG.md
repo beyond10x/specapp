@@ -12,7 +12,13 @@
   an `exclude` glob matches is not read. A glob is matched against the whole path in the pack,
   and `*` does not cross a slash; like `paths` it stays inside the pack (`path_leaves_pack`). The
   page of the class says `read from <paths> except <exclude>`; a class without `exclude` reads
-  and says what it did before. In `spec/`, `DocumentClass` has the field `exclude`.
+  and says what it did before. In `spec/`, `DocumentClass` has the field `exclude`. An exclude
+  written with `./` names what it names without it. An exclude that matches no file the paths
+  match is a warning, `exclude_matches_nothing`; a class whose exclude leaves out every file
+  says so in its `class_empty` warning.
+- The adapter maps a link subject without `carries`, `<from>-><to>:` (how a tool writes the
+  empty text), to the graph's link without `carries`, `<from>-><to>:?`, so the finding is on that
+  link and no longer on the document. A subject that names a link with `carries` maps as before.
 - `scripts/acceptance.sh <orgspec-dir> <agenticspec-dir> <cloudspec-dir>` takes cloudspec as the
   third real pack: its level, blocks (the domains of `blocks/system.yaml` and of `ess specify
   compile`), layers and documents (the files `cloudspec check --json` reads as an architecture)
@@ -22,11 +28,13 @@
   `cloudspec check --json` counts, its docs site (a pack without a KPI catalogue has
   no KPI rows) and the site of the three real packs, and its words in the vocabulary check.
 - `scripts/check-vocabulary.sh` leaves out the words of ESS's compiled model as it leaves out
-  those of metaspec's schemas: every key without a dot of `ess specify compile --format json` of
-  the fixture packs' blocks is a field name of the format metaspec reads, not a pack's word
-  (cloudspec's blocks `actors` and `identity` are such fields). Blocks that ess refuses exit 2.
-  `scripts/check-vocabulary.test.sh` holds a field name left out, a word under a dotted key
-  still reported, and the refusal.
+  those of metaspec's schemas: a field name of a declaration of `ess specify compile --format
+  json` of the fixture packs' blocks (a key without a dot below a qualified name, such as a
+  domain or an entity) is a word of the format metaspec reads, not a pack's word (cloudspec's
+  blocks `actors` and `identity` are such fields). The model's top-level keys (`workloads`,
+  a block and layer of cloudspec, is one), the qualified names and the values are not left out.
+  Blocks that ess refuses exit 2. `scripts/check-vocabulary.test.sh` holds a field left out, a
+  word under a dotted key and a top-level key still reported, and the refusal.
 
 - One document class may hold parts contained by `in` and by `per` at once: the manifest's
   `contain` takes `{ in: <field> }`, `{ per: <field> }` or both (`metaspec-pack/1` drops
