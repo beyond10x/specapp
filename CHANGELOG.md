@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (2026-11-28)
 
 - `spec/` pins ess 0.99.11 (was 0.99.9). Its synthesis expects the patch of the Variant row
   that `AcceptVariant` names, so `metaspec.drafts.AcceptVariant/outcome/accepted` passes and
