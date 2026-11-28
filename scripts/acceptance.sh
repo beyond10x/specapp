@@ -51,7 +51,11 @@
 # names a part or a link of the document (a key of `parts`, or `<from>-><to>:<carries>` of
 # `links`, read with yq) is drawn in a scene, and each graph has the parts and links cloudspec
 # counts. The page of architectures/journeys.yaml shows the warnings of its check, none gated,
-# and stays valid. Pages are under target/acceptance/pages-<pack>/.
+# and stays valid. Every part of architectures/groups.yaml, node-pools.yaml and l4-media.yaml
+# whose block word is a key of `blocks.aliases` in packs/cloudspec.yaml has the aliased block in
+# the graph of its page, and every part of an architecture whose word is neither an alias nor a
+# block of `metaspec pack check --json` keeps its word. Pages are under
+# target/acceptance/pages-<pack>/.
 #
 # Wave 3: `metaspec docs build` writes a site of each pack alone under target/acceptance/docs-<pack>;
 # its block pages, KPI rows and document pages equal the counts of `metaspec pack check`, and the
@@ -379,6 +383,47 @@ case "$own" in '' | 0) own="1 or more" ;; esac
 row cloudspec journeys:warnings "$1" "$own" "findings not gated on the page of $f = warnings of cloudspec check --json, at least one"
 row cloudspec journeys:gated "$2" "$(jq '[(.[0].violations[]?, .[0].warnings[]?) | select(.gate)] | length' "$work/journeys.answer")" "gated findings on the page of $f = gated entries of cloudspec check --json"
 row cloudspec journeys:valid "$3" true "valid on the page of $f"
+
+# The aliases of packs/cloudspec.yaml (`blocks.aliases`), read at run time with the pack's block
+# list (`.layers[].blocks` of `metaspec pack check --json`). alias_counts <class> <file...>: per
+# document (run in the pack's directory), the parts whose block word is an alias, those of them
+# whose block in the graph of the page is the aliased block, the parts whose word is neither an
+# alias nor a block, and those of them whose block on the page is still the word. Prints
+# `<file> <aliased> <aliased on the page> <kept> <kept on the page>`.
+yq -o=json '.blocks.aliases // {}' "$root/packs/cloudspec.yaml" > "$work/cloud-aliases.data"
+jq '[.layers[].blocks[]]' "$work/cloudspec.json" > "$work/cloud-blocks.data"
+alias_counts() {
+  class=$1
+  shift
+  for f in "$@"; do
+    page=$work/pages-cloudspec/$class/$(basename "$f" .yaml).html
+    yq -o=json '.' "$f" > "$work/alias-doc.tmp"
+    if [ -f "$page" ]; then page_data "$page" | jq '.graph.parts' > "$work/alias-page.tmp"; else echo '[]' > "$work/alias-page.tmp"; fi
+    jq -r --arg f "$f" --slurpfile aliases "$work/cloud-aliases.data" --slurpfile blocks "$work/cloud-blocks.data" \
+      --slurpfile page "$work/alias-page.tmp" '
+      $aliases[0] as $a | $blocks[0] as $b
+      | ([$page[0][] | {(.id): .block}] | add // {}) as $on
+      | [(.parts? // {}) | objects | to_entries[] | select(.value | type == "object")
+         | select(.value.block | type == "string") | {id: .key, word: .value.block}] as $parts
+      | [$parts[] | select($a[.word] != null)] as $aliased
+      | [$parts[] | select($a[.word] == null and (.word as $w | $b | index([$w]) | not))] as $kept
+      | "\($f) \($aliased | length) \([$aliased[] | select($on[.id] == $a[.word])] | length) \($kept | length) \([$kept[] | select($on[.id] == .word)] | length)"' \
+      "$work/alias-doc.tmp"
+  done
+}
+# alias_row <count> <rows> <source>: the sums of a set of alias_counts lines; with no part to
+# count the row is not equal, so a manifest without aliases or a pack without such parts fails it
+alias_row() {
+  case "$1" in aliases:aliased) a=2 b=3 ;; *) a=4 b=5 ;; esac
+  own=$(awk -v c="$a" '{ s += $c } END { print s + 0 }' "$2")
+  mine=$(awk -v c="$b" '{ s += $c } END { print s + 0 }' "$2")
+  [ "$own" -gt 0 ] || mine=-
+  row cloudspec "$1" "$mine" "$own" "$3"
+}
+(cd "$cloud" && alias_counts architecture architectures/groups.yaml architectures/node-pools.yaml architectures/l4-media.yaml) > "$work/cloud-aliased.rows"
+alias_row aliases:aliased "$work/cloud-aliased.rows" "parts of groups, node-pools, l4-media whose word is an alias: the aliased block on the page"
+(cd "$cloud" && alias_counts architecture $(cat "$work/cloud-architectures") && alias_counts broken-architecture $(cat "$work/cloud-broken")) > "$work/cloud-kept.rows"
+alias_row aliases:kept "$work/cloud-kept.rows" "parts whose word is no alias and no block of pack check: the word on the page"
 
 # --- wave 3: docs sites ---
 # docs_rows <name> <dir> <name|manifest-file>: metaspec docs build of the site of one pack into

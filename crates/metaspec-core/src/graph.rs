@@ -178,8 +178,21 @@ fn stem(path: &str) -> String {
     }
 }
 
-/// Reads a `parts-links/1` document of `class` at `path` into a graph.
+/// Reads a `parts-links/1` document of `class` at `path` into a graph. A part's block is the
+/// word it writes; no alias is applied (see [`read_with_aliases`]).
 pub fn read(class: &DocumentClass, path: &str, doc: &Value) -> Graph {
+    read_with_aliases(class, path, doc, &BTreeMap::new())
+}
+
+/// Reads a `parts-links/1` document of `class` at `path` into a graph, with each part's block
+/// word that `aliases` (the manifest's `blocks.aliases`) names replaced by the block it stands
+/// for. The graph keeps the block, not the word written; a word no alias names stays.
+pub fn read_with_aliases(
+    class: &DocumentClass,
+    path: &str,
+    doc: &Value,
+    aliases: &BTreeMap<String, String>,
+) -> Graph {
     let name = name_of(doc.get(&class.name)).unwrap_or_else(|| stem(path));
     let border: Vec<String> = match doc.get("border") {
         Some(Value::Array(items)) => items.iter().filter_map(|v| name_of(Some(v))).collect(),
@@ -199,7 +212,8 @@ pub fn read(class: &DocumentClass, path: &str, doc: &Value) -> Graph {
                     .collect(),
                 _ => Map::new(),
             };
-            let block = name_of(raw.get("block"));
+            let block =
+                name_of(raw.get("block")).map(|word| aliases.get(&word).cloned().unwrap_or(word));
             let kind = match fields.get("kind") {
                 Some(Value::String(s)) => Some(s.clone()),
                 _ => None,

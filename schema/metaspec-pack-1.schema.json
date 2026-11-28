@@ -28,7 +28,13 @@
       "required": ["path"],
       "properties": {
         "path": { "$ref": "#/$defs/path" },
-        "strip_prefix": { "type": "string", "minLength": 1 }
+        "strip_prefix": { "type": "string", "minLength": 1 },
+        "aliases": {
+          "description": "A part's block word mapped to the block it stands for: metaspec reads a part whose `block` is a key of this map as a part of the block its value names. Every value is a block of the pack and no key is one, else the manifest is refused (manifest_invalid). A word no key names keeps its word.",
+          "type": "object",
+          "propertyNames": { "minLength": 1 },
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
       }
     },
     "kpis": {

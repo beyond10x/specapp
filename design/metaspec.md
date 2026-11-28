@@ -210,7 +210,9 @@ and `broken-architecture` (`architectures/broken/*.yaml`), each with an `exclude
 bindings and contracts beside the architectures, and a `tool` whose `check` runs
 `target/debug/cloudspec check --json <architecture>` and reads the answer as orgspec's (`at: /0`,
 `error`, `valid`, `violations`) with `counts: /kpis`, and a second finding list, `warnings`, with
-the same mapping and `gate: false`.
+the same mapping and `gate: false`. Its parts name three words that are no domain of its
+blocks, and `blocks.aliases: { group: architecture, node_pool: infrastructure, endpoints: edge }`
+says which block each stands for.
 
 Rules of the manifest:
 
@@ -223,6 +225,17 @@ Rules of the manifest:
   slash (a glob has no negation, and a pack may keep other files beside its documents). A
   leading `./` is no part of the match. An exclude that matches none of the files the paths
   match is named (`exclude_matches_nothing`).
+- `blocks.aliases: { <word>: <block> }` is optional: a part whose `block` is a key of the map
+  is a part of the block its value names. It is applied once, when the graph of a document is
+  read for its page; the graph carries the block and not the word written, so the style, a
+  view's `blocks`, `hubs.blocks` and the grouping of the parts read the block. A value that is
+  no block of the pack, or a key that is a block of the pack or the domain of one (its name
+  before `strip_prefix`), refuses the manifest (`manifest_invalid`, subject `alias:<word>`) at
+  every command that loads the pack. A view's `blocks` or `hubs.blocks`, or a family's
+  `blocks`, that names a key is a warning that names its block (`view_alias_block`,
+  `family_alias_block`: "<word> is an alias of <block>; name <block>"). The keys are words of
+  the pack (`metaspec pack words`, kind `block`). A word no key names and no block has stays as
+  written and is drawn in the group of a block the pack does not have.
 - `presentation` is optional. Without it a block's row is the layer of its domain and its colour
   is the colour of its layer, from a palette of metaspec. This is the one place a pack states a
   colour or an icon; a pack that needs none writes none.

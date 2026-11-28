@@ -30,7 +30,7 @@ impl Kind {
 
 /// The words of a loaded pack, sorted and without repetition:
 ///
-/// - block: the block names;
+/// - block: the block names and the keys of the manifest's `blocks.aliases`;
 /// - layer: the layer names;
 /// - link: every `carries` of a link of a `parts-links/1` document, every `carries` of a view,
 ///   and every key of a `links` mapping in any document;
@@ -44,6 +44,9 @@ pub fn words(pack: &Pack) -> BTreeSet<(Kind, String)> {
         if let Some(layer) = &block.layer {
             out.insert((Kind::Layer, layer.name.clone()));
         }
+    }
+    for word in pack.manifest.blocks.aliases.keys() {
+        out.insert((Kind::Block, word.clone()));
     }
     for row in &pack.kpis {
         if let Some(id) = row.get("id").and_then(Value::as_str) {
