@@ -1,0 +1,14 @@
+format: ess-inputs/2
+requires: ess 0.99.9
+specification:
+  - system.yaml
+  - domains/packs.yaml
+  - domains/blocks.yaml
+  - domains/documents.yaml
+  - domains/checks.yaml
+  - domains/drafts.yaml
+  - domains/runs.yaml
+  - domains/agents.yaml
+  - domains/quality.yaml
+scenarios:
+  - scenarios/ratchet-equal-lower-is-better.yaml

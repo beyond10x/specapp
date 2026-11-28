@@ -1,0 +1,561 @@
+domain: metaspec.drafts
+
+summary: >-
+  Work on a document (L5): a draft is a base document (its digest) and its patches; each patch
+  is one revision. A patch is an ordered list of edits, applied as a whole or refused as a whole.
+  One operation set serves the user, the agent and the tool's search. A draft lives in the
+  studio's state, not in the pack, until it is saved.
+
+naming:
+  wire: drafts
+  display: Drafts
+
+types:
+  - name: metaspec.drafts.DraftId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.drafts.RevisionId
+    kind: newtype
+    of: Uuid
+
+  # metaspec-patch/1 has no schema yet. The edits are the generic edits of design/metaspec.md
+  # "Operations"; their members are read from metaspec-graph/1 (a part's id, block and fields; a
+  # link's from, to, carries and fields; a marked place's path and vary; the border's names). An
+  # edit names a part by its name in the document and a link by its id
+  # `<from>-><to>:<carries>`, `#<n>` appended to the n-th repeat (the id of "Decided in wave 2").
+  - name: metaspec.drafts.AddPart
+    kind: struct
+    fields:
+      - {name: part, type: String, summary: The new part's name.}
+      - {name: block, type: String}
+      - {name: fields, type: "Map<String, Json>"}
+  - name: metaspec.drafts.RemovePart
+    kind: struct
+    fields:
+      - {name: part, type: String, summary: The part's name.}
+  - name: metaspec.drafts.SetField
+    kind: struct
+    naming:
+      summary: >-
+        Set a value of a part (`part:<name>`), of a link (`link:<id>`) or one of the document's
+        own keys (`document`).
+    fields:
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: path, type: String}
+      - {name: value, type: Json}
+  - name: metaspec.drafts.AddLink
+    kind: struct
+    fields:
+      - {name: from, type: String}
+      - {name: to, type: String}
+      - {name: carries, type: String}
+      - {name: fields, type: "Map<String, Json>"}
+  - name: metaspec.drafts.RemoveLink
+    kind: struct
+    fields:
+      - {name: link, type: String, summary: "The link's id, `<from>-><to>:<carries>`, `#<n>` for the n-th repeat."}
+  - name: metaspec.drafts.Move
+    kind: struct
+    naming:
+      summary: Change containment; the class's `contain` field names the field written.
+    fields:
+      - {name: part, type: String}
+      - name: into
+        type: Optional<String>
+        summary: The containing part; absent takes the part out of every container.
+  - name: metaspec.drafts.Mark
+    kind: struct
+    naming:
+      summary: Make a value a place a search may vary, written `{value, vary}`.
+    fields:
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: path, type: String}
+      - {name: vary, type: Json}
+  - name: metaspec.drafts.Unmark
+    kind: struct
+    fields:
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: path, type: String}
+  - name: metaspec.drafts.SetBorder
+    kind: struct
+    fields:
+      - {name: parts, type: List<String>}
+  - name: metaspec.drafts.PackVerb
+    kind: struct
+    naming:
+      summary: >-
+        An edit verb of the pack's own tool, applied by the tool's `apply`; metaspec passes the
+        arguments as they are.
+    fields:
+      - {name: verb, type: String}
+      - {name: arguments, type: Json}
+
+  - name: metaspec.drafts.Edit
+    kind: union
+    tag: op
+    naming:
+      summary: >-
+        One edit of a parts-links/1 document. A pack adds the edit verbs of its own tool
+        (`PackVerb`).
+    variants:
+      add_part: metaspec.drafts.AddPart
+      remove_part: metaspec.drafts.RemovePart
+      set_field: metaspec.drafts.SetField
+      add_link: metaspec.drafts.AddLink
+      remove_link: metaspec.drafts.RemoveLink
+      move: metaspec.drafts.Move
+      mark: metaspec.drafts.Mark
+      unmark: metaspec.drafts.Unmark
+      set_border: metaspec.drafts.SetBorder
+      pack_verb: metaspec.drafts.PackVerb
+
+  - name: metaspec.drafts.Patch
+    kind: struct
+    naming:
+      summary: metaspec-patch/1, an ordered list of edits; one revision.
+    fields:
+      - {name: edits, type: List<metaspec.drafts.Edit>}
+
+  - name: metaspec.drafts.PatchFinding
+    kind: struct
+    naming:
+      summary: A finding the pack's tool answers for the patched document (metaspec-findings/1).
+    fields:
+      - {name: rule, type: String}
+      - {name: gate, type: Boolean}
+      - {name: subject, type: metaspec.checks.Subject}
+      - {name: message, type: String}
+
+entities:
+  - name: metaspec.drafts.Draft
+    naming:
+      summary: A base document, named by its digest, and the patches applied to it.
+    identity:
+      name: draft_id
+      type: metaspec.drafts.DraftId
+    fields:
+      - name: document_id
+        type: metaspec.documents.DocumentId
+      - name: pack
+        type: metaspec.packs.PackName
+        summary: The pack of the draft's document; an agent session on the draft reads this pack.
+      - name: base_digest
+        type: String
+        summary: The digest of the document the draft started from (Document.digest when the draft was opened).
+    relations:
+      - name: document
+        kind: references
+        target: metaspec.documents.Document
+        cardinality: one
+        via: document_id
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: revisions
+        kind: owns
+        target: metaspec.drafts.Revision
+        cardinality: many
+        via: draft_id
+    lifecycle:
+      initial: Open
+      states:
+        - {name: Open, summary: Takes patches.}
+        - {name: Saved, summary: Its document file is written with the edits and nothing else changed.}
+      # Saved is final: further work on the saved file opens a new draft. Undo is a new
+      # revision whose patch reverts an earlier one; no revision is taken back.
+      terminal: [Saved]
+      transitions:
+        - {name: save, from: [Open], to: Saved}
+
+  - name: metaspec.drafts.Revision
+    naming:
+      summary: >-
+        One patch applied to a draft. Revisions are numbered from 1 in the order they were taken;
+        two revisions are compared side by side (graph, findings, KPIs).
+    identity:
+      name: revision_id
+      type: metaspec.drafts.RevisionId
+    fields:
+      - name: draft_id
+        type: metaspec.drafts.DraftId
+      - name: document_id
+        type: metaspec.documents.DocumentId
+        summary: >-
+          The document of the revision's draft, copied when the revision is taken, so a run or a
+          check of the revision is held to its document by a guard over this one row (ess 0.99.9
+          reads no second hop in a guard).
+      # The number is minted by the implementation ({generated: true}): "numbered from 1 in
+      # the order they were taken" is not declared. It is the count of the draft's revisions
+      # plus one: ess 0.99.9 has no value source that counts rows (a row-set value reads
+      # exactly one row), and a counter on the Draft would be raised by a set effect beside the
+      # created Revision, where `{increment: 1}` is refused (ESS-COMMAND-009).
+      - name: number
+        type: Integer
+      - name: patch
+        type: metaspec.drafts.Patch
+      - name: variant_id
+        type: Optional<metaspec.runs.VariantId>
+        summary: The variant the revision took, absent for a patch the user or the agent applied.
+      - name: findings
+        type: List<metaspec.drafts.PatchFinding>
+        summary: The findings the pack's tool answered for the patched document, stored with the revision.
+      # The KPI values of a revision are stored with it too; they have no typed members until
+      # metaspec-result/1 has a schema.
+    invariants:
+      - number >= 1
+    relations:
+      - name: document
+        kind: references
+        target: metaspec.documents.Document
+        cardinality: one
+        via: document_id
+      - name: variant
+        kind: references
+        target: metaspec.runs.Variant
+        cardinality: one
+        via: variant_id
+    lifecycle:
+      initial: Taken
+      states: [Taken]
+      terminal: [Taken]
+
+errors:
+  - name: metaspec.drafts.NoSuchDocument
+    summary: No document of a loaded pack has this id.
+    fields:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+  - name: metaspec.drafts.NoSuchDraft
+    summary: No draft has this id.
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.drafts.DraftNotOpen
+    summary: The draft is saved and takes no patch.
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.drafts.PatchRefused
+    summary: An edit of the patch was refused; the whole patch changed nothing.
+    fields:
+      - name: edit
+        type: Integer
+        summary: The position of the refused edit in the patch, from 1.
+      - name: rule
+        type: Optional<String>
+        summary: The rule the pack's tool names, absent for a generic refusal (a part that is not there).
+      - name: message
+        type: String
+  - name: metaspec.drafts.NoSuchVariant
+    summary: No variant has this id.
+    fields:
+      - {name: variant_id, type: metaspec.runs.VariantId}
+  - name: metaspec.drafts.VariantAlreadyAccepted
+    summary: The variant was accepted before; nothing changed.
+    fields:
+      - {name: variant_id, type: metaspec.runs.VariantId}
+  - name: metaspec.drafts.NotTheRunsDraft
+    summary: >-
+      The variant goes only into the draft whose revision its run read, or, for a run on the
+      document file, into a draft of that document; nothing changed.
+    fields:
+      - {name: variant_id, type: metaspec.runs.VariantId}
+  - name: metaspec.drafts.NotWritable
+    summary: The edits cannot be written into the document file keeping its comments and order; nothing was written.
+    fields:
+      - {name: message, type: String}
+
+commands:
+  - name: metaspec.drafts.OpenDraft
+    naming:
+      wire: open-draft
+      display: Open a draft
+      summary: >-
+        Open a draft of any document. The generic edits reach a parts-links/1 document; a draft
+        of a records/1 document takes only the pack's own edit verbs (`pack_verb`, applied by
+        the tool's `apply`), and a generic edit of it is refused as PatchRefused.
+    input:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+    outcomes:
+      - name: no-document
+        when_related: {via: input.document_id, exists: false}
+        error: metaspec.drafts.NoSuchDocument
+        payload:
+          metaspec.drafts.NoSuchDocument: {document_id: input.document_id}
+      - name: opened
+        creates: metaspec.drafts.Draft
+        instance: draft_id
+        sets:
+          document_id: input.document_id
+          pack: {related: {via: input.document_id, field: pack}}
+          base_digest: {related: {via: input.document_id, field: digest}}
+        emits: [metaspec.drafts.DraftOpened]
+        payload:
+          metaspec.drafts.DraftOpened:
+            draft_id: {generated: true}
+            document_id: input.document_id
+
+  # design/metaspec.md gives `apply` one flag, `--dry-run`. ess 0.99.9 cannot answer a typed
+  # response from a branch that writes nothing beside a branch that creates a revision (a
+  # `preserves:` subject and a `creates:` subject on one command are refused as
+  # conflicting_declaration; `accepts: nothing` cannot return). So the dry run is its own
+  # command; the agent's tool `apply` with `dry_run` maps onto DryRunPatch. Decision for the
+  # owner's review.
+  - name: metaspec.drafts.ApplyPatch
+    naming:
+      wire: apply
+      display: Apply a patch
+      summary: >-
+        Apply an ordered list of edits as a whole, or refuse it as a whole; an applied patch is
+        one revision. The agent's tool `apply`.
+    input:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: patch, type: metaspec.drafts.Patch}
+    response:
+      - name: text
+        type: String
+        summary: The document text with the patch applied.
+      - name: findings
+        type: List<metaspec.drafts.PatchFinding>
+    outcomes:
+      - name: no-draft
+        when_related: {via: input.draft_id, exists: false}
+        error: metaspec.drafts.NoSuchDraft
+        payload:
+          metaspec.drafts.NoSuchDraft: {draft_id: input.draft_id}
+      - name: saved
+        when_related: {via: input.draft_id, predicate: state == Saved}
+        error: metaspec.drafts.DraftNotOpen
+        payload:
+          metaspec.drafts.DraftNotOpen: {draft_id: input.draft_id}
+      - name: refused
+        external: the generic edits or the pack's tool (apply) refuse an edit of the patch (a generic edit of a records/1 document included)
+        error: metaspec.drafts.PatchRefused
+        payload:
+          metaspec.drafts.PatchRefused:
+            edit: {generated: true}
+            rule: {generated: true}
+            message: {generated: true}
+      - name: applied
+        creates: metaspec.drafts.Revision
+        instance: revision_id
+        sets:
+          draft_id: input.draft_id
+          document_id: {related: {via: input.draft_id, field: document_id}}
+          number: {generated: true}
+          patch: input.patch
+          variant_id: {cleared: true}
+          findings: {generated: true}
+        returns: true
+        emits: [metaspec.drafts.PatchApplied]
+        payload:
+          metaspec.drafts.PatchApplied:
+            revision_id: {generated: true}
+            draft_id: input.draft_id
+
+  - name: metaspec.drafts.DryRunPatch
+    naming:
+      wire: apply-dry-run
+      display: Try a patch
+      summary: What applying the patch would give, the document text and the findings; writes nothing.
+    input:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: patch, type: metaspec.drafts.Patch}
+    response:
+      - name: text
+        type: String
+      - name: findings
+        type: List<metaspec.drafts.PatchFinding>
+    outcomes:
+      - name: no-draft
+        unknown_instance: true
+        error: metaspec.drafts.NoSuchDraft
+        payload:
+          metaspec.drafts.NoSuchDraft: {draft_id: input.draft_id}
+      - name: saved
+        when_subject: {predicate: state == Saved}
+        error: metaspec.drafts.DraftNotOpen
+        payload:
+          metaspec.drafts.DraftNotOpen: {draft_id: input.draft_id}
+      - name: refused
+        external: the generic edits or the pack's tool (apply --dry-run) refuse an edit of the patch (a generic edit of a records/1 document included)
+        when_subject: {predicate: state == Open}
+        error: metaspec.drafts.PatchRefused
+        payload:
+          metaspec.drafts.PatchRefused:
+            edit: {generated: true}
+            rule: {generated: true}
+            message: {generated: true}
+      - name: tried
+        preserves: metaspec.drafts.Draft
+        instance: draft_id
+        returns: true
+
+
+  - name: metaspec.drafts.AcceptVariant
+    naming:
+      wire: accept-variant
+      display: Accept a variant
+      summary: >-
+        Take a run's variant as a new revision of the draft whose revision the run read. A
+        variant of a run on the document file is accepted into a draft of that document, opened
+        first.
+    input:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: variant_id, type: metaspec.runs.VariantId}
+    outcomes:
+      - name: no-draft
+        when_related: {via: input.draft_id, exists: false}
+        error: metaspec.drafts.NoSuchDraft
+        payload:
+          metaspec.drafts.NoSuchDraft: {draft_id: input.draft_id}
+      - name: no-variant
+        when_related: {via: input.variant_id, exists: false}
+        error: metaspec.drafts.NoSuchVariant
+        payload:
+          metaspec.drafts.NoSuchVariant: {variant_id: input.variant_id}
+      - name: saved
+        when_related: {via: input.draft_id, predicate: state == Saved}
+        error: metaspec.drafts.DraftNotOpen
+        payload:
+          metaspec.drafts.DraftNotOpen: {draft_id: input.draft_id}
+      - name: accepted-before
+        when_related:
+          entity: metaspec.drafts.Revision
+          where: {all: [defined(variant_id), variant_id == input.variant_id]}
+          exists: true
+        error: metaspec.drafts.VariantAlreadyAccepted
+        payload:
+          metaspec.drafts.VariantAlreadyAccepted: {variant_id: input.variant_id}
+      # The draft is read through the variant's run and that run's revision (Variant -> Run ->
+      # Revision -> Draft). A typed guard over a copy of the draft on Run and Variant validates,
+      # but ess 0.99.9 synthesis then arranges no Variant row for any branch of this command
+      # (ESS-SYNTH-003) and leaves StartRun without a revision unwitnessed (ESS-SYNTH-020), so
+      # the rule is an external refusal.
+      - name: other-draft
+        external: >-
+          the variant's run read a revision of another draft, or read the document file and the
+          draft is not a draft of that document
+        error: metaspec.drafts.NotTheRunsDraft
+        payload:
+          metaspec.drafts.NotTheRunsDraft: {variant_id: input.variant_id}
+      - name: refused
+        external: the generic edits or the pack's tool (apply) refuse an edit of the variant's patch
+        error: metaspec.drafts.PatchRefused
+        payload:
+          metaspec.drafts.PatchRefused:
+            edit: {generated: true}
+            rule: {generated: true}
+            message: {generated: true}
+      - name: accepted
+        creates: metaspec.drafts.Revision
+        instance: revision_id
+        sets:
+          draft_id: input.draft_id
+          document_id: {related: {via: input.draft_id, field: document_id}}
+          number: {generated: true}
+          patch: {related: {via: input.variant_id, field: patch}}
+          variant_id: input.variant_id
+          findings: {generated: true}
+        emits: [metaspec.drafts.VariantAccepted]
+        payload:
+          metaspec.drafts.VariantAccepted:
+            revision_id: {generated: true}
+            draft_id: input.draft_id
+            variant_id: input.variant_id
+
+  - name: metaspec.drafts.SaveDraft
+    naming:
+      wire: save-draft
+      display: Save a draft
+      summary: Write the document file with the draft's edits and nothing else changed, comments included.
+    input:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+    outcomes:
+      - name: no-draft
+        unknown_instance: true
+        error: metaspec.drafts.NoSuchDraft
+        payload:
+          metaspec.drafts.NoSuchDraft: {draft_id: input.draft_id}
+      - name: not-writable
+        external: an edit cannot be written into the file keeping its comments and order
+        when_subject: {predicate: state == Open}
+        error: metaspec.drafts.NotWritable
+        payload:
+          metaspec.drafts.NotWritable: {message: {generated: true}}
+      - name: saved
+        moves: metaspec.drafts.Draft.save
+        instance: draft_id
+        emits: [metaspec.drafts.DraftSaved]
+        payload:
+          metaspec.drafts.DraftSaved: {draft_id: input.draft_id}
+        # The agent works on the open draft: a saved draft ends its open agent sessions.
+        affects:
+          - entity: metaspec.agents.AgentSession
+            where: draft_id == input.draft_id
+            moves: metaspec.agents.AgentSession.end
+      - name: not-open
+        wrong_state: true
+        error: metaspec.drafts.DraftNotOpen
+        payload:
+          metaspec.drafts.DraftNotOpen: {draft_id: input.draft_id}
+
+events:
+  - name: metaspec.drafts.DraftOpened
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+  - name: metaspec.drafts.PatchApplied
+    fields:
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.drafts.DraftSaved
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+  - name: metaspec.drafts.VariantAccepted
+    fields:
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: variant_id, type: metaspec.runs.VariantId}
+
+views:
+  - name: metaspec.drafts.Drafts
+    source: metaspec.drafts.Draft
+    consistency: read_your_writes
+    naming:
+      wire: drafts
+      display: Drafts
+    fields:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: base_digest, type: String}
+      - {name: state, type: metaspec.drafts.Draft.State}
+
+  - name: metaspec.drafts.Revisions
+    source: metaspec.drafts.Revision
+    consistency: read_your_writes
+    naming:
+      wire: revisions
+      display: Revisions
+    fields:
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: number, type: Integer}
+      - {name: patch, type: metaspec.drafts.Patch}
+      - {name: variant_id, type: Optional<metaspec.runs.VariantId>}
+      - {name: findings, type: List<metaspec.drafts.PatchFinding>}
+      - {name: state, type: metaspec.drafts.Revision.State}
+
+  - name: metaspec.drafts.DraftRevisions
+    source: metaspec.drafts.Revision
+    consistency: read_your_writes
+    params:
+      - {name: draft_id, type: metaspec.drafts.DraftId}
+    filter: draft_id == param.draft_id
+    naming:
+      wire: draft-revisions
+      display: Revisions of a draft
+    fields:
+      - {name: revision_id, type: metaspec.drafts.RevisionId}
+      - {name: number, type: Integer}

@@ -312,7 +312,8 @@ Running a pack's tool is running code from a repository. So:
 - L0 to L2 execute nothing of the pack.
 - metaspec runs a tool only for a pack the user trusted: `metaspec trust <name> --pack <dir>` (or
   `--manifest <file>`) records the digest of the manifest's `tool` section, adapters included.
-  A changed `tool` section asks again.
+  A changed `tool` section asks again. `metaspec trust --remove <name> --pack <dir>` withdraws
+  the trust of that directory.
 - The tool gets the pack directory as its working directory and no network by default.
 
 ## Presentation
@@ -782,6 +783,166 @@ every other command.
   component have a counterpart. Missing: the `Policies` section of an architecture page (the
   marked places outside parts and links are in the graph, `markers`, but not drawn as a section
   of their own). Expected missing: the catalog and every section of a run result.
+
+## Decided for the meta model (wave 4, 2026-11-28)
+
+The owner's decisions of 2026-11-28 and what writing `spec/` decided. The ESS system is
+`metaspec`.
+
+- A pack knows nothing of metaspec. metaspec holds the manifests (and the adapters that map a
+  pack's own tool output) of the public packs it knows, `packs/<name>.yaml`; a private pack's
+  manifest is given by path at run time.
+- metaspec is the top-level application over all packs: what it does for one pack it offers for
+  every pack, and the features a pack cannot use yet are listed per pack.
+- The meta model of a pack lives in metaspec as the ESS system `spec/` (chosen over a format
+  owned by ESS and over a repository of its own). It has two groups of domains: the pack's
+  meta model (`packs`, `blocks`, `documents`, `checks`) and the studio (`drafts`, `runs`,
+  `agents`), plus `quality`: measures of every pack's KPI catalogue and specification, their
+  values per pack and report, and a baseline that takes a better value and fails a worse one.
+- `spec/ess-inputs.yaml` pins its ess release (`requires: ess 0.99.9`); every ess command runs
+  inside `spec/`, where the pin applies. `task check` runs `check:spec`
+  (`scripts/check-spec-conform.sh`): validate with `--strict-requires`, then the conformance
+  suite on the interpreted target, synthesized once per digest of the sources under
+  `target/spec-conform/`. `spec/known-failing.txt` lists the scenarios that fail because the
+  synthesized scenario is wrong.
+- Pack data is read from files: those entities are `provided: true` and no command creates them.
+  What the pack's tool answers enters through commands of the tool runner (`RecordCheck`,
+  `RecordFinding`, `EndRun`, `RecordVariant`).
+- The level of adoption is a field of the pack held to the manifest by six invariants (the
+  rule of "Decided in wave 1"); ESS has no conditional value, so it is checked, not computed.
+- The generic edits are the variants of one `Edit` union carried by a patch; `apply` with
+  `dry_run` is two commands, `ApplyPatch` and `DryRunPatch`, because ess 0.99.9 answers no typed
+  response from a branch that writes nothing beside one that creates a revision.
+- A variant is written as a patch (the search uses the same operation set) and is accepted when
+  a revision takes it; it keeps one state.
+- The `ess-ui/1` model of the screens is not written yet: `ess ui check` needs a component
+  reached over the network and refuses the reads of the domains that have no command.
+
+The 22 `UNMAPPED:` markers of the first pass, settled on the owner's rule "decide, don't ask"
+with the author's recommendation (marker locations as in that pass; `spec/` holds none of them
+now):
+
+- D1 `packs.yaml:113` adapter: the manifest is metaspec-pack/1; `Pack.check_adapter` is a
+  `CheckAdapter` (args, exit, at, error, valid test, counts, finding lists of pointer templates
+  with a gate test and a subject rule), present exactly when `check` is a tool verb. Reason: it
+  is what `crates/metaspec-core/src/adapter.rs` does. ESS form: `check` is the only verb with an
+  adapter (the code has no other); there is no format name (the code maps onto
+  metaspec-findings/1 only); the untagged `gate` and `subject` of the manifest are tagged unions,
+  as ESS has no untagged union.
+- D2 `packs.yaml:197` gap key: one gap per pack and feature, `kind` (screen, measure, verb) and
+  `feature` (its id). Reason: a level is too coarse to say what a pack cannot use.
+- D3 `blocks.yaml:70` dependency edges: a provided `Dependency` row (pack, from, to, count).
+  Reason: an edge has its own count and the layering measure reads edges, not blocks.
+- D4 `blocks.yaml:128` KPI columns: `direction` and `status` typed as the pack's words
+  (`Optional<String>`), `gate` a `Boolean` (whether the KPI gates); `how` stays in `columns`.
+  Reason: the KPI-quality measures read them, and every catalogue writes `gate` as a Boolean on
+  every row: orgspec `kpis/catalogue.yaml` 62 `gate: false` and 49 `gate: true` (111 rows),
+  agenticspec 91 false and 34 true (125 rows), and both fixture catalogues `true`/`false`.
+- D5 `checks.yaml:84` check result: it references its document; a check of a draft's revision
+  records one, with an optional `revision_id` (RecordCheck and CheckRevision, D17). Reason: a
+  result is a record of a run, not a part of the document.
+- D6 `checks.yaml:125` finding to rule: an optional `rule_id` reference beside the tool's text.
+  Reason: a rule the pack's rules do not list must still be recorded.
+- D7 `drafts.yaml:21` edit targets: a part by its name, a link by its id
+  (`<from>-><to>:<carries>`, `#<n>` for repeats). Reason: the same ids the reader and findings
+  use (wave 2).
+- D8 `drafts.yaml:40` `set_field` reaches parts, links and the document's own keys. Reason: one
+  edit for every value a subject names.
+- D9 `drafts.yaml:100` pack edit verb: one `Edit` variant `pack_verb {verb, arguments: Json}`.
+  Reason: metaspec passes a pack's arguments on and keeps no pack vocabulary.
+- D10 `drafts.yaml:150` after save: `Saved` is final; undo is a new revision that reverts.
+  Reason: revisions are only ever added, so side-by-side comparison keeps every step.
+- D11 `drafts.yaml:175` revision findings and KPIs: stored with the revision (`findings`); the
+  KPI values wait for a schema of metaspec-result/1. Reason: a comparison must not re-run the
+  tool.
+- D12 `drafts.yaml:347` accepted variant: only into the draft whose revision its run read; a
+  variant of a run on the file goes into a draft of that document, opened first. Reason: a
+  variant is a patch on that base. ESS form: an `external:` refusal (`other-draft`,
+  `NotTheRunsDraft`). A typed guard over a copy of the run's draft on `Run` and `Variant`
+  validated, but ess 0.99.9 synthesis then built no scenario of AcceptVariant (ESS-SYNTH-003)
+  and left StartRun without a revision unwitnessed (ESS-SYNTH-020).
+- D13 `runs.yaml:57` run result: no typed members until metaspec-result/1 has a schema (a
+  comment). Reason: no contract to type it from.
+- D14 `runs.yaml:103` variant KPI values: the same, with metaspec-result/1.
+- D15 `agents.yaml:80` session's pack: carried by the draft (`Draft.pack`, read from the new
+  `Document.pack` when the draft is opened); the session keeps only `draft_id`. Reason: one
+  source for the pack, checked when the draft is opened.
+- D16 `agents.yaml:104` tool call: one record written after the answer, one state. Reason: the
+  answer is what is kept.
+- D17 `agents.yaml:120` agent tools: `query` reads views and is no command; `check` is the
+  command `CheckRevision` (agent and user), which records a `CheckResult` of the revision.
+  Reason: a check of a draft is a run of the tool like any other. ESS form: only a check the tool
+  answered is recorded (`answer: ran`); one it did not answer is the `external:` refusal
+  `NoAnswer`. A recorded answer the runner supplies broke the invariant "`ran` has `valid`" on
+  the interpreted target (ESS-CF-TARGET), and ESS has no conditional value.
+- D18 `agents.yaml:243` consent: a channel per pack, as written. ESS form: the private-pack
+  refusal stays `external:`, as ess 0.99.9 cannot guard the pack's visibility and its channel
+  rows in one predicate.
+- D19 `quality.yaml:38` directions: `higher_is_better` / `lower_is_better`. Reason: metaspec's
+  own words; a pack's catalogue keeps its own.
+- D20 `quality.yaml:89` metaspec is a pack with its own KPI catalogue; `Measure.kpi_id` is
+  required. Reason: every measure is a KPI row.
+- D21 `quality.yaml:150` ids behind a value: one `Evidence` row per id (`RecordEvidence`), with
+  optional typed references to a KPI, rule, document, finding or block; the `behind` list is
+  gone. Reason: ESS relates one field, not the elements of a list.
+- D22 `quality.yaml:179` baseline: a file committed in metaspec, one per measure and pack.
+  Reason: a ratchet is reviewed in the diff like the code it guards.
+
+The design review of 2026-11-28 (`spec/hardening/design-review-1.md`) and what fixing it decided.
+A rule ESS can declare is a typed guard or invariant where ess 0.99.9 synthesis writes a
+scenario for it; where the typed form costs scenarios (a guard over a provided row's fields, or a
+row-set guard that blocks the arrangement of another command), it is an `external:` refusal with
+a comment in `spec/` that names the typed form and the refusal it got.
+
+- D23 `Document.pack` is the pack the document comes from (the pack whose manifest's paths
+  select its file), not the pack of its class: with `extends` a private pack's document of a
+  public pack's class carries the private pack, so its drafts fall under the private-pack consent.
+- D24 The agent-channel consent holds for every call of the agent, not only for StartSession:
+  ApplyPatch, DryRunPatch, CheckRevision, StartRun and RecordToolCall carry the external refusal
+  `agent-channel-off` (one `outcome_groups:` entry in `agents.yaml`; external for D18's reason).
+  TurnOnChannel refuses a second channel of a pack (`ChannelExists`).
+- D25 SaveDraft ends the open agent sessions of the draft it saves (an `affects:` move), and
+  StartSession refuses a saved draft. Reason: the agent works on the open draft.
+- D26 A pack has its resolved `directory`; `Pack.trust` references the Trust row of that
+  directory (none: not trusted). TrustPack takes the pack, the directory and the digest the user
+  was shown, and refuses another directory, a pack without a tool and a digest that is not the
+  pack's (external: guards over the provided Pack's fields get no scenario, ESS-SYNTH-004).
+  StartRun's `not-trusted` covers a trust of another digest (a changed tool section asks again);
+  a tool without the verb is its own refusal `no-verb`.
+- D27 RecordCheck records a check of the document file and takes no revision; a check of a
+  revision is CheckRevision, which holds the revision to its draft (amends D5). A revision copies
+  its draft's `document_id`, so StartRun refuses a revision that does not exist or belongs to
+  another document (its `other-document` refusal gets no scenario from ess 0.99.9 synthesis,
+  ESS-SYNTH-003). `DocumentChecked` and `RevisionChecked` are two events.
+- D28 A private pack's baselines are in the user's state directory, keyed by the pack's name; a
+  public or fixture pack's are committed in metaspec (owner, 2026-11-28; amends D22). A
+  baseline's direction is the measure's, and one baseline per pack and measure is refused as a
+  second (both external: the typed forms cost Ratchet's scenarios).
+- D29 New rows the design names: `checks.RuleCount` (counts per rule, metaspec-findings/1),
+  `runs.KpiValue` (a KPI value per document and per part of a finished run, metaspec-result/1;
+  amends D13) and `blocks.Declaration` (entities with their lifecycles, commands with their
+  refusals, events, views and types of a block, with source lines; metaspec-model/1). The best's
+  and the variants' values are not KpiValue rows: D14 stands (a comment in `spec/`).
+- D30 A measurement has an optional breakdown key (a rule id, a mutant class: the pack's data, no
+  vocabulary of metaspec) and a `value` or a `gap_id` referencing the pack's Gap, replacing the
+  `Reading` union; evidence has an optional `value`. A measure of another question than its
+  report is refused (external: it reads the provided Measure).
+- D31 A document class carries an optional `expect: invalid` for a class of broken examples
+  (decided in the plan store); gate fidelity and refusal power read it.
+- D32 A document has the `digest` of its file; a draft starts from it, and a check result records
+  the digest of the text it checked and when (`checked_at`), so the newest result is a
+  document's check status and a result of another digest is stale.
+- D33 A draft of a records/1 document takes only the pack's edit verbs (`pack_verb`); a generic
+  edit of it is refused as PatchRefused. The agent's StartRun refuses `search` (external
+  `agent-search`: ESS has no guard over the caller's actor). `UntrustPack` is
+  `metaspec trust --remove <name> --pack <dir>`.
+- D34 Not declared, ESS limits, each with a comment in `spec/`: a pack with `extends` is private
+  (the invariant validates, and the interpreted target then mints no provided Pack, ESS-CF-TARGET);
+  one gap per pack and feature (no command creates a Gap, and a struct identity breaks the
+  `gaps` relation, ESS-ENTITY-005); revisions numbered from 1 in order (no value source counts
+  rows); a measurement's gap is its report's pack's and names its measure (a cross-row comparison
+  of text); a measurement holds not both a value and a gap (synthesis then writes no scenario of
+  RecordMeasurement, ESS-SYNTH-003).
 
 ## Open questions
 

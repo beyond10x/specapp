@@ -1,0 +1,415 @@
+domain: metaspec.documents
+
+summary: >-
+  Composed documents of a pack (L2): the document classes a manifest declares, their views, the
+  documents, and the parts and links of a parts-links/1 document as metaspec-graph/1 reads them.
+  Read from the pack's files; no command creates them. A draft changes a document through
+  patches (metaspec.drafts), never these rows.
+
+naming:
+  wire: documents
+  display: Documents
+
+types:
+  - name: metaspec.documents.ClassId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.documents.ViewId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.documents.DocumentId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.documents.PartId
+    kind: newtype
+    of: Uuid
+  - name: metaspec.documents.LinkId
+    kind: newtype
+    of: Uuid
+
+  - name: metaspec.documents.Shape
+    kind: enum
+    variants:
+      - {name: parts_links, wire: parts-links/1}
+      - {name: records, wire: records/1}
+
+  - name: metaspec.documents.ContainKind
+    kind: enum
+    naming:
+      summary: "`in`: a part sits inside the part its field names. `per`: a part exists once per instance of the part its field names."
+    variants: [in, per]
+
+  - name: metaspec.documents.Contain
+    kind: struct
+    fields:
+      - name: kind
+        type: metaspec.documents.ContainKind
+      - name: field
+        type: String
+        summary: The name of the part's field that names the containing part.
+
+  - name: metaspec.documents.Table
+    kind: struct
+    naming:
+      summary: A table of a records/1 document class.
+    fields:
+      - {name: title, type: String}
+      - {name: at, type: String}
+      - {name: key, type: Optional<String>}
+      - {name: columns, type: List<String>}
+
+  - name: metaspec.documents.Layout
+    kind: enum
+    variants: [rows, nested]
+
+  - name: metaspec.documents.RowsBy
+    kind: enum
+    variants: [layer, family]
+
+  - name: metaspec.documents.Expect
+    kind: enum
+    naming:
+      summary: >-
+        What the pack's tool must answer for every document of a class. invalid: the class holds
+        broken examples, each of which a check must refuse; the documents of a class without
+        `expect` are meant to be valid.
+    variants: [invalid]
+
+  - name: metaspec.documents.Marker
+    kind: struct
+    naming:
+      summary: >-
+        A marked place, written `{value, vary}` in the document, where a search may change a
+        value. The path is relative to its part or link, or to the document.
+    fields:
+      - {name: path, type: String}
+      - {name: value, type: Json}
+      - {name: vary, type: Json}
+
+entities:
+  - name: metaspec.documents.DocumentClass
+    naming:
+      summary: A document class the manifest declares, with a shape.
+    provided: true
+    identity:
+      name: class_id
+      type: metaspec.documents.ClassId
+    fields:
+      - name: pack
+        type: metaspec.packs.PackName
+      - name: class
+        type: String
+      - name: title
+        type: String
+      - name: paths
+        type: List<String>
+      - name: shape
+        type: metaspec.documents.Shape
+      - name: name
+        type: String
+        summary: The key of a document that holds its name.
+      - name: contain
+        type: Optional<metaspec.documents.Contain>
+      - name: tables
+        type: List<metaspec.documents.Table>
+        summary: Empty for a parts-links/1 class.
+      - name: expect
+        type: Optional<metaspec.documents.Expect>
+        summary: >-
+          `invalid` for a class of broken examples (the manifest's `expect: invalid`). Gate
+          fidelity and refusal power tell a broken example that wrongly passes from a valid one
+          by it.
+    relations:
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: views
+        kind: owns
+        target: metaspec.documents.View
+        cardinality: many
+        via: class_id
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.documents.View
+    naming:
+      summary: >-
+        A view of a parts-links/1 class: which blocks and link names it shows and how it is laid
+        out. A view without `blocks` shows every part, without `carries` every link; metaspec
+        adds the implicit view "All parts and links" when the declared ones leave something out.
+    provided: true
+    identity:
+      name: view_id
+      type: metaspec.documents.ViewId
+    fields:
+      - {name: class_id, type: metaspec.documents.ClassId}
+      - {name: id, type: String}
+      - {name: title, type: String}
+      - {name: layout, type: metaspec.documents.Layout}
+      - {name: rows, type: metaspec.documents.RowsBy}
+      - {name: blocks, type: List<String>}
+      - {name: carries, type: List<String>}
+      - {name: implicit, type: Boolean}
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.documents.Document
+    naming:
+      summary: One document of a class, a file inside the pack.
+    provided: true
+    identity:
+      name: document_id
+      type: metaspec.documents.DocumentId
+    fields:
+      - name: class_id
+        type: metaspec.documents.ClassId
+      - name: pack
+        type: metaspec.packs.PackName
+        summary: >-
+          The pack the document comes from: the pack whose manifest's paths select its file,
+          not the pack of its class. With `extends` a private pack adds documents to a public
+          pack's class; such a document carries the private pack, so a draft of it carries the
+          private pack and the private-pack consent of the agent channel applies.
+      - name: path
+        type: String
+        summary: The path relative to the pack, with forward slashes.
+      - name: digest
+        type: String
+        summary: >-
+          The digest of the file's bytes as read. A draft starts from it (Draft.base_digest);
+          a check result of another digest is a check of another state of the file.
+      - name: name
+        type: String
+        summary: The value of the key the class names, else the file's stem.
+      - name: border
+        type: List<String>
+        summary: The names the document's border lists, as written (parts-links/1).
+      - name: markers
+        type: List<metaspec.documents.Marker>
+        summary: Marked places outside the parts and links.
+    relations:
+      # A document exists only as a file a class's paths select, which reads as `owns` from
+      # the class. Both rows are read from files and no command deletes either, so the delete
+      # question `owns` answers does not arise; `references` is written because ess 0.99.9
+      # cannot place a provided row that a provided owner holds as a fixture (ESS-SYNTH-004 on
+      # every command reading a document). Decision for the owner's review.
+      - name: class
+        kind: references
+        target: metaspec.documents.DocumentClass
+        cardinality: one
+        via: class_id
+      - name: pack
+        kind: references
+        target: metaspec.packs.Pack
+        cardinality: one
+        via: pack
+      - name: parts
+        kind: owns
+        target: metaspec.documents.Part
+        cardinality: many
+        via: document_id
+      - name: links
+        kind: owns
+        target: metaspec.documents.Link
+        cardinality: many
+        via: document_id
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.documents.Part
+    naming:
+      summary: A part of a parts-links/1 document; it names a block.
+    provided: true
+    identity:
+      name: part_id
+      type: metaspec.documents.PartId
+    fields:
+      - name: document_id
+        type: metaspec.documents.DocumentId
+      - name: id
+        type: String
+        summary: The part's name in the document.
+      - name: block
+        type: Optional<String>
+        summary: The block the part names, as written.
+      - name: block_id
+        type: Optional<metaspec.blocks.BlockId>
+        summary: The block of that name; absent for a block the pack does not have.
+      - name: kind
+        type: Optional<String>
+        summary: The part's field `kind`, when it is one text.
+      - name: fields
+        type: Map<String, Json>
+        summary: Every field but `block`, a marked place read as its value.
+      - name: inside
+        type: Optional<metaspec.documents.PartId>
+        summary: The part it sits in (contain in).
+      - name: per
+        type: Optional<metaspec.documents.PartId>
+        summary: The part it exists once per instance of (contain per).
+      - name: on_border
+        type: Boolean
+      - name: markers
+        type: List<metaspec.documents.Marker>
+    invariants:
+      # `contain` has exactly one key, so a part sits in another part or exists per another, not both.
+      - {any: [not defined(inside), not defined(per)]}
+    relations:
+      - name: block
+        kind: references
+        target: metaspec.blocks.Block
+        cardinality: one
+        via: block_id
+      - name: inside
+        kind: references
+        target: metaspec.documents.Part
+        cardinality: one
+        via: inside
+      - name: per
+        kind: references
+        target: metaspec.documents.Part
+        cardinality: one
+        via: per
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+  - name: metaspec.documents.Link
+    naming:
+      summary: A link of a parts-links/1 document, from a part to a part, carrying a link name.
+    provided: true
+    identity:
+      name: link_id
+      type: metaspec.documents.LinkId
+    fields:
+      - name: document_id
+        type: metaspec.documents.DocumentId
+      - name: id
+        type: String
+        summary: "`<from>-><to>:<carries>`, `?` for a missing end or name, `#<n>` appended to the n-th repeat."
+      - name: from
+        type: Optional<String>
+      - name: to
+        type: Optional<String>
+      - name: carries
+        type: Optional<String>
+      - name: from_part
+        type: Optional<metaspec.documents.PartId>
+        summary: The part `from` names; absent for a name no part has (drawn as a ghost box).
+      - name: to_part
+        type: Optional<metaspec.documents.PartId>
+      - name: fields
+        type: Map<String, Json>
+      - name: added_by
+        type: Optional<String>
+        summary: The default of the pack that added the link the document did not write.
+      - name: markers
+        type: List<metaspec.documents.Marker>
+    relations:
+      - name: from_part
+        kind: references
+        target: metaspec.documents.Part
+        cardinality: one
+        via: from_part
+      - name: to_part
+        kind: references
+        target: metaspec.documents.Part
+        cardinality: one
+        via: to_part
+    lifecycle:
+      initial: Loaded
+      states: [Loaded]
+      terminal: [Loaded]
+
+views:
+  - name: metaspec.documents.Classes
+    source: metaspec.documents.DocumentClass
+    consistency: read_your_writes
+    params:
+      - {name: pack, type: metaspec.packs.PackName}
+    filter: pack == param.pack
+    naming:
+      wire: classes
+      display: Document classes
+    fields:
+      - {name: class_id, type: metaspec.documents.ClassId}
+      - {name: class, type: String}
+      - {name: title, type: String}
+      - {name: shape, type: metaspec.documents.Shape}
+      - {name: expect, type: Optional<metaspec.documents.Expect>}
+
+  - name: metaspec.documents.ClassViews
+    source: metaspec.documents.View
+    consistency: read_your_writes
+    params:
+      - {name: class_id, type: metaspec.documents.ClassId}
+    filter: class_id == param.class_id
+    naming:
+      wire: views
+      display: Views of a class
+    fields:
+      - {name: view_id, type: metaspec.documents.ViewId}
+      - {name: id, type: String}
+      - {name: title, type: String}
+      - {name: layout, type: metaspec.documents.Layout}
+      - {name: implicit, type: Boolean}
+
+  - name: metaspec.documents.Documents
+    source: metaspec.documents.Document
+    consistency: read_your_writes
+    params:
+      - {name: class_id, type: metaspec.documents.ClassId}
+    filter: class_id == param.class_id
+    naming:
+      wire: documents
+      display: Documents of a class
+    fields:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+      - {name: path, type: String}
+      - {name: name, type: String}
+      - {name: pack, type: metaspec.packs.PackName}
+      - {name: digest, type: String}
+
+  - name: metaspec.documents.Parts
+    source: metaspec.documents.Part
+    consistency: read_your_writes
+    params:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+    filter: document_id == param.document_id
+    naming:
+      wire: parts
+      display: Parts of a document
+    fields:
+      - {name: part_id, type: metaspec.documents.PartId}
+      - {name: id, type: String}
+      - {name: block, type: Optional<String>}
+      - {name: block_id, type: Optional<metaspec.blocks.BlockId>}
+      - {name: inside, type: Optional<metaspec.documents.PartId>}
+      - {name: per, type: Optional<metaspec.documents.PartId>}
+      - {name: on_border, type: Boolean}
+
+  - name: metaspec.documents.Links
+    source: metaspec.documents.Link
+    consistency: read_your_writes
+    params:
+      - {name: document_id, type: metaspec.documents.DocumentId}
+    filter: document_id == param.document_id
+    naming:
+      wire: links
+      display: Links of a document
+    fields:
+      - {name: link_id, type: metaspec.documents.LinkId}
+      - {name: id, type: String}
+      - {name: from, type: Optional<String>}
+      - {name: to, type: Optional<String>}
+      - {name: carries, type: Optional<String>}
+      - {name: added_by, type: Optional<String>}
